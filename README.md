@@ -91,6 +91,14 @@ docker exec -it EduSpace-redis redis-cli ping
 # Should return: PONG
 ```
 
+### 6. Run setup.sh
+
+```bash
+chmod +x setup.sh
+./setup.sh
+# To install the shared library bettwen all services
+```
+
 ---
 
 ✨ **Setup Complete!** You're ready to go.
