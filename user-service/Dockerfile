@@ -5,13 +5,15 @@ WORKDIR /usr/src/app
 COPY package*.json ./
 
 RUN npm install
+RUN npx prisma generate
+RUN npx prisma db push
 
 COPY ./src ./src
 COPY tsconfig.json ./
 
 #Build Typescript
 RUN npm run build
-
+    
 EXPOSE 3002
 
 CMD ["npm", "start"]

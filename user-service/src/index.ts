@@ -6,9 +6,14 @@ import morgan from "morgan";
 dotenv.config();
 
 const app = express();
-app.use(morgan("dev"));
+
+app.use(morgan("dev")); // morgan is just to see the URL requests
+
+// Middlewares
 app.use(cors());
 app.use(express.json());
+
+
 
 app.get("/users", (req: Request, res: Response) => {
   res.json([
@@ -17,6 +22,7 @@ app.get("/users", (req: Request, res: Response) => {
   ]);
 });
 
+// Server
 const PORT = parseInt(process.env.PORT || "3002", 10);
 app.listen(PORT, "0.0.0.0", () => {
   console.log(`User service running on port http://localhost:${PORT}`);
