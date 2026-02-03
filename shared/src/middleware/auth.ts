@@ -25,6 +25,9 @@ export const authenticate = (
 
     const token = authHeader.substring(7); // Remove 'Bearer ' prefix
     const decoded = verifyToken(token);
+    if (!decoded) {
+      return sendError(res, "Invalid or expired token", 401);
+    }
     req.user = decoded;
 
     next();
