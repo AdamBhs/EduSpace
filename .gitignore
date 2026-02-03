@@ -42,4 +42,6 @@ coverage/
 tmp/
 temp/
 
-setupInstall.sh
+# Prisma
+/src/generated/prisma
+/prisma/migrations
