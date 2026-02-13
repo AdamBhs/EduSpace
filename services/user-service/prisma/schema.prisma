@@ -11,9 +11,9 @@ model Users {
   userId String @id @default(uuid()) @db.Uuid
   email String @unique
   password String
-  status String
   created_at DateTime @default(now())
   updated_at DateTime @updatedAt
+  isVerified Boolean @default(false)
 
   // Relations
   profile User_profile?

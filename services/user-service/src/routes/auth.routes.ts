@@ -27,6 +27,13 @@ router.post("/register", validate(registerSchema), AuthController.register);
 router.post("/login", validate(loginSchema), AuthController.login);
 
 /**
+ * @route   Get /api/auth/activate/:token
+ * @desc    Activate account
+ * @access  Public
+ */
+router.get("/activate/:token", AuthController.activate);
+
+/**
  * @route   GET /api/auth/verify
  * @desc    Verify JWT token (for other services)
  * @access  Protected

@@ -5,9 +5,11 @@ import {
   hashPassword,
   comparePassword,
 } from "../../../../shared/src/utils/password";
-import { generateToken } from "../../../../shared/src/utils/jwt";
+import { generateToken, verifyToken } from "../../../../shared/src/utils/jwt";
 import { sendSuccess, sendError } from "../../../../shared/src/utils/response";
 import crypto from "crypto";
+import nodemailer from "nodemailer";
+import jwt from "jsonwebtoken";
 
 declare global {
   namespace Express {
@@ -50,7 +52,6 @@ export class AuthController {
           data: {
             email,
             password: hashedPassword,
-            status: "active",
           },
         });
 
@@ -73,6 +74,28 @@ export class AuthController {
         userId: user.userId,
         email: user.email,
       });
+      // TODO: CHANGE LETTER TO BE .env.FRONTEND_URL
+      const activationLink = `${process.env.BACKEND_URL}/api/auth/activate/${token}`;
+
+      // Configure nodemailer
+      const transporter = nodemailer.createTransport({
+        service: "gmail",
+        auth: {
+          user: process.env.EMAIL_USER,
+          pass: process.env.EMAIL_PASS,
+        },
+      });
+
+      await transporter.sendMail({
+        to: user.email,
+        subject: "Activate your account",
+        html: `
+          <h2>Welcome ${firstName}!</h2>
+          <p>Click the link below to activate your account:</p>
+          <a href="${activationLink}">Activate Account</a>
+          <p>This link will expire in 24 hours.</p>
+        `,
+      });
 
       sendSuccess(
         res,
@@ -81,7 +104,6 @@ export class AuthController {
           user: {
             userId: user.userId,
             email: user.email,
-            status: user.status,
           },
         },
         "User registered successfully",
@@ -93,6 +115,34 @@ export class AuthController {
     }
   }
 
+  /**
+   * Activate account
+   * POST /api/auth/activate/:token
+   */
+  static async activate(req: Request, res: Response): Promise<void> {
+    try {
+      const { token } = req.params;
+
+      if (typeof token !== "string") {
+        sendError(res, "Invalid token", 400);
+        return;
+      }
+
+      const decoded = jwt.verify(token, process.env.JWT_SECRET!) as {
+        userId: string;
+      };
+
+      await prisma.users.update({
+        where: { userId: decoded.userId },
+        data: { isVerified: true },
+      });
+
+      res.redirect(`${process.env.FRONTEND_URL}/activation-success`);
+    } catch (error) {
+      console.error("Activate error:", error);
+      sendError(res, "Activate failed", 500);
+    }
+  }
   /**
    * Login user
    * POST /api/auth/login
@@ -115,7 +165,7 @@ export class AuthController {
       }
 
       // Check if account is active
-      if (user.status !== "active") {
+      if (!user.isVerified) {
         sendError(res, "Account is not active", 403);
         return;
       }
@@ -139,7 +189,7 @@ export class AuthController {
         user: {
           userId: user.userId,
           email: user.email,
-          status: user.status,
+
           profile: user.profile
             ? {
                 firstName: user.profile.first_name,
@@ -188,7 +238,7 @@ export class AuthController {
         user: {
           userId: user.userId,
           email: user.email,
-          status: user.status,
+          isVerified: user.isVerified,
           profile: user.profile
             ? {
                 firstName: user.profile.first_name,

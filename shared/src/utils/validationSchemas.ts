@@ -12,6 +12,7 @@ export const registerSchema = z.object({
   lastName: z.string().min(1, "Last name is required"),
   phoneNumber: z.string().optional(),
   timezone: z.string().optional(),
+  isVerified: z.boolean().default(false),
 });
 
 export const loginSchema = z.object({

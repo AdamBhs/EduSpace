@@ -10,7 +10,8 @@
     "baseUrl": ".",
     "paths": {
       "@shared/*": ["shared/src/*"]
-    }
+    },
+    "types": ["node"]
   },
   "files": [],
   "references": [{ "path": "./shared" }, { "path": "./services/user-service" }]

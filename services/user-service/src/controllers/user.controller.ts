@@ -33,7 +33,7 @@ export class UserController {
         user: {
           userId: user.userId,
           email: user.email,
-          status: user.status,
+          isVerified: user.isVerified,
           createdAt: user.created_at,
           profile: user.profile
             ? {
@@ -118,46 +118,6 @@ export class UserController {
   }
 
   /**
-   * Update user email
-   * PUT /api/users/me/email
-   */
-  static async updateEmail(req: Request, res: Response): Promise<void> {
-    try {
-      const userId = req.user?.userId;
-      const { newEmail } = req.body;
-
-      if (!userId) {
-        sendError(res, "User not authenticated", 401);
-        return;
-      }
-
-      // Check if email is already taken
-      const existingUser = await prisma.users.findUnique({
-        where: { email: newEmail },
-      });
-
-      if (existingUser && existingUser.userId !== userId) {
-        sendError(res, "Email already in use", 409);
-        return;
-      }
-
-      // Update email
-      const updatedUser = await prisma.users.update({
-        where: { userId },
-        data: { email: newEmail },
-      });
-
-      sendSuccess(res, {
-        message: "Email updated successfully",
-        email: updatedUser.email,
-      });
-    } catch (error) {
-      console.error("Update email error:", error);
-      sendError(res, "Failed to update email", 500);
-    }
-  }
-
-  /**
    * Get user by ID (for other services)
    * GET /api/users/:userId
    */
@@ -181,7 +141,7 @@ export class UserController {
         user: {
           userId: user.userId,
           email: user.email,
-          status: user.status,
+          isVerified: user.isVerified,
           profile: user.profile
             ? {
                 firstName: user.profile.first_name,
@@ -210,16 +170,12 @@ export class UserController {
         return;
       }
 
-      // Soft delete by updating status
-      await prisma.users.update({
-        where: { userId },
-        data: { status: "deleted" },
+      await prisma.user_profile.delete({
+        where: { user_id: userId },
       });
-
-      // Or hard delete:
-      // await prisma.users.delete({
-      //   where: { userId }
-      // });
+      await prisma.users.delete({
+        where: { userId },
+      });
 
       sendSuccess(res, {
         message: "Account deleted successfully",
@@ -255,7 +211,7 @@ export class UserController {
       const formattedUsers = users.map((user) => ({
         userId: user.userId,
         email: user.email,
-        status: user.status,
+        isVerified: user.isVerified,
         profile: user.profile
           ? {
               firstName: user.profile.first_name,

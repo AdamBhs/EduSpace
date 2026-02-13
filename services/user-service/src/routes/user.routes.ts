@@ -31,18 +31,6 @@ router.put(
 );
 
 /**
- * @route   PUT /api/users/me/email
- * @desc    Update user email
- * @access  Protected
- */
-router.put(
-  "/me/email",
-  authenticate,
-  validate(updateEmailSchema),
-  UserController.updateEmail,
-);
-
-/**
  * @route   DELETE /api/users/me
  * @desc    Delete user account
  * @access  Protected
