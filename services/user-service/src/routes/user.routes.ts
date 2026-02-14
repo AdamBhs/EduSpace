@@ -8,8 +8,11 @@ import {
   updateEmailSchema,
   batchUsersSchema,
 } from "../../../../shared/src/utils/validationSchemas";
+import multer from "multer";
+import { uploadAvatar } from "../controllers/uploadAvatar.controller";
 
 const router = Router();
+const upload = multer(); // memory storage
 
 /**
  * @route   GET /api/users/me
@@ -55,5 +58,12 @@ router.post(
   validate(batchUsersSchema),
   UserController.getUsersByIds,
 );
+
+/**
+ * @route   PUT /api/users/upload_avatar
+ * @desc    Update avatar picture url
+ * @access  Protected
+ */
+router.post("/upload_avatar", authenticate, upload.single("file"), uploadAvatar);
 
 export default router;

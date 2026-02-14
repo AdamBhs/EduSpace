@@ -50,7 +50,7 @@ app.use((req: Request, res: Response) => {
 app.use(errorHandler);
 
 // Server
-const PORT = parseInt(process.env.PORT || "3002", 10);
-app.listen(PORT, "0.0.0.0", () => {
+const PORT = process.env.PORT || 3002;
+app.listen(PORT, () => {
   console.log(`User service running on port http://localhost:${PORT}`);
 });

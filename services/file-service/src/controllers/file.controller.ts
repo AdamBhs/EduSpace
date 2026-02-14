@@ -1,37 +1,58 @@
 import { Request, Response } from "express";
-import multer from "multer";
-import { uploadFile } from "../services/s3.service";
+import { PutObjectCommand } from "@aws-sdk/client-s3";
+import { s3 } from "../services/s3_service";
+import { prisma } from "../db/client";
+import { v4 as uuid } from "uuid";
+import { sendSuccess, sendError } from "../../../../shared/src/utils/response";
+import dotenv from "dotenv";
 
-const storage = multer.memoryStorage(); // store in memory before sending to S3
-const upload = multer({
-  storage,
-  limits: { fileSize: 10 * 1024 * 1024 }, // 10MB max
-});
+dotenv.config();
 
-export const uploadAvatar = [
-  upload.single("file"),
-  async (req: Request, res: Response) => {
-    try {
-      if (!req.file) {
-        return res.status(400).json({ message: "No File uploaded" });
-      }
-
-      const userId = (req as any).user.id;
-      const key = `avatars/${userId}-${Date.now()}-${req.file.originalname}`;
-
-      // Upload to S3
-      const avatarUrl = await uploadFile(req.file, key);
-
-      // TODO: Save metadata in Postegres here
-      const fileRecord = await prisma
-
-
-      return res.status(201).json({ avatarUrl });
-    } catch (error) {
-      console.error(error);
-      return res.status(500).json({ message: "Failed to upload avatar" });
+export const uploadFile = async (req: Request, res: Response) => {
+  try {
+    const file = req.file;
+    if (!file) {
+      return sendError(res, "No File uploaded", 400);
     }
-  },
-];
+    const fileId = uuid();
+    const bucket = process.env.MINIO_BUCKET!;
+    const key = `files/${fileId}-${file.originalname}`;
 
-export default uploadAvatar;
+    // Upload to MinIO
+    await s3.send(
+      new PutObjectCommand({
+        Bucket: bucket,
+        Key: key,
+        Body: file.buffer,
+        ContentType: file.mimetype,
+      }),
+    );
+
+    // Save to metaData in DB
+    const savedFile = await prisma.file.create({
+      data: {
+        id: fileId,
+        bucket,
+        key,
+        originalName: file.originalname,
+        mimeType: file.mimetype,
+        size: file.size,
+        entityType: req.body.entityType,
+        entityId: req.body.entityId,
+      },
+    });
+
+    return sendSuccess(
+      res,
+      {
+        fileId: savedFile.id,
+        key: savedFile.key,
+      },
+      "File Upload successfuly",
+      201,
+    );
+  } catch (error) {
+    console.error(error);
+    sendError(res, "Upload faild", 500);
+  }
+};

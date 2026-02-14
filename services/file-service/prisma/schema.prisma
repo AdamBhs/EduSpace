@@ -15,11 +15,12 @@ datasource db {
 
 model File {
   id String @id @default(uuid())
-  user_id String
-  type String
-  key String
-  url String
+  bucket String
+  key String @unique
+  originalName String
+  mimeType String
+  size Int
+  entityType String?
+  entityId String?
   created_at DateTime @default(now())
-
-  @@index([user_id])
 }
