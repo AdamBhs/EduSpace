@@ -7,7 +7,7 @@ datasource db {
   provider = "postgresql"
 }
 
-model Users {
+model User {
   userId String @id @default(uuid()) @db.Uuid
   email String @unique
   password String
@@ -31,7 +31,7 @@ model User_profile {
   updated_at DateTime @updatedAt
 
   // relation
-  user Users @relation(fields: [user_id], references: [userId], onDelete: Cascade)
+  user User @relation(fields: [user_id], references: [userId], onDelete: Cascade)
 }
 
 model Password_reset {
@@ -43,7 +43,7 @@ model Password_reset {
   created_at DateTime @default(now())
 
   // relation
-  user Users @relation(fields: [user_id], references: [userId], onDelete: Cascade)
+  user User @relation(fields: [user_id], references: [userId], onDelete: Cascade)
 
   @@index([user_id])
 }

@@ -33,7 +33,7 @@ export class AuthController {
         req.body;
 
       // Check if user already exists
-      const existingUser = await prisma.users.findUnique({
+      const existingUser = await prisma.user.findUnique({
         where: { email },
       });
 
@@ -48,7 +48,7 @@ export class AuthController {
       // Create user with profile in a transaction
       const user = await prisma.$transaction(async (tx) => {
         // Create user
-        const newUser = await tx.users.create({
+        const newUser = await tx.user.create({
           data: {
             email,
             password: hashedPassword,
@@ -132,7 +132,7 @@ export class AuthController {
         userId: string;
       };
 
-      await prisma.users.update({
+      await prisma.user.update({
         where: { userId: decoded.userId },
         data: { isVerified: true },
       });
@@ -152,7 +152,7 @@ export class AuthController {
       const { email, password } = req.body;
 
       // Find user with profile
-      const user = await prisma.users.findUnique({
+      const user = await prisma.user.findUnique({
         where: { email },
         include: {
           profile: true,
@@ -221,7 +221,7 @@ export class AuthController {
         return;
       }
 
-      const user = await prisma.users.findUnique({
+      const user = await prisma.user.findUnique({
         where: { userId },
         include: {
           profile: true,
@@ -265,7 +265,7 @@ export class AuthController {
       const { email } = req.body;
 
       // Find user
-      const user = await prisma.users.findUnique({
+      const user = await prisma.user.findUnique({
         where: { email },
       });
 
@@ -351,7 +351,7 @@ export class AuthController {
 
       // Update password and mark token as used in a transaction
       await prisma.$transaction([
-        prisma.users.update({
+        prisma.user.update({
           where: { userId: passwordReset.user_id },
           data: { password: hashedPassword },
         }),

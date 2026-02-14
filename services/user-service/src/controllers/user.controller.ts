@@ -6,7 +6,7 @@ import { sendSuccess, sendError } from "../../../../shared/src/utils/response";
 export class UserController {
   /**
    * Get current user profile
-   * GET /api/users/me
+   * GET /api/user/me
    */
   static async getProfile(req: Request, res: Response): Promise<void> {
     try {
@@ -17,7 +17,7 @@ export class UserController {
         return;
       }
 
-      const user = await prisma.users.findUnique({
+      const user = await prisma.user.findUnique({
         where: { userId },
         include: {
           profile: true,
@@ -54,12 +54,12 @@ export class UserController {
 
   /**
    * Update user profile
-   * PUT /api/users/me
+   * PUT /api/user/me
    */
   static async updateProfile(req: Request, res: Response): Promise<void> {
     try {
       const userId = req.user?.userId;
-      const { firstName, lastName, avatarUrl, phoneNumber, timezone } =
+      const { firstName, lastName, phoneNumber, timezone } =
         req.body;
 
       if (!userId) {
@@ -68,7 +68,7 @@ export class UserController {
       }
 
       // Check if user exists
-      const user = await prisma.users.findUnique({
+      const user = await prisma.user.findUnique({
         where: { userId },
         include: { profile: true },
       });
@@ -82,7 +82,6 @@ export class UserController {
       const updateData: any = {};
       if (firstName !== undefined) updateData.first_name = firstName;
       if (lastName !== undefined) updateData.last_name = lastName;
-      if (avatarUrl !== undefined) updateData.avatar_url = avatarUrl;
       if (phoneNumber !== undefined) updateData.phone_number = phoneNumber;
       if (timezone !== undefined) updateData.timezone = timezone;
 
@@ -94,7 +93,6 @@ export class UserController {
           user_id: userId,
           first_name: firstName || "",
           last_name: lastName || "",
-          avatar_url: avatarUrl || null,
           phone_number: phoneNumber || null,
           timezone: timezone || "UTC",
         },
@@ -119,13 +117,13 @@ export class UserController {
 
   /**
    * Get user by ID (for other services)
-   * GET /api/users/:userId
+   * GET /api/user/:userId
    */
   static async getUserById(req: Request, res: Response): Promise<void> {
     try {
       const userId = req.user?.userId;
 
-      const user = await prisma.users.findUnique({
+      const user = await prisma.user.findUnique({
         where: { userId },
         include: {
           profile: true,
@@ -159,7 +157,7 @@ export class UserController {
 
   /**
    * Delete user account
-   * DELETE /api/users/me
+   * DELETE /api/user/me
    */
   static async deleteAccount(req: Request, res: Response): Promise<void> {
     try {
@@ -173,7 +171,7 @@ export class UserController {
       await prisma.user_profile.delete({
         where: { user_id: userId },
       });
-      await prisma.users.delete({
+      await prisma.user.delete({
         where: { userId },
       });
 
@@ -187,10 +185,10 @@ export class UserController {
   }
 
   /**
-   * Get multiple users by IDs (for other services)
-   * POST /api/users/batch
+   * Get multiple user by IDs (for other services)
+   * POST /api/user/batch
    */
-  static async getUsersByIds(req: Request, res: Response): Promise<void> {
+  static async getUserByIds(req: Request, res: Response): Promise<void> {
     try {
       const { userIds } = req.body;
 
@@ -199,7 +197,7 @@ export class UserController {
         return;
       }
 
-      const users = await prisma.users.findMany({
+      const user = await prisma.user.findMany({
         where: {
           userId: { in: userIds },
         },
@@ -208,7 +206,7 @@ export class UserController {
         },
       });
 
-      const formattedUsers = users.map((user) => ({
+      const formattedUser = user.map((user) => ({
         userId: user.userId,
         email: user.email,
         isVerified: user.isVerified,
@@ -222,11 +220,11 @@ export class UserController {
       }));
 
       sendSuccess(res, {
-        users: formattedUsers,
+        user: formattedUser,
       });
     } catch (error) {
-      console.error("Get users by IDs error:", error);
-      sendError(res, "Failed to get users", 500);
+      console.error("Get user by IDs error:", error);
+      sendError(res, "Failed to get user", 500);
     }
   }
 }
