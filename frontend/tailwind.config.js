@@ -1,12 +1,13 @@
 /** @type {import('tailwindcss').Config} */
-export default {
-  content: ["./index.html", "./src/**/*.{js,ts,jsx,tsx}"],
+module.exports = {
+  content: [
+    "./index.html",
+    "./src/**/*.{js,jsx,ts,tsx}", // <-- Tailwind scans these files
+  ],
   theme: {
     extend: {
-      colors: {
-        darkBlue: "#101922",
-        secondary: "#8B5CF6",
-        accent: "#F59E0B",
+      fontFamily: {
+        lexend: ["Lexend", "sans-serif"], // your custom font
       },
     },
   },

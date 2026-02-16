@@ -74,6 +74,12 @@ export function LoginForm({
             <Input
               id="password"
               type={showPassword ? "text" : "password"}
+              onChange={(e) => {
+                setPassword(e.target.value);
+                if (e.target.value.length <= 0) {
+                  setShowPassword(false);
+                }
+              }}
               className="border-none bg-[#0F172A] placeholder:text-[#475569] placeholder:text-[16px] text-white text-[18px] flex-1"
               placeholder="********"
               required
@@ -83,9 +89,13 @@ export function LoginForm({
               <button
                 type="button"
                 onClick={() => setShowPassword(!showPassword)}
-                className="absolute right-3 text-[#94A3B8] hover:text-white"
+                className="absolute right-7 text-[#94A3B8] hover:text-white"
               >
-                {showPassword ? <FaEyeSlash /> : <FaEye />}
+                {showPassword ? (
+                  <FaEyeSlash className="text-white" />
+                ) : (
+                  <FaEye className="text-white" />
+                )}
               </button>
             )}
           </div>
