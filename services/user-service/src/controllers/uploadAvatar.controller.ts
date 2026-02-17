@@ -1,7 +1,6 @@
 import { Request, Response } from "express";
 import axios from "axios";
 import FormData from "form-data";
-import fs from "fs";
 import { prisma } from "../db/prisma";
 import { sendError, sendSuccess } from "../../../../shared/src/utils/response";
 import dotenv from "dotenv";

@@ -2,6 +2,8 @@
 import { Request, Response } from "express";
 import { prisma } from "../db/prisma";
 import { sendSuccess, sendError } from "../../../../shared/src/utils/response";
+import axios from "axios";
+import FormData from "form-data";
 
 export class UserController {
   /**
@@ -59,8 +61,7 @@ export class UserController {
   static async updateProfile(req: Request, res: Response): Promise<void> {
     try {
       const userId = req.user?.userId;
-      const { firstName, lastName, phoneNumber, timezone } =
-        req.body;
+      const { firstName, lastName, phoneNumber, timezone } = req.body;
 
       if (!userId) {
         sendError(res, "User not authenticated", 401);
@@ -188,7 +189,34 @@ export class UserController {
    * Get multiple user by IDs (for other services)
    * POST /api/user/batch
    */
-  static async getUserByIds(req: Request, res: Response): Promise<void> {
+  static async getUsers(req: Request, res: Response): Promise<void> {
+    try {
+      const users = await prisma.user.findMany({
+        include: {
+          profile: false,
+        },
+      });
+
+      const formattedUser = users.map((users) => ({
+        userId: users.userId,
+        email: users.email,
+        isVerified: users.isVerified,
+      }));
+
+      sendSuccess(res, {
+        user: formattedUser,
+      });
+    } catch (error) {
+      console.error("Error getting all users", error);
+      sendError(res, "Faild getting all Users", 500);
+    }
+  }
+
+  /**
+   * Get multiple users by IDs (for other services)
+   * POST /api/user/batch
+   */
+  static async getUsersByIds(req: Request, res: Response): Promise<void> {
     try {
       const { userIds } = req.body;
 
@@ -197,7 +225,7 @@ export class UserController {
         return;
       }
 
-      const user = await prisma.user.findMany({
+      const users = await prisma.user.findMany({
         where: {
           userId: { in: userIds },
         },
@@ -206,15 +234,15 @@ export class UserController {
         },
       });
 
-      const formattedUser = user.map((user) => ({
-        userId: user.userId,
-        email: user.email,
-        isVerified: user.isVerified,
-        profile: user.profile
+      const formattedUser = users.map((users) => ({
+        userId: users.userId,
+        email: users.email,
+        isVerified: users.isVerified,
+        profile: users.profile
           ? {
-              firstName: user.profile.first_name,
-              lastName: user.profile.last_name,
-              avatarUrl: user.profile.avatar_url,
+              firstName: users.profile.first_name,
+              lastName: users.profile.last_name,
+              avatarUrl: users.profile.avatar_url,
             }
           : null,
       }));
@@ -225,6 +253,59 @@ export class UserController {
     } catch (error) {
       console.error("Get user by IDs error:", error);
       sendError(res, "Failed to get user", 500);
+    }
+  }
+
+  /**
+   * Update user profile picture
+   * put /api/user/batch
+   */
+
+  static async uploadAvatar(req: Request, res: Response) {
+    try {
+      const file = req.file;
+      const userId = req.user?.userId;
+
+      if (!file) return sendError(res, "No File uploaded", 400);
+      if (!userId) return sendError(res, "User not authenticated", 401);
+
+      const formData = new FormData();
+      formData.append("file", file.buffer, file.originalname);
+      formData.append("entityType", "user");
+      formData.append("entityId", userId);
+
+      // Call the API of the File service for uploading to s3 in minIO
+      const response = await axios.post(
+        "http://localhost:3010/api/auth/avatar_url/upload",
+        formData,
+        {
+          headers: {
+            ...formData.getHeaders(),
+            Authorization: req.headers.authorization!, // pass JWT
+          },
+        },
+      );
+
+      const { fileId, key } = response.data.data;
+
+      // Update user's avatar_url in user-pofile
+      await prisma.user_profile.update({
+        where: { user_id: userId },
+        data: { avatar_url: key },
+      });
+
+      return sendSuccess(
+        res,
+        {
+          fileId,
+          avatarUrl: key,
+        },
+        "Avatar uploaded successfully",
+        200,
+      );
+    } catch (error) {
+      console.error(error);
+      sendError(res, "Faild to Upload Avatar in User Service", 500);
     }
   }
 }

@@ -15,14 +15,14 @@ const router = Router();
 const upload = multer(); // memory storage
 
 /**
- * @route   GET /api/users/me
+ * @route   GET /api/user/me
  * @desc    Get current user profile
  * @access  Protected
  */
 router.get("/me", authenticate, UserController.getProfile);
 
 /**
- * @route   PUT /api/users/me
+ * @route   PUT /api/user/me
  * @desc    Update user profile
  * @access  Protected
  */
@@ -48,7 +48,14 @@ router.delete("/me", authenticate, UserController.deleteAccount);
 router.get("/:userId", authenticate, UserController.getUserById);
 
 /**
- * @route   POST /api/users/batch
+ * @route   POST /api/user/getUsers
+ * @desc    Get All users
+ * @access  Protected
+ */
+router.get("/getUsers", authenticate, UserController.getUsers);
+
+/**
+ * @route   POST /api/user/batch
  * @desc    Get multiple users by IDs (for other services)
  * @access  Protected
  */
@@ -60,10 +67,15 @@ router.post(
 );
 
 /**
- * @route   PUT /api/users/upload_avatar
+ * @route   PUT /api/user/upload_avatar
  * @desc    Update avatar picture url
  * @access  Protected
  */
-router.post("/upload_avatar", authenticate, upload.single("file"), uploadAvatar);
+router.put(
+  "/upload_avatar",
+  authenticate,
+  upload.single("file"),
+  UserController.uploadAvatar,
+);
 
 export default router;
