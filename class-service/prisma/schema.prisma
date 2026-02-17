@@ -1,0 +1,24 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Classroom {
+  id                 String   @id @default(cuid())
+  name               String
+  teacherId          String
+  description        String?
+  subject            String?
+  section            String?
+  chapter            String?
+  materialCategories String[] @default([])
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+
+  @@index([teacherId])
+  @@index([subject])
+}
