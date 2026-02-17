@@ -1,0 +1,25 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model Classroom {
+  classId              String   @id @default(uuid()) @db.Uuid
+  name                 String
+  teacher_id           String   @db.Uuid
+  class_code           String   @unique
+  description          String?
+  subject              String?
+  section              String?
+  chapter              String?
+  material_categories  String[] @default([])
+  is_archived          Boolean  @default(false)
+  created_at           DateTime @default(now())
+  updated_at           DateTime @updatedAt
+
+  @@index([teacher_id])
+}
