@@ -19,7 +19,7 @@ const upload = multer(); // memory storage
  * @desc    Get current user profile
  * @access  Protected
  */
-router.get("/me", authenticate, UserController.getProfile);
+router.get("/me",  UserController.getProfile);
 
 /**
  * @route   PUT /api/user/me
@@ -28,7 +28,7 @@ router.get("/me", authenticate, UserController.getProfile);
  */
 router.put(
   "/me",
-  authenticate,
+  
   validate(updateProfileSchema),
   UserController.updateProfile,
 );
@@ -38,21 +38,21 @@ router.put(
  * @desc    Delete user account
  * @access  Protected
  */
-router.delete("/me", authenticate, UserController.deleteAccount);
+router.delete("/me",  UserController.deleteAccount);
 
 /**
  * @route   GET /api/users/:userId
  * @desc    Get user by ID (for other services)
  * @access  Protected
  */
-router.get("/:userId", authenticate, UserController.getUserById);
+router.get("/:userId",  UserController.getUserById);
 
 /**
  * @route   POST /api/user/getUsers
  * @desc    Get All users
  * @access  Protected
  */
-router.get("/getUsers", authenticate, UserController.getUsers);
+router.get("/getUsers",  UserController.getUsers);
 
 /**
  * @route   POST /api/user/batch
@@ -61,7 +61,7 @@ router.get("/getUsers", authenticate, UserController.getUsers);
  */
 router.post(
   "/batch",
-  authenticate,
+  
   validate(batchUsersSchema),
   UserController.getUsersByIds,
 );
@@ -73,7 +73,7 @@ router.post(
  */
 router.put(
   "/upload_avatar",
-  authenticate,
+  
   upload.single("file"),
   UserController.uploadAvatar,
 );

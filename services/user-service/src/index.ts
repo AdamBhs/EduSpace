@@ -8,6 +8,7 @@ import { errorHandler } from "../../../shared/src/middleware/errorHandler";
 // Import routes
 import authRoutes from "./routes/auth.routes";
 import userRoutes from "./routes/user.routes";
+import { authenticate } from "@shared/middleware/auth";
 
 // Load environment variables
 dotenv.config();
@@ -36,7 +37,7 @@ app.get("/", (req: Request, res: Response) => {
 
 // API Routes
 app.use("/api/auth", authRoutes);
-app.use("/api/user", userRoutes);
+app.use("/api/user", authenticate, userRoutes);
 
 // 404 handler
 app.use((req: Request, res: Response) => {
