@@ -19,4 +19,18 @@ router.post(
   ClassroomController.createClassroom,
 );
 
+/**
+ * @route   POST /api/classroom/join
+ * @desc    join a classroom
+ * @access  Protected
+ */
+router.post("/join", authenticate, ClassroomController.joinClassroom);
+
+/**
+ * @route   Get /api/classroom/getPeople
+ * @desc    get people enrolled at classroom
+ * @access  Protected
+ */
+router.get("/getPeople", authenticate, ClassroomController.getPeopleEnrolled);
+
 export default router;
