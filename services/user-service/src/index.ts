@@ -8,7 +8,7 @@ import { errorHandler } from "../../../shared/src/middleware/errorHandler";
 // Import routes
 import authRoutes from "./routes/auth.routes";
 import userRoutes from "./routes/user.routes";
-import { authenticate } from "@shared/middleware/auth";
+import { authenticate } from "../../../shared/src/middleware/auth";
 
 // Load environment variables
 dotenv.config();

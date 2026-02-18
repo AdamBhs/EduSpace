@@ -1,17 +1,14 @@
 // src/index.ts
-import express, {
-  Application,
-  NextFunction,
-  Request,
-  Response,
-} from "express";
+import express, { Application, Request, Response } from "express";
 import cors from "cors";
 import morgan from "morgan";
 import dotenv from "dotenv";
+import { errorHandler } from "../../../shared/src/middleware/errorHandler";
 
 // Import routes
 import authRoutes from "./routes/auth.routes";
 import userRoutes from "./routes/user.routes";
+import classroomRoutes from "./routes/classroom.routes";
 
 // Load environment variables
 dotenv.config();
@@ -39,8 +36,7 @@ app.get("/", (req: Request, res: Response) => {
 });
 
 // API Routes
-app.use("/api/auth", authRoutes);
-app.use("/api/classes", userRoutes);
+app.use("/api/classroom", classroomRoutes);
 
 // 404 handler
 app.use((req: Request, res: Response) => {
@@ -51,19 +47,7 @@ app.use((req: Request, res: Response) => {
 });
 
 // Error handling middleware (must be last)
-app.use((err: Error, req: Request, res: Response, next: NextFunction) => {
-  console.error("Error:", err);
-
-  if (res.headersSent) {
-    next(err);
-    return;
-  }
-
-  res.status(500).json({
-    success: false,
-    error: err.message || "Internal server error",
-  });
-});
+app.use(errorHandler);
 
 // Server
 const PORT = process.env.PORT || 3003;

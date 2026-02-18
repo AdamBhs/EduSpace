@@ -1,6 +1,6 @@
 import { Router, Request, Response, NextFunction } from "express";
 import jwt from "jsonwebtoken";
-import { UserController } from "../controllers/user.controller";
+import { UserController } from "../controllers/classroom.controller";
 
 type AuthenticatedRequest = Request & {
   user?: {

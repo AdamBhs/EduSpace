@@ -32,6 +32,7 @@ const sendError = (
   });
 };
 
+// TODO: Class code should not generate with random it can reapate
 const randomCode = (): string => {
   return Math.random().toString(36).slice(2, 8).toUpperCase();
 };

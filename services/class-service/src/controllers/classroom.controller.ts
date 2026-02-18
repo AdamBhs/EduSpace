@@ -1,5 +1,81 @@
 import { Request, Response } from "express";
 import { prisma } from "../db/prisma";
+import { sendSuccess, sendError } from "../../../../shared/src/utils/response";
+
+async function generateClassCode(length = 8): Promise<string> {
+  let classCode: string;
+  let exists: Boolean = true;
+  const chars = "abcdefghijklmnopqrstuvwxyz0123456789";
+  while (exists) {
+    classCode = Array.from({ length }, () =>
+      chars.charAt(Math.floor(Math.random() * chars.length)),
+    ).join("");
+    const found = await prisma.classroom.findUnique({
+      where: { class_code: classCode },
+    });
+    if (!found) return classCode;
+  }
+
+  return "";
+}
+
+export class ClassroomController {
+  /**
+   * Create a new Classroom
+   * POST /api/classroom/create
+   */
+  static async createClassroom(req: Request, res: Response) {
+    try {
+      const userId = req.user!.userId;
+
+      if (!userId) {
+        sendError(res, "Error getting UserId", 400);
+        return;
+      }
+
+      const {
+        name,
+        description,
+        subject,
+        section,
+        chapter,
+        material_categories,
+      } = req.body;
+
+      const classCode = await generateClassCode(8);
+
+      const classroom = await prisma.$transaction(async (tx: any) => {
+        const newClass = await tx.classroom.create({
+          data: {
+            name,
+            teacher_id: userId,
+            class_code: classCode,
+            description,
+            subject,
+            section,
+            chapter,
+            material_categories: material_categories || [],
+          },
+        });
+
+        await tx.enrollement.create({
+          data: {
+            class_id: newClass.classId,
+            user_id: userId,
+            role: "teacher",
+          },
+        });
+
+        return newClass;
+      });
+
+      return sendSuccess(res, classroom, "Classroom Created successfully", 201);
+    } catch (error) {
+      console.error("Error Creating new Classroom", error);
+      sendError(res, "Problem Creating classroom", 500);
+    }
+  }
+}
 
 type AuthenticatedRequest = Request & {
   user?: {
@@ -12,30 +88,6 @@ const isUuid = (value: string): boolean => {
   return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(
     value,
   );
-};
-
-const sendSuccess = <T>(
-  res: Response,
-  data: T,
-  message?: string,
-  statusCode: number = 200,
-) => {
-  return res.status(statusCode).json({
-    success: true,
-    message,
-    data,
-  });
-};
-
-const sendError = (
-  res: Response,
-  error: string,
-  statusCode: number = 400,
-) => {
-  return res.status(statusCode).json({
-    success: false,
-    error,
-  });
 };
 
 const parseMaterialCategories = (value: unknown): string[] | undefined => {
@@ -57,7 +109,8 @@ const parseMaterialCategories = (value: unknown): string[] | undefined => {
 
   const categories = value
     .filter(
-    (item): item is string => typeof item === "string" && item.trim().length > 0,
+      (item): item is string =>
+        typeof item === "string" && item.trim().length > 0,
     )
     .map((item) => item.trim().toLowerCase())
     .filter((item) => allowed.has(item));
@@ -69,7 +122,9 @@ export class UserController {
   static async getClasses(req: Request, res: Response): Promise<void> {
     try {
       const teacherId =
-        typeof req.query.teacherId === "string" ? req.query.teacherId : undefined;
+        typeof req.query.teacherId === "string"
+          ? req.query.teacherId
+          : undefined;
       const subject =
         typeof req.query.subject === "string" ? req.query.subject : undefined;
 
@@ -194,7 +249,8 @@ export class UserController {
       }
 
       if (description !== undefined) {
-        updateData.description = typeof description === "string" ? description : null;
+        updateData.description =
+          typeof description === "string" ? description : null;
       }
 
       if (subject !== undefined) {
