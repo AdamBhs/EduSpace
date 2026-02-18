@@ -1,6 +1,7 @@
 import { Request, Response } from "express";
 import { prisma } from "../db/prisma";
 import { sendSuccess, sendError } from "../../../../shared/src/utils/response";
+import axios from "axios";
 
 async function generateClassCode(length = 8): Promise<string> {
   let classCode: string;
@@ -20,6 +21,54 @@ async function generateClassCode(length = 8): Promise<string> {
 }
 
 export class ClassroomController {
+  /**
+   * Join a Classroom
+   * POST /api/classroom/join
+   */
+  static async joinClassroom(req: Request, res: Response) {
+    try {
+      const { class_code } = req.body;
+      const userId = req.user!.userId;
+
+      const userResponse = await axios.get(
+        `http://localhost:3002/api/user/${userId}`,
+        {
+          headers: {
+            Authorization: req.headers.authorization,
+          },
+        },
+      );
+
+      if (!userResponse.data) {
+        return sendError(res, "User not found", 404);
+      }
+
+      const classRoom = await prisma.classroom.findUnique({
+        where: { class_code },
+      });
+
+      if (!classRoom) {
+        return sendError(res, "Classroom not found", 404);
+      }
+
+      const enrollment = await prisma.enrollement.create({
+        data: {
+          class_id: classRoom.classId,
+          user_id: userId,
+        },
+      });
+
+      return sendSuccess(
+        res,
+        enrollment,
+        "User joined classroom successfuly",
+        201,
+      );
+    } catch (error) {
+      console.error("Error joining classroom :", error);
+      sendError(res, "Error joining Classroom", 400);
+    }
+  }
   /**
    * Create a new Classroom
    * POST /api/classroom/create
@@ -73,6 +122,39 @@ export class ClassroomController {
     } catch (error) {
       console.error("Error Creating new Classroom", error);
       sendError(res, "Problem Creating classroom", 500);
+    }
+  }
+  /**
+   * Get people enrolled at classroom
+   * Get /api/classroom/getPeople
+   */
+  static async getPeopleEnrolled(req: Request, res: Response) {
+    try {
+      const { class_code } = req.body;
+
+      const classroom = await prisma.classroom.findUnique({
+        where: { class_code },
+      });
+      if (!classroom) {
+        sendError(res, "Error finding the classroom", 404);
+      }
+
+      const enrolled = await prisma.enrollement.findMany({
+        where: { class_id: classroom?.classId },
+      });
+
+      // TODO: This API should return the users data nothe the enrolled Data
+      // TODO: I should fix the problem of 2 times call
+
+      return sendSuccess(
+        res,
+        enrolled,
+        "Getting people enrolled in classroom successfuly",
+        201,
+      );
+    } catch (error) {
+      console.error("Error getting people enrolled :", error);
+      sendError(res, "Error getting people by classroom ID", 500);
     }
   }
 }
