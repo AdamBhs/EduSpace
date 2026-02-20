@@ -1,5 +1,4 @@
 import { RiGraduationCapFill } from "react-icons/ri";
-import { cn } from "@/shared/lib/utils";
 import { Button } from "@/shared/components/ui/button";
 import {
   Field,

@@ -1,0 +1,41 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model Classroom {
+  classId              String   @id @default(uuid()) @db.Uuid
+  name                 String
+  teacher_id           String   @db.Uuid
+  class_code           String   @unique
+  description          String?
+  subject              String?
+  section              String?
+  chapter              String?
+  material_categories  String[] @default([])
+  is_archived          Boolean  @default(false)
+  created_at           DateTime @default(now())
+  updated_at           DateTime @updatedAt
+
+  enrollement Enrollement[]
+
+  @@index([teacher_id])
+}
+
+model Enrollement {
+  enrollId String @id @default(uuid()) @db.Uuid
+  class_id String @db.Uuid
+  user_id  String @db.Uuid
+  role     String @default("student")
+
+  joined_at DateTime @default(now())
+
+  classroom Classroom @relation(fields: [class_id], references: [classId], onDelete: Cascade)
+
+  @@index([class_id])
+  @@index([user_id])
+}

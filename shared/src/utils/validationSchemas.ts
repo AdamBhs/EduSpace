@@ -1,5 +1,9 @@
 import { z } from "zod";
 
+export const createClassroomSchema = z.object({
+  name: z.string().min(2, "Classroom name is required"),
+});
+
 export const registerSchema = z.object({
   email: z.string().email("Invalid email address"),
   password: z
@@ -8,8 +12,8 @@ export const registerSchema = z.object({
     .regex(/[A-Z]/, "Password must contain at least one uppercase letter")
     .regex(/[a-z]/, "Password must contain at least one lowercase letter")
     .regex(/[0-9]/, "Password must contain at least one number"),
-  firstName: z.string().min(1, "First name is required"),
-  lastName: z.string().min(1, "Last name is required"),
+  firstName: z.string().min(2, "First name is required"),
+  lastName: z.string().min(2, "Last name is required"),
   phoneNumber: z.string().optional(),
   timezone: z.string().optional(),
   isVerified: z.boolean().default(false),

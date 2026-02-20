@@ -1,0 +1,36 @@
+// src/routes/classroom.routes.ts
+import { Router } from "express";
+import { authenticate } from "../../../../shared/src/middleware/auth";
+import { validate } from "../../../../shared/src/middleware/validate";
+import { createClassroomSchema } from "../../../../shared/src/utils/validationSchemas";
+import { ClassroomController } from "../controllers/classroom.controller";
+
+const router = Router();
+
+/**
+ * @route   POST /api/classroom/create
+ * @desc    Create a classroom
+ * @access  Protected
+ */
+router.post(
+  "/create",
+  authenticate,
+  validate(createClassroomSchema),
+  ClassroomController.createClassroom,
+);
+
+/**
+ * @route   POST /api/classroom/join
+ * @desc    join a classroom
+ * @access  Protected
+ */
+router.post("/join", authenticate, ClassroomController.joinClassroom);
+
+/**
+ * @route   Get /api/classroom/getPeople
+ * @desc    get people enrolled at classroom
+ * @access  Protected
+ */
+router.get("/getPeople", authenticate, ClassroomController.getPeopleEnrolled);
+
+export default router;

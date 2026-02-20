@@ -8,7 +8,7 @@ import { errorHandler } from "../../../shared/src/middleware/errorHandler";
 // Import routes
 import authRoutes from "./routes/auth.routes";
 import userRoutes from "./routes/user.routes";
-import { authenticate } from "../../../shared/src/middleware/auth";
+import classroomRoutes from "./routes/classroom.routes";
 
 // Load environment variables
 dotenv.config();
@@ -30,14 +30,13 @@ app.use(morgan("dev"));
 app.get("/", (req: Request, res: Response) => {
   res.json({
     status: "healthy",
-    service: "user-service",
+    service: "class-service",
     timestamp: new Date().toISOString(),
   });
 });
 
 // API Routes
-app.use("/api/auth", authRoutes);
-app.use("/api/user", userRoutes);
+app.use("/api/classroom", classroomRoutes);
 
 // 404 handler
 app.use((req: Request, res: Response) => {
@@ -51,7 +50,7 @@ app.use((req: Request, res: Response) => {
 app.use(errorHandler);
 
 // Server
-const PORT = process.env.PORT || 3002;
+const PORT = process.env.PORT || 3003;
 app.listen(PORT, () => {
-  console.log(`User service running on port http://localhost:${PORT}`);
+  console.log(`Class service running on port http://localhost:${PORT}`);
 });

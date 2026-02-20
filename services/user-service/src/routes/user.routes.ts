@@ -41,30 +41,18 @@ router.put(
 router.delete("/me", authenticate, UserController.deleteAccount);
 
 /**
+ * @route   post /api/user/batch
+ * @desc    Get multiple users by IDs (for other services)
+ * @access  Protected
+ */
+router.post("/getUsers", authenticate, UserController.getUsers);
+
+/**
  * @route   GET /api/users/:userId
  * @desc    Get user by ID (for other services)
  * @access  Protected
  */
 router.get("/:userId", authenticate, UserController.getUserById);
-
-/**
- * @route   POST /api/user/getUsers
- * @desc    Get All users
- * @access  Protected
- */
-router.get("/getUsers", authenticate, UserController.getUsers);
-
-/**
- * @route   POST /api/user/batch
- * @desc    Get multiple users by IDs (for other services)
- * @access  Protected
- */
-router.post(
-  "/batch",
-  authenticate,
-  validate(batchUsersSchema),
-  UserController.getUsersByIds,
-);
 
 /**
  * @route   PUT /api/user/upload_avatar
