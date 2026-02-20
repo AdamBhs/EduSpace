@@ -187,25 +187,34 @@ export class UserController {
 
   /**
    * Get multiple user by IDs (for other services)
-   * POST /api/user/batch
+   * Post /api/user/getUsers
    */
   static async getUsers(req: Request, res: Response): Promise<void> {
     try {
+      const { users_ids } = req.body;
+      if (!Array.isArray(users_ids) || users_ids.length === 0) {
+        sendError(res, "users_ids must be a non-empty array", 400);
+      }
+
       const users = await prisma.user.findMany({
+        where: {
+          userId: {
+            in: users_ids,
+          },
+        },
         include: {
-          profile: false,
+          profile: true,
         },
       });
 
-      const formattedUser = users.map((users) => ({
-        userId: users.userId,
-        email: users.email,
-        isVerified: users.isVerified,
+      const formattedUsers = users.map((user) => ({
+        userId: user.userId,
+        userName: user.profile?.first_name ?? null,
+        userLastName: user.profile?.last_name ?? null,
+        profilePic: user.profile?.avatar_url ?? null,
       }));
 
-      sendSuccess(res, {
-        user: formattedUser,
-      });
+      sendSuccess(res, formattedUsers, "Getting all users successfully", 201);
     } catch (error) {
       console.error("Error getting all users", error);
       sendError(res, "Faild getting all Users", 500);
@@ -213,52 +222,8 @@ export class UserController {
   }
 
   /**
-   * Get multiple users by IDs (for other services)
-   * POST /api/user/batch
-   */
-  static async getUsersByIds(req: Request, res: Response): Promise<void> {
-    try {
-      const { userIds } = req.body;
-
-      if (!Array.isArray(userIds) || userIds.length === 0) {
-        sendError(res, "userIds array is required", 400);
-        return;
-      }
-
-      const users = await prisma.user.findMany({
-        where: {
-          userId: { in: userIds },
-        },
-        include: {
-          profile: true,
-        },
-      });
-
-      const formattedUser = users.map((users) => ({
-        userId: users.userId,
-        email: users.email,
-        isVerified: users.isVerified,
-        profile: users.profile
-          ? {
-              firstName: users.profile.first_name,
-              lastName: users.profile.last_name,
-              avatarUrl: users.profile.avatar_url,
-            }
-          : null,
-      }));
-
-      sendSuccess(res, {
-        user: formattedUser,
-      });
-    } catch (error) {
-      console.error("Get user by IDs error:", error);
-      sendError(res, "Failed to get user", 500);
-    }
-  }
-
-  /**
    * Update user profile picture
-   * put /api/user/batch
+   * put /api/user/updatePic
    */
 
   static async uploadAvatar(req: Request, res: Response) {

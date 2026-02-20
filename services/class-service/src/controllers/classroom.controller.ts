@@ -135,20 +135,30 @@ export class ClassroomController {
       const classroom = await prisma.classroom.findUnique({
         where: { class_code },
       });
+
       if (!classroom) {
-        sendError(res, "Error finding the classroom", 404);
+        return sendError(res, "Error finding the classroom", 404);
       }
 
       const enrolled = await prisma.enrollement.findMany({
-        where: { class_id: classroom?.classId },
+        where: { class_id: classroom.classId },
       });
 
-      // TODO: This API should return the users data nothe the enrolled Data
-      // TODO: I should fix the problem of 2 times call
+      const users_ids = enrolled.map((e) => e.user_id);
+      
+      const userResponse = await axios.post(
+        "http://localhost:3002/api/user/getUsers",
+        { users_ids },
+        {
+          headers: {
+            Authorization: req.headers.authorization,
+          },
+        },
+      );
 
       return sendSuccess(
         res,
-        enrolled,
+        userResponse.data,
         "Getting people enrolled in classroom successfuly",
         201,
       );
