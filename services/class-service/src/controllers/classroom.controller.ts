@@ -21,6 +21,13 @@ async function generateClassCode(length = 8): Promise<string> {
 }
 
 export class ClassroomController {
+  // TODO: Get all the Classroom that the user haved been enrolled In
+  /**
+   * Join a Classroom
+   * Get /api/classroom/getClassrooms
+   */
+  // Remarque : a3ml tala 3al schema fil prisma Enrollement 7awil faha
+
   /**
    * Join a Classroom
    * POST /api/classroom/join
@@ -145,7 +152,7 @@ export class ClassroomController {
       });
 
       const users_ids = enrolled.map((e) => e.user_id);
-      
+
       const userResponse = await axios.post(
         "http://localhost:3002/api/user/getUsers",
         { users_ids },
