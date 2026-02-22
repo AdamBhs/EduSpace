@@ -4,6 +4,13 @@ export const createClassroomSchema = z.object({
   name: z.string().min(2, "Classroom name is required"),
 });
 
+export const validationCodeSchema = z.object({
+  code: z
+    .string()
+    .length(6, "Code must be 6 digits")
+    .regex(/^\d+$/, "Code must contain only numbers"),
+});
+
 export const registerSchema = z.object({
   email: z.string().email("Invalid email address"),
   password: z
