@@ -8,7 +8,6 @@ import { errorHandler } from "../../../shared/src/middleware/errorHandler";
 // Import routes
 import authRoutes from "./routes/auth.routes";
 import userRoutes from "./routes/user.routes";
-import { authenticate } from "../../../shared/src/middleware/auth";
 
 // Load environment variables
 dotenv.config();
@@ -18,7 +17,7 @@ const app: Application = express();
 // Middleware
 app.use(
   cors({
-    origin: process.env.CORS_ORIGIN || "http://localhost:3000",
+    origin: process.env.CORS_ORIGIN || "http://localhost:5173",
     credentials: true,
   }),
 );
