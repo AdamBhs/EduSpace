@@ -11,6 +11,8 @@ yarn.lock
 .env.local
 .env.*.local
 
+default
+
 # Logs
 logs/
 *.log

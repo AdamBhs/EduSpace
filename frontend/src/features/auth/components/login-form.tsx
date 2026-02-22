@@ -92,9 +92,9 @@ export function LoginForm({
                 className="absolute right-7 text-[#94A3B8] hover:text-white"
               >
                 {showPassword ? (
-                  <FaEyeSlash className="text-white" />
+                  <FaEyeSlash className="text-white cursor-pointer" />
                 ) : (
-                  <FaEye className="text-white" />
+                  <FaEye className="text-white cursor-pointer" />
                 )}
               </button>
             )}
