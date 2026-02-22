@@ -9,7 +9,6 @@ import { generateToken, verifyToken } from "../../../../shared/src/utils/jwt";
 import { sendSuccess, sendError } from "../../../../shared/src/utils/response";
 import crypto from "crypto";
 import nodemailer from "nodemailer";
-import jwt from "jsonwebtoken";
 
 declare global {
   namespace Express {
@@ -24,6 +23,135 @@ declare global {
 
 export class AuthController {
   /**
+   * resend code
+   * POST /api/auth/resendCode
+   */
+  static async resendCode(req: Request, res: Response): Promise<void> {
+    try {
+      const { email } = req.body;
+
+      const user = await prisma.user.findUnique({
+        where: { email },
+        include: { profile: true },
+      });
+
+      if (!user) {
+        sendError(res, "User not found", 404);
+        return;
+      }
+
+      if (user.isVerified) {
+        sendError(res, "Account already verified", 400);
+        return;
+      }
+
+      // Rate limit — prevent spamming resend
+      const cooldown = 60 * 1000; // 1 minute
+      if (user.codeExpiresAt) {
+        const timeElapsed =
+          Date.now() - (user.codeExpiresAt.getTime() - 5 * 60 * 1000);
+        if (timeElapsed < cooldown) {
+          const secondsLeft = Math.ceil((cooldown - timeElapsed) / 1000);
+          sendError(
+            res,
+            `Please wait ${secondsLeft} seconds before requesting a new code`,
+            429,
+          );
+          return;
+        }
+      }
+
+      const verificationCode = Math.floor(
+        100000 + Math.random() * 900000,
+      ).toString();
+      const codeExpiresAt = new Date(Date.now() + 5 * 60 * 1000);
+
+      await prisma.user.update({
+        where: { email },
+        data: { verificationCode, codeExpiresAt },
+      });
+
+      const transporter = nodemailer.createTransport({
+        service: "gmail",
+        auth: {
+          user: process.env.EMAIL_USER,
+          pass: process.env.EMAIL_PASS,
+        },
+      });
+
+      const firstName = user.profile?.first_name || "there";
+
+      await transporter.sendMail({
+        to: email,
+        subject: "Your new verification code",
+        html: `
+        <h2>Hi ${firstName}!</h2>
+        <p>Your new verification code is:</p>
+        <h1 style="letter-spacing: 8px; color: #137FEC;">${verificationCode}</h1>
+        <p>This code expires in <strong>5 minutes</strong>.</p>
+      `,
+      });
+
+      sendSuccess(res, null, "Verification code resent successfully");
+    } catch (error) {
+      console.error("Resend code error:", error);
+      sendError(res, "Failed to resend code", 500);
+    }
+  }
+
+  /**
+   * Verifiy code
+   * POST /api/auth/verify
+   */
+  static async verifyCode(req: Request, res: Response): Promise<void> {
+    try {
+      const { email, code } = req.body;
+
+      const user = await prisma.user.findUnique({ where: { email } });
+
+      if (!user) {
+        sendError(res, "User not found", 404);
+        return;
+      }
+
+      if (user.isVerified) {
+        sendError(res, "Account already verified", 400);
+        return;
+      }
+
+      if (user.verificationCode !== code) {
+        sendError(res, "Invalid verification code", 400);
+        return;
+      }
+
+      if (!user.codeExpiresAt || new Date() > user.codeExpiresAt) {
+        sendError(res, "Verification code has expired", 400);
+        return;
+      }
+
+      await prisma.user.update({
+        where: { email },
+        data: {
+          isVerified: true,
+          verificationCode: null,
+          codeExpiresAt: null,
+        },
+      });
+
+      const token = generateToken({ userId: user.userId, email: user.email });
+
+      sendSuccess(
+        res,
+        { token, user: { userId: user.userId, email: user.email } },
+        "Account verified successfully",
+      );
+    } catch (error) {
+      console.error("Verify error:", error);
+      sendError(res, "Verification failed", 500);
+    }
+  }
+
+  /**
    * Register a new user
    * POST /api/auth/register
    */
@@ -32,30 +160,31 @@ export class AuthController {
       const { email, password, firstName, lastName, phoneNumber, timezone } =
         req.body;
 
-      // Check if user already exists
-      const existingUser = await prisma.user.findUnique({
-        where: { email },
-      });
-
+      const existingUser = await prisma.user.findUnique({ where: { email } });
       if (existingUser) {
         sendError(res, "Email already registered", 409);
         return;
       }
 
-      // Hash password
       const hashedPassword = await hashPassword(password);
 
-      // Create user with profile in a transaction
+      // Generate 6-digit code
+      const verificationCode = Math.floor(
+        100000 + Math.random() * 900000,
+      ).toString();
+      const codeExpiresAt = new Date(Date.now() + 5 * 60 * 1000); // 5 minutes
+
       const user = await prisma.$transaction(async (tx) => {
-        // Create user
         const newUser = await tx.user.create({
           data: {
             email,
             password: hashedPassword,
+            verificationCode, // add these fields to your schema
+            codeExpiresAt,
+            isVerified: false,
           },
         });
 
-        // Create profile
         await tx.user_profile.create({
           data: {
             user_id: newUser.userId,
@@ -69,15 +198,6 @@ export class AuthController {
         return newUser;
       });
 
-      // Generate JWT token
-      const token = generateToken({
-        userId: user.userId,
-        email: user.email,
-      });
-      // TODO: CHANGE LETTER TO BE .env.FRONTEND_URL
-      const activationLink = `${process.env.BACKEND_URL}/api/auth/activate/${token}`;
-
-      // Configure nodemailer
       const transporter = nodemailer.createTransport({
         service: "gmail",
         auth: {
@@ -88,59 +208,24 @@ export class AuthController {
 
       await transporter.sendMail({
         to: user.email,
-        subject: "Activate your account",
+        subject: "Your verification code",
         html: `
-          <h2>Welcome ${firstName}!</h2>
-          <p>Click the link below to activate your account:</p>
-          <a href="${activationLink}">Activate Account</a>
-          <p>This link will expire in 24 hours.</p>
-        `,
+        <h2>Welcome ${firstName}!</h2>
+        <p>Your verification code is:</p>
+        <h1 style="letter-spacing: 8px; color: #137FEC;">${verificationCode}</h1>
+        <p>This code expires in <strong>5 minutes</strong>.</p>
+      `,
       });
 
       sendSuccess(
         res,
-        {
-          token,
-          user: {
-            userId: user.userId,
-            email: user.email,
-          },
-        },
-        "User registered successfully",
+        { email: user.email },
+        "Verification code sent to your email",
         201,
       );
     } catch (error) {
       console.error("Register error:", error);
       sendError(res, "Registration failed", 500);
-    }
-  }
-
-  /**
-   * Activate account
-   * POST /api/auth/activate/:token
-   */
-  static async activate(req: Request, res: Response): Promise<void> {
-    try {
-      const { token } = req.params;
-
-      if (typeof token !== "string") {
-        sendError(res, "Invalid token", 400);
-        return;
-      }
-
-      const decoded = jwt.verify(token, process.env.JWT_SECRET!) as {
-        userId: string;
-      };
-
-      await prisma.user.update({
-        where: { userId: decoded.userId },
-        data: { isVerified: true },
-      });
-
-      res.redirect(`${process.env.FRONTEND_URL}/activation-success`);
-    } catch (error) {
-      console.error("Activate error:", error);
-      sendError(res, "Activate failed", 500);
     }
   }
   /**
