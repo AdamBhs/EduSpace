@@ -57,7 +57,9 @@ const Register = () => {
       console.log(result);
 
       if (result?.success) {
-        navigate("/verfication");
+        navigate("/verification", {
+          state: { email: email },
+        });
       }
     } catch (err) {
       console.log("Failed to register:", err);

@@ -16,3 +16,8 @@ export const register = async (userData: any) => {
     throw error;
   }
 };
+
+export const resendCode = async (email: string) => {
+  const response = await api.post("/users/api/auth/resendCode", { email });
+  return response.data;
+};
