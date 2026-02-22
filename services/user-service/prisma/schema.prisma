@@ -14,7 +14,8 @@ model User {
   created_at DateTime @default(now())
   updated_at DateTime @updatedAt
   isVerified Boolean @default(false)
-
+  verificationCode String?
+  codeExpiresAt DateTime?
   // Relations
   profile User_profile?
   passwordResets Password_reset[]

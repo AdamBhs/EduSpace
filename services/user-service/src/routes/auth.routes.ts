@@ -8,6 +8,7 @@ import {
   loginSchema,
   requestPasswordResetSchema,
   resetPasswordSchema,
+  validationCodeSchema,
 } from "../../../../shared/src/utils/validationSchemas";
 
 const router = Router();
@@ -20,18 +21,34 @@ const router = Router();
 router.post("/register", validate(registerSchema), AuthController.register);
 
 /**
+ * @route   POST /api/auth/verify
+ * @desc    send a verification code
+ * @access  Public
+ */
+router.post(
+  "/verifyCode",
+  validate(validationCodeSchema),
+  AuthController.verifyCode,
+);
+
+/**
+ * @route   POST /api/auth/resendCode
+ * @desc    Resend a verification code
+ * @access  Public
+ */
+router.post(
+  "/resendCode",
+  validate(validationCodeSchema),
+  AuthController.verifyCode,
+);
+
+/**
  * @route   POST /api/auth/login
  * @desc    Login user
  * @access  Public
  */
 router.post("/login", validate(loginSchema), AuthController.login);
 
-/**
- * @route   Get /api/auth/activate/:token
- * @desc    Activate account
- * @access  Public
- */
-router.get("/activate/:token", AuthController.activate);
 
 /**
  * @route   GET /api/auth/verify
