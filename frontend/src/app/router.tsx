@@ -12,11 +12,7 @@ export const router = createBrowserRouter([
   },
   {
     path: "/verfication",
-    element: (
-      <ProtectedRoute>
-        <Verification />
-      </ProtectedRoute>
-    ),
+    element: <Verification />,
   },
   {
     path: "/login",
