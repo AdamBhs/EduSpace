@@ -101,7 +101,7 @@ export class AuthController {
 
   /**
    * Verifiy code
-   * POST /api/auth/verify
+   * POST /api/auth/verifyCode
    */
   static async verifyCode(req: Request, res: Response): Promise<void> {
     try {
