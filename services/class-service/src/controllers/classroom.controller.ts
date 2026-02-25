@@ -27,7 +27,7 @@ export class ClassroomController {
    * Get /api/classroom/getClassrooms
    */
   // Remarque : a3ml tala 3al schema fil prisma Enrollement 7awil faha
-
+  
   /**
    * Join a Classroom
    * POST /api/classroom/join

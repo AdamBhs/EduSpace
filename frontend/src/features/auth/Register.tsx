@@ -240,7 +240,7 @@ const Register = () => {
                 <Button
                   type="submit"
                   disabled={!isValid}
-                  className={`flex items-center justify-center w-full py-6 text-[18px] font-semibold text-white
+                  className={`flex items-center justify-center w-full py-6 text-[18px] cursor-pointer font-semibold text-white
                   ${
                     isValid
                       ? "bg-[#137FEC] hover:bg-[#137FEC]/90"

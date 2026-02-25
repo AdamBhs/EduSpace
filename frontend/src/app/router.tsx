@@ -3,7 +3,7 @@ import Login from "@/features/auth/Login";
 import Register from "@/features/auth/Register";
 import ProtectedRoute from "./ProtectedRoute";
 import Dashboard from "@/features/dashboard/Dashboard";
-import Verification from "@/features/auth/Verification";
+import VerificationRoute from "./VerificationRoute";
 
 export const router = createBrowserRouter([
   {
@@ -11,8 +11,8 @@ export const router = createBrowserRouter([
     element: <Navigate to="/login" replace />,
   },
   {
-    path: "/verfication",
-    element: <Verification />,
+    path: "/verification",
+    element: <VerificationRoute />,
   },
   {
     path: "/login",

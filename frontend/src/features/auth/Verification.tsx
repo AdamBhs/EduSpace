@@ -5,16 +5,25 @@ import { OtpVerification } from "./components/OtpVerification";
 import { Button } from "@/shared/components/ui/button";
 import { FaArrowLeft } from "react-icons/fa6";
 import { useState, useEffect } from "react";
-import { resendCode } from "@/services/user-service";
+import { resendCode, verifyCode } from "@/services/user-service";
 
 const Verification = () => {
   const navigate = useNavigate();
   const location = useLocation();
+  const [code, setCode] = useState("");
   const { email } = location.state || {};
 
-  const [timer, setTimer] = useState(60); // 60 second cooldown
-  const [canResend, setCanResend] = useState(false);
+  const [timer, setTimer] = useState(60);
+  const [canResend, setCanResend] = useState(true);
   const [resending, setResending] = useState(false);
+
+  const handleSubmit = async (data: { email: String; code: any }) => {
+    const res = await verifyCode(data);
+    if (res) {
+      navigate("/login");
+    }
+    return res;
+  };
 
   useEffect(() => {
     if (timer === 0) {
@@ -66,9 +75,12 @@ const Verification = () => {
           <p className="font-semibold">{email}</p>
         </div>
 
-        <OtpVerification />
+        <OtpVerification onChange={setCode} />
 
-        <Button className="bg-[#1D76E8] cursor-pointer w-full font-semibold py-5 text-md">
+        <Button
+          className="bg-[#1D76E8] cursor-pointer w-full font-semibold py-5 text-md"
+          onClick={() => handleSubmit({ email, code })}
+        >
           Verify & Proceed
         </Button>
 

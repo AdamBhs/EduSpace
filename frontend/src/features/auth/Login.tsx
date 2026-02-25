@@ -1,8 +1,19 @@
-import { GalleryVerticalEnd } from "lucide-react";
 import { RiGraduationCapFill } from "react-icons/ri";
 import { LoginForm } from "./components/login-form";
+import { login } from "@/services/user-service";
+import { useNavigate } from "react-router-dom";
 
 export default function Login() {
+  const navigate = useNavigate();
+
+  const handleLogin = async (data: { email: string; password: string }) => {
+    const res = await login(data);
+    if (res) {
+      navigate("/dashboard");
+    }
+    return res;
+  };
+
   return (
     <div className="grid min-h-screen lg:grid-cols-2">
       {/* Left Image */}
@@ -19,7 +30,7 @@ export default function Login() {
           }}
         ></div>
 
-        <div className="absolute text-white  inset-0 flex flex-col justify-center p-25 z-20">
+        <div className="absolute text-white inset-0 flex flex-col justify-center p-25 z-20">
           <div className="flex gap-3 font-bold items-center">
             <div className="bg-white w-10 h-10 flex items-center rounded-md justify-center">
               <RiGraduationCapFill className="text-2xl text-[#137FEC]" />
@@ -36,11 +47,12 @@ export default function Login() {
           </p>
         </div>
       </div>
+
       {/* Right Login Form */}
       <div className="flex flex-col gap-4 p-6 md:p-10 bg-[#101922]">
         <div className="flex flex-1 items-center justify-center">
           <div className="w-full max-w-xl">
-            <LoginForm />
+            <LoginForm onSubmit={handleLogin} />
           </div>
         </div>
       </div>
