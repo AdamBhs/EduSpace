@@ -17,6 +17,28 @@ export const register = async (userData: any) => {
   }
 };
 
+export const login = async (userData: any) => {
+  try {
+    const response = await api.post("/users/api/auth/login", userData);
+    console.log("Login successfully");
+    return response.data;
+  } catch (error: any) {
+    console.error("Login error:", error.response?.data || error.message);
+    throw error;
+  }
+};
+
+export const verifyCode = async (data: any) => {
+  try {
+    const response = await api.post("/users/api/auth/verifyCode", data);
+    console.log("Veirfy code sucessfuly");
+    return response;
+  } catch (error: any) {
+    console.error("Verify code error:", error.response?.data || error.message);
+    throw error;
+  }
+};
+
 export const resendCode = async (email: string) => {
   const response = await api.post("/users/api/auth/resendCode", { email });
   return response.data;
