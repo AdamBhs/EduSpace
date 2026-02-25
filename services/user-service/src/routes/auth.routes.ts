@@ -21,7 +21,7 @@ const router = Router();
 router.post("/register", validate(registerSchema), AuthController.register);
 
 /**
- * @route   POST /api/auth/verify
+ * @route   POST /api/auth/verifyCode
  * @desc    send a verification code
  * @access  Public
  */
@@ -36,11 +36,7 @@ router.post(
  * @desc    Resend a verification code
  * @access  Public
  */
-router.post(
-  "/resendCode",
-  validate(validationCodeSchema),
-  AuthController.verifyCode,
-);
+router.post("/resendCode", AuthController.verifyCode);
 
 /**
  * @route   POST /api/auth/login
@@ -48,7 +44,6 @@ router.post(
  * @access  Public
  */
 router.post("/login", validate(loginSchema), AuthController.login);
-
 
 /**
  * @route   GET /api/auth/verify
