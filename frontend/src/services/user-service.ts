@@ -20,7 +20,7 @@ export const register = async (userData: any) => {
 export const login = async (userData: any) => {
   try {
     const response = await api.post("/users/api/auth/login", userData);
-    console.log("Login successfully");
+
     return response.data;
   } catch (error: any) {
     console.error("Login error:", error.response?.data || error.message);
