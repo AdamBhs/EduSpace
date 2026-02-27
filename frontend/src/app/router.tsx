@@ -4,6 +4,7 @@ import Register from "@/features/auth/Register";
 import ProtectedRoute from "./ProtectedRoute";
 import Dashboard from "@/features/dashboard/Dashboard";
 import VerificationRoute from "./VerificationRoute";
+import DashboardLayout from "@/layout/DashboardLayout";
 
 export const router = createBrowserRouter([
   {
@@ -26,8 +27,13 @@ export const router = createBrowserRouter([
     path: "/dashboard",
     element: (
       <ProtectedRoute>
-        <Dashboard />
+        <DashboardLayout />
       </ProtectedRoute>
     ),
+    children: [
+      { index: true, element: <Dashboard /> },
+      // { path: "users", element: <Users /> },
+      // { path: "settings", element: <Settings /> },
+    ],
   },
 ]);

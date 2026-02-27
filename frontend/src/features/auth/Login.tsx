@@ -8,9 +8,14 @@ export default function Login() {
 
   const handleLogin = async (data: { email: string; password: string }) => {
     const res = await login(data);
-    if (res) {
+
+    const token = res?.data?.token;
+
+    if (token) {
+      await localStorage.setItem("token", token);
       navigate("/dashboard");
     }
+
     return res;
   };
 
