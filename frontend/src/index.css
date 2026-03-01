@@ -138,3 +138,9 @@ input::selection {
   background-color: #2563eb; /* blue selection background */
   color: #ffffff; /* text color while selected */
 }
+
+input::-ms-reveal,
+input::-ms-clear,
+input::-webkit-credentials-auto-fill-button {
+  display: none;
+}

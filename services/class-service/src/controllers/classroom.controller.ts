@@ -22,6 +22,36 @@ async function generateClassCode(length = 8): Promise<string> {
 
 export class ClassroomController {
   /**
+   * GetAllEnrollClassroom
+   * Get /api/classroom/getClassrooms
+   */
+  static async getAllEnrollClassroom(req: Request, res: Response) {
+    try {
+      const userId = req.user!.userId;
+
+      const classes_enrolled = await prisma.enrollement.findMany({
+        where: {
+          user_id: userId,
+        },
+        include: {
+          classroom: true,
+        },
+      });
+
+      const classrooms = classes_enrolled.map((enroll) => enroll.classroom);
+
+      sendSuccess(
+        res,
+        classrooms,
+        "Getting all classrooms enrolled succefully",
+        200,
+      );
+    } catch (error) {
+      console.error("Error getting all the classroom enrolled in : ", error);
+      sendError(res, "Error getting all classroom", 500);
+    }
+  }
+  /**
    * Join a Classroom
    * POST /api/classroom/join
    */
@@ -49,6 +79,21 @@ export class ClassroomController {
 
       if (!classRoom) {
         return sendError(res, "Classroom not found", 404);
+      }
+
+      if (classRoom?.teacher_id === userId) {
+        return sendError(res, "User can't Join a classroom he create", 422);
+      }
+
+      const existingEnrollment = await prisma.enrollement.findFirst({
+        where: {
+          class_id: classRoom.classId,
+          user_id: userId,
+        },
+      });
+
+      if (existingEnrollment) {
+        return sendError(res, "User already joined this classroom", 422);
       }
 
       const enrollment = await prisma.enrollement.create({
@@ -145,7 +190,7 @@ export class ClassroomController {
       });
 
       const users_ids = enrolled.map((e) => e.user_id);
-      
+
       const userResponse = await axios.post(
         "http://localhost:3002/api/user/getUsers",
         { users_ids },

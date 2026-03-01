@@ -8,6 +8,16 @@ import { ClassroomController } from "../controllers/classroom.controller";
 const router = Router();
 
 /**
+ * @route   Get /api/classroom/getClassrooms
+ * @desc    Getting all classrooms that the user enrolled in
+ * @access  Protected
+ */
+router.get(
+  "/getClassrooms",
+  authenticate,
+  ClassroomController.getAllEnrollClassroom,
+);
+/**
  * @route   POST /api/classroom/create
  * @desc    Create a classroom
  * @access  Protected
