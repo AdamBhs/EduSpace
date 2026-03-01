@@ -21,6 +21,10 @@ export const login = async (userData: any) => {
   try {
     const response = await api.post("/users/api/auth/login", userData);
 
+    await localStorage.setItem("token", response.data.data.token);
+
+    await localStorage.setItem("user", JSON.stringify(response.data.data.user));
+
     return response.data;
   } catch (error: any) {
     console.error("Login error:", error.response?.data || error.message);
