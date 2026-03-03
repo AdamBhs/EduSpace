@@ -26,7 +26,7 @@ import { useNavigate, useLocation } from "react-router-dom";
 const navSections = [
   {
     items: [
-      { icon: GoHomeFill, label: "Home", path: "/dashboard", badge: null },
+      { icon: GoHomeFill, label: "Home", path: "/", badge: null },
       {
         icon: CalendarDays,
         label: "Calendar",
@@ -50,7 +50,7 @@ const navSections = [
         path: "/dashboard/documents",
         badge: null,
       },
-      { icon: Users, label: "Users", path: "/dashboard/users", badge: null },
+      { icon: Users, label: "Users", path: "/users", badge: null },
     ],
   },
 ];
@@ -157,7 +157,7 @@ export default function Sidebar() {
       <aside
         className={cn(
           "relative flex h-full flex-col border-r transition-all duration-300 ease-in-out",
-          collapsed ? "w-[68px]" : "w-[220px]",
+          collapsed ? "w-[68px]" : "w-[250px]",
         )}
         style={{ background: "white", borderColor: "#E2E8F0" }}
       >

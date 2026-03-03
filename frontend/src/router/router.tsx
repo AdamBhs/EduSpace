@@ -2,7 +2,7 @@ import { createBrowserRouter, Navigate } from "react-router-dom";
 import Login from "@/features/auth/Login";
 import Register from "@/features/auth/Register";
 import ProtectedRoute from "./ProtectedRoute";
-import Dashboard from "@/features/dashboard/Dashboard";
+import Home from "@/features/dashboard/Home";
 import VerificationRoute from "./VerificationRoute";
 import DashboardLayout from "@/layout/DashboardLayout";
 import AlreadyLoginRoute from "./AlreadyLogin";
@@ -39,7 +39,7 @@ export const router = createBrowserRouter([
     ),
   },
   {
-    path: "/dashboard",
+    path: "/",
     element: (
       <AuthProvider>
         <ProtectedRoute>
@@ -48,7 +48,7 @@ export const router = createBrowserRouter([
       </AuthProvider>
     ),
     children: [
-      { index: true, element: <Dashboard /> },
+      { index: true, element: <Home /> },
       { path: "users", element: <User /> },
       // { path: "settings", element: <Settings /> },
     ],

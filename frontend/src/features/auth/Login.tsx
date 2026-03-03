@@ -11,7 +11,7 @@ export default function Login() {
     const token = res?.data?.token;
 
     if (token) {
-      navigate("/dashboard");
+      navigate("/");
     } else {
       navigate("/login");
     }

@@ -11,6 +11,9 @@ importers:
       '@prisma/adapter-pg':
         specifier: ^7.3.0
         version: 7.3.0
+      '@tanstack/react-query':
+        specifier: ^5.90.21
+        version: 5.90.21(react@19.2.4)
       '@types/morgan':
         specifier: ^1.9.10
         version: 1.9.10

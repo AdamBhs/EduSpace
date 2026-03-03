@@ -18,7 +18,7 @@ const app: Application = express();
 // Middleware
 app.use(
   cors({
-    origin: process.env.CORS_ORIGIN || "http://localhost:3000",
+    origin: process.env.CORS_ORIGIN || "http://localhost:5173",
     credentials: true,
   }),
 );
@@ -36,6 +36,7 @@ app.get("/", (req: Request, res: Response) => {
 });
 
 // API Routes
+// TODO: Change the end point url to /api
 app.use("/api/classroom", classroomRoutes);
 
 // 404 handler
