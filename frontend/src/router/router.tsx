@@ -10,6 +10,7 @@ import { AuthProvider } from "@/context/AuthContext";
 import User from "@/features/dashboard/User";
 import Calendar from "@/features/calendar/Calendar";
 import Class from "@/features/classes/Class";
+import People from "@/features/classes/components/People";
 
 export const router = createBrowserRouter([
   {
@@ -65,6 +66,9 @@ export const router = createBrowserRouter([
         </ProtectedRoute>
       </AuthProvider>
     ),
-    children: [{ path: ":classCode", element: <Class /> }],
+    children: [
+      { path: ":classCode", element: <Class /> },
+      { path: ":classCode/people", element: <People /> },
+    ],
   },
 ]);

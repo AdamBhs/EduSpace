@@ -42,13 +42,30 @@ const notifications = [
 
 export default function Navbar() {
   const { user, logout } = useAuth();
-  const [active, setActive] = useState("Dashboard");
   const [searchOpen, setSearchOpen] = useState(false);
   const location = useLocation();
   const breadcrumbState = location.state as {
     breadcrumb?: { name?: string; description?: string };
   } | null;
   const classBreadcrumb = breadcrumbState?.breadcrumb;
+  const classCodeFromPath = (() => {
+    const path = location.pathname.replace(/\/+$/, "");
+    const segments = path ? path.split("/").filter(Boolean) : [];
+    const classIndex = segments.indexOf("c");
+    if (classIndex === -1 || classIndex + 1 >= segments.length) {
+      return null;
+    }
+    return segments[classIndex + 1];
+  })();
+  const [cachedBreadcrumb, setCachedBreadcrumb] = useState<{
+    code: string;
+    data: { name?: string; description?: string };
+  } | null>(null);
+  const effectiveClassBreadcrumb =
+    classBreadcrumb ??
+    (cachedBreadcrumb?.code === classCodeFromPath
+      ? cachedBreadcrumb.data
+      : undefined);
 
   const capitalized = (name: String) => {
     const newName = name
@@ -61,12 +78,54 @@ export default function Navbar() {
     console.log(user);
   }, []);
 
+  useEffect(() => {
+    if (!classCodeFromPath) {
+      setCachedBreadcrumb(null);
+      return;
+    }
+    const breadcrumbData = {
+      name: classBreadcrumb?.name,
+      description: classBreadcrumb?.description,
+    };
+    if (breadcrumbData.name || breadcrumbData.description) {
+      setCachedBreadcrumb({ code: classCodeFromPath, data: breadcrumbData });
+      sessionStorage.setItem(
+        `classBreadcrumb:${classCodeFromPath}`,
+        JSON.stringify(breadcrumbData),
+      );
+      return;
+    }
+    if (cachedBreadcrumb?.code === classCodeFromPath) {
+      return;
+    }
+    const stored = sessionStorage.getItem(
+      `classBreadcrumb:${classCodeFromPath}`,
+    );
+    if (!stored) {
+      return;
+    }
+    try {
+      const parsed = JSON.parse(stored) as {
+        name?: string;
+        description?: string;
+      };
+      setCachedBreadcrumb({ code: classCodeFromPath, data: parsed });
+    } catch {
+      // Ignore invalid cache entries.
+    }
+  }, [
+    classBreadcrumb?.description,
+    classBreadcrumb?.name,
+    classCodeFromPath,
+    cachedBreadcrumb?.code,
+  ]);
+
   return (
     <div
       className="w-full shrink-0 flex h-15 items-center gap-3 px-4 md:px-6 border-b border-[#E2E8F0]"
       style={{ background: "white" }}
     >
-      <div className="ml-2">
+      <div className="ml-5">
         <Breadcrumb>
           <BreadcrumbList className="flex items-center gap-2 text-sm font-medium text-slate-500">
             {(() => {
@@ -79,45 +138,48 @@ export default function Navbar() {
                 c: "Class",
               };
               const crumbs = [
-                { label: "", path: "/" },
-                ...segments.map((segment, index) => ({
-                  label: (() => {
-                    const isLast = index === segments.length - 1;
-                    if (isLast && classBreadcrumb?.name) {
-                      return classBreadcrumb.name;
-                    }
-                    return (
-                      labelMap[segment] ??
-                      segment
-                        .split("-")
-                        .map(
-                          (part) =>
-                            part.charAt(0).toUpperCase() + part.slice(1),
-                        )
-                        .join(" ")
-                    );
-                  })(),
-                  path:
-                    segment === "c"
-                      ? "/"
-                      : `/${segments.slice(0, index + 1).join("/")}`,
-                })),
+                { label: "", path: "/", isClassCode: false },
+                ...segments.map((segment, index) => {
+                  const isClassCode = segment === classCodeFromPath;
+                  return {
+                    isClassCode,
+                    label: (() => {
+                      if (isClassCode && effectiveClassBreadcrumb?.name) {
+                        return effectiveClassBreadcrumb.name;
+                      }
+                      return (
+                        labelMap[segment] ??
+                        segment
+                          .split("-")
+                          .map(
+                            (part) =>
+                              part.charAt(0).toUpperCase() + part.slice(1),
+                          )
+                          .join(" ")
+                      );
+                    })(),
+                    path:
+                      segment === "c"
+                        ? "/"
+                        : `/${segments.slice(0, index + 1).join("/")}`,
+                  };
+                }),
               ];
 
               return crumbs.map((crumb, index) => {
                 const isLast = index === crumbs.length - 1;
-                const isFirst = index === 0;
                 return (
                   <Fragment key={crumb.path}>
                     <BreadcrumbItem>
                       {isLast ? (
                         <BreadcrumbPage className="text-slate-900 font-semibold">
-                          {isLast && classBreadcrumb?.name ? (
+                          {crumb.isClassCode &&
+                          effectiveClassBreadcrumb?.name ? (
                             <span className="flex flex-col leading-tight">
-                              <span>{classBreadcrumb.name}</span>
-                              {classBreadcrumb.description?.trim() ? (
+                              <span>{effectiveClassBreadcrumb.name}</span>
+                              {effectiveClassBreadcrumb.description?.trim() ? (
                                 <span className="text-xs font-normal text-slate-500">
-                                  {classBreadcrumb.description.trim()}
+                                  {effectiveClassBreadcrumb.description.trim()}
                                 </span>
                               ) : null}
                             </span>
@@ -134,7 +196,7 @@ export default function Navbar() {
                         </BreadcrumbLink>
                       )}
                     </BreadcrumbItem>
-                    {!isLast && !isFirst && (
+                    {!isLast && index > 0 && (
                       <BreadcrumbSeparator className="text-slate-500" />
                     )}
                   </Fragment>

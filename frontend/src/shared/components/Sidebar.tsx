@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   FileText,
   CalendarDays,
@@ -65,6 +65,96 @@ export default function Sidebar() {
   const navigate = useNavigate();
   const location = useLocation();
   const [collapsed, setCollapsed] = useState(false);
+  const [hidden, setHidden] = useState(
+    () => localStorage.getItem("sidebarHidden") === "true",
+  );
+  const [overlayOpen, setOverlayOpen] = useState(false);
+  const isClassRoute = location.pathname.startsWith("/c/");
+  const sidebarRef = useRef<HTMLElement | null>(null);
+  const menuButtonRef = useRef<HTMLButtonElement | null>(null);
+
+  useEffect(() => {
+    if (!isClassRoute) {
+      if (hidden) {
+        setHidden(false);
+      }
+      localStorage.setItem("sidebarHidden", "false");
+      setOverlayOpen(false);
+      return;
+    }
+
+    const storedHidden = localStorage.getItem("sidebarHidden") === "true";
+    setHidden(storedHidden);
+    setOverlayOpen(false);
+  }, [isClassRoute, location.pathname, hidden]);
+
+  useEffect(() => {
+    if (hidden && collapsed) {
+      setCollapsed(false);
+    }
+  }, [hidden, collapsed]);
+
+  useEffect(() => {
+    const shouldListen = isClassRoute && (hidden ? overlayOpen : !collapsed);
+    if (!shouldListen) {
+      return;
+    }
+
+    const handleOutsideClick = (event: MouseEvent) => {
+      const target = event.target as Node | null;
+      if (!target) {
+        return;
+      }
+
+      if (
+        sidebarRef.current?.contains(target) ||
+        menuButtonRef.current?.contains(target)
+      ) {
+        return;
+      }
+
+      if (hidden) {
+        setOverlayOpen(false);
+      } else {
+        setCollapsed(true);
+      }
+    };
+
+    document.addEventListener("mousedown", handleOutsideClick);
+    return () => document.removeEventListener("mousedown", handleOutsideClick);
+  }, [hidden, overlayOpen, collapsed, isClassRoute]);
+
+  const handleMenuClick = () => {
+    if (hidden) {
+      setOverlayOpen((prev) => !prev);
+      return;
+    }
+
+    setCollapsed((prev) => !prev);
+  };
+
+  const menuButton = (
+    <button
+      ref={menuButtonRef}
+      type="button"
+      onClick={handleMenuClick}
+      className={cn(
+        "z-50 border-none cursor-pointer rounded-full flex items-center justify-center w-8 h-8 transition-all duration-200 hover:bg-gray-200",
+        hidden ? "fixed left-3.5 top-3.5" : "absolute left-3.5 top-[14px]",
+      )}
+      aria-label={
+        hidden
+          ? overlayOpen
+            ? "Close sidebar"
+            : "Open sidebar"
+          : collapsed
+            ? "Expand sidebar"
+            : "Collapse sidebar"
+      }
+    >
+      <IoMenu size={22} className="text-[#1a93f6]" />
+    </button>
+  );
 
   const renderNavButton = (
     item: { icon: any; label: string; path: string; badge?: string | null },
@@ -155,10 +245,21 @@ export default function Sidebar() {
 
   return (
     <TooltipProvider delayDuration={0}>
+      {hidden ? menuButton : null}
       <aside
+        ref={sidebarRef}
         className={cn(
-          "relative flex h-full flex-col  transition-all duration-300 ease-in-out",
-          collapsed ? "w-[68px]" : "w-[250px]",
+          "flex flex-col transition-all duration-300 ease-in-out",
+          hidden
+            ? "fixed left-0 top-0 z-40 h-screen w-[250px] shadow-lg transition-transform"
+            : "relative h-full",
+          hidden
+            ? overlayOpen
+              ? "translate-x-0"
+              : "-translate-x-full pointer-events-none"
+            : collapsed
+              ? "w-[68px]"
+              : "w-[250px]",
         )}
         style={{ background: "white", borderColor: "#E2E8F0" }}
       >
@@ -185,13 +286,7 @@ export default function Sidebar() {
           >
             EduSpace
           </span>
-          <div
-            onClick={() => setCollapsed(!collapsed)}
-            className="absolute left-3.5 top-[14px] z-20 border-none cursor-pointer rounded-full flex items-center justify-center w-8 h-8 transition-all duration-200 hover:bg-gray-200"
-            aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
-          >
-            <IoMenu size={22} className="text-[#1a93f6]" />
-          </div>
+          {!hidden ? menuButton : null}
         </div>
 
         {/* ── NAVIGATION ── */}
