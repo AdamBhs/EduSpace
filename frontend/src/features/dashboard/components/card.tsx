@@ -5,6 +5,7 @@ import { Avatar, AvatarFallback } from "@/shared/components/ui/avatar";
 import { HiOutlineDotsVertical } from "react-icons/hi";
 import { HiArrowTrendingUp } from "react-icons/hi2";
 import { FaRegUserCircle } from "react-icons/fa";
+import { useNavigate } from "react-router-dom";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -13,11 +14,28 @@ import {
 } from "@/shared/components/ui/dropdown-menu";
 
 const card = ({ data }: any) => {
+  const navigate = useNavigate();
   const user = JSON.parse(localStorage.getItem("user") || "{}");
   const isTeacher = user.userId === data.teacher_id;
+// TODO: i want when i click on one of the card nav to that class but i want the sidebar change to be hiddden and when i click on the button menu humbergeur it show but it don't take space
 
+  const handleClickNav = () => {
+    const classId = String(data?.classId ?? "");
+    const classCode = classId.slice(0, 6);
+    navigate(`/c/${classCode}`, {
+      state: {
+        breadcrumb: {
+          name: data?.name ?? "",
+          description: data?.description ?? "",
+        },
+      },
+    });
+  };
   return (
-    <div className="rounded-lg border border-[#b8b8b8] w-76 max-h-75 overflow-hidden hover:shadow-md cursor-pointer">
+    <div
+      onClick={handleClickNav}
+      className="rounded-lg border border-[#b8b8b8] w-76 max-h-75 overflow-hidden hover:shadow-md cursor-pointer"
+    >
       <div className="bg-[#137FEC] p-4 text-white relative">
         <h1 className="font-bold text-xl hover:underline">
           Advanced Mathematics 101

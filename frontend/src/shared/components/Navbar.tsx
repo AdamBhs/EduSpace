@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { Fragment, useEffect, useState } from "react";
 import {
   Search,
   Bell,
@@ -8,15 +8,10 @@ import {
   User,
   HelpCircle,
   Menu,
-  LayoutDashboard,
-  BarChart3,
-  FolderKanban,
-  MessageSquare,
 } from "lucide-react";
 import { Button } from "@/shared/components/ui/button";
 import { Avatar, AvatarFallback } from "@/shared/components/ui/avatar";
 import { Badge } from "@/shared/components/ui/badge";
-import { Separator } from "@/shared/components/ui/separator";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -28,9 +23,16 @@ import {
   SheetContent,
   SheetTrigger,
 } from "@/shared/components/ui/sheet";
-import { cn } from "@/shared/lib/utils";
-import { useNavigate } from "react-router-dom";
+import { Link, useLocation } from "react-router-dom";
 import { useAuth } from "@/context/AuthContext";
+import {
+  Breadcrumb,
+  BreadcrumbItem,
+  BreadcrumbLink,
+  BreadcrumbList,
+  BreadcrumbPage,
+  BreadcrumbSeparator,
+} from "@/shared/components/ui/breadcrumb";
 
 const notifications = [
   { title: "New comment on Dashboard", time: "2m ago", unread: true },
@@ -42,6 +44,11 @@ export default function Navbar() {
   const { user, logout } = useAuth();
   const [active, setActive] = useState("Dashboard");
   const [searchOpen, setSearchOpen] = useState(false);
+  const location = useLocation();
+  const breadcrumbState = location.state as {
+    breadcrumb?: { name?: string; description?: string };
+  } | null;
+  const classBreadcrumb = breadcrumbState?.breadcrumb;
 
   const capitalized = (name: String) => {
     const newName = name
@@ -59,6 +66,84 @@ export default function Navbar() {
       className="w-full shrink-0 flex h-15 items-center gap-3 px-4 md:px-6 border-b border-[#E2E8F0]"
       style={{ background: "white" }}
     >
+      <div className="ml-2">
+        <Breadcrumb>
+          <BreadcrumbList className="flex items-center gap-2 text-sm font-medium text-slate-500">
+            {(() => {
+              const path = location.pathname.replace(/\/+$/, "") || "/";
+              const segments =
+                path === "/" ? [] : path.split("/").filter(Boolean);
+              const labelMap: Record<string, string> = {
+                users: "Users",
+                calendar: "Calendar",
+                c: "Class",
+              };
+              const crumbs = [
+                { label: "", path: "/" },
+                ...segments.map((segment, index) => ({
+                  label: (() => {
+                    const isLast = index === segments.length - 1;
+                    if (isLast && classBreadcrumb?.name) {
+                      return classBreadcrumb.name;
+                    }
+                    return (
+                      labelMap[segment] ??
+                      segment
+                        .split("-")
+                        .map(
+                          (part) =>
+                            part.charAt(0).toUpperCase() + part.slice(1),
+                        )
+                        .join(" ")
+                    );
+                  })(),
+                  path:
+                    segment === "c"
+                      ? "/"
+                      : `/${segments.slice(0, index + 1).join("/")}`,
+                })),
+              ];
+
+              return crumbs.map((crumb, index) => {
+                const isLast = index === crumbs.length - 1;
+                const isFirst = index === 0;
+                return (
+                  <Fragment key={crumb.path}>
+                    <BreadcrumbItem>
+                      {isLast ? (
+                        <BreadcrumbPage className="text-slate-900 font-semibold">
+                          {isLast && classBreadcrumb?.name ? (
+                            <span className="flex flex-col leading-tight">
+                              <span>{classBreadcrumb.name}</span>
+                              {classBreadcrumb.description?.trim() ? (
+                                <span className="text-xs font-normal text-slate-500">
+                                  {classBreadcrumb.description.trim()}
+                                </span>
+                              ) : null}
+                            </span>
+                          ) : (
+                            crumb.label
+                          )}
+                        </BreadcrumbPage>
+                      ) : (
+                        <BreadcrumbLink
+                          asChild
+                          className="transition-colors hover:text-slate-900"
+                        >
+                          <Link to={crumb.path}>{crumb.label}</Link>
+                        </BreadcrumbLink>
+                      )}
+                    </BreadcrumbItem>
+                    {!isLast && !isFirst && (
+                      <BreadcrumbSeparator className="text-slate-500" />
+                    )}
+                  </Fragment>
+                );
+              });
+            })()}
+          </BreadcrumbList>
+        </Breadcrumb>
+      </div>
       {/* ── SPACER ── */}
       <div className="flex-1" />
 

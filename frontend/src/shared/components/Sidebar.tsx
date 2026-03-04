@@ -22,6 +22,7 @@ import { cn } from "@/shared/lib/utils";
 import { LuListTodo } from "react-icons/lu";
 import { MdOutlineArchive } from "react-icons/md";
 import { useNavigate, useLocation } from "react-router-dom";
+import { IoMenu } from "react-icons/io5";
 
 const navSections = [
   {
@@ -30,13 +31,13 @@ const navSections = [
       {
         icon: CalendarDays,
         label: "Calendar",
-        path: "/dashboard/calendar",
+        path: "/calendar",
         badge: null,
       },
       {
         icon: LuListTodo,
         label: "To-do",
-        path: "/dashboard/todo",
+        path: "/todo",
         badge: null,
       },
     ],
@@ -47,7 +48,7 @@ const navSections = [
       {
         icon: FileText,
         label: "Documents",
-        path: "/dashboard/documents",
+        path: "/documents",
         badge: null,
       },
       { icon: Users, label: "Users", path: "/users", badge: null },
@@ -56,8 +57,8 @@ const navSections = [
 ];
 
 const footerItems = [
-  { icon: MdOutlineArchive, label: "Archive", path: "/dashboard/archive" },
-  { icon: Settings, label: "Settings", path: "/dashboard/settings" },
+  { icon: MdOutlineArchive, label: "Archive", path: "/archive" },
+  { icon: Settings, label: "Settings", path: "/settings" },
 ];
 
 export default function Sidebar() {
@@ -72,8 +73,8 @@ export default function Sidebar() {
     const Icon = item.icon;
     // Use startsWith for index route, exact match for others
     const isActive =
-      item.path === "/dashboard"
-        ? location.pathname === "/dashboard"
+      item.path === "/"
+        ? location.pathname === "/"
         : location.pathname.startsWith(item.path);
 
     const btn = (
@@ -156,7 +157,7 @@ export default function Sidebar() {
     <TooltipProvider delayDuration={0}>
       <aside
         className={cn(
-          "relative flex h-full flex-col border-r transition-all duration-300 ease-in-out",
+          "relative flex h-full flex-col  transition-all duration-300 ease-in-out",
           collapsed ? "w-[68px]" : "w-[250px]",
         )}
         style={{ background: "white", borderColor: "#E2E8F0" }}
@@ -167,7 +168,7 @@ export default function Sidebar() {
           style={{ borderColor: "#E2E8F0" }}
         >
           <div
-            className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-sm font-black text-white"
+            className="flex h-8 w-8 shrink-0 ml-12 items-center justify-center rounded-lg text-sm font-black text-white"
             style={{
               background: "linear-gradient(135deg, #1a93f6, #57ccff)",
               boxShadow: "0 4px 14px rgba(26,147,246,0.28)",
@@ -179,11 +180,18 @@ export default function Sidebar() {
           <span
             className={cn(
               "overflow-hidden whitespace-nowrap text-sm font-bold tracking-wide text-[#133358] transition-all duration-300",
-              collapsed ? "w-0 opacity-0" : "w-full opacity-100",
+              collapsed ? "w-full opacity-100" : "w-full opacity-100",
             )}
           >
             EduSpace
           </span>
+          <div
+            onClick={() => setCollapsed(!collapsed)}
+            className="absolute left-3.5 top-[14px] z-20 border-none cursor-pointer rounded-full flex items-center justify-center w-8 h-8 transition-all duration-200 hover:bg-gray-200"
+            aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
+          >
+            <IoMenu size={22} className="text-[#1a93f6]" />
+          </div>
         </div>
 
         {/* ── NAVIGATION ── */}
@@ -231,20 +239,6 @@ export default function Sidebar() {
         </div>
 
         {/* ── COLLAPSE TOGGLE ── */}
-        <Button
-          variant="outline"
-          size="icon"
-          onClick={() => setCollapsed(!collapsed)}
-          className="absolute -right-3.5 top-[22px] z-20 h-7 w-7 rounded-full border-[1.5px] shadow-md transition-all duration-200 hover:shadow-lg [&>svg]:h-3.5 [&>svg]:w-3.5"
-          style={{
-            background: "#eefaff",
-            borderColor: "#8de0ff",
-            color: "#1a93f6",
-          }}
-          aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
-        >
-          {collapsed ? <ChevronRight /> : <ChevronLeft />}
-        </Button>
       </aside>
     </TooltipProvider>
   );

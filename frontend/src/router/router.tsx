@@ -8,6 +8,8 @@ import DashboardLayout from "@/layout/DashboardLayout";
 import AlreadyLoginRoute from "./AlreadyLogin";
 import { AuthProvider } from "@/context/AuthContext";
 import User from "@/features/dashboard/User";
+import Calendar from "@/features/calendar/Calendar";
+import Class from "@/features/classes/Class";
 
 export const router = createBrowserRouter([
   {
@@ -50,7 +52,19 @@ export const router = createBrowserRouter([
     children: [
       { index: true, element: <Home /> },
       { path: "users", element: <User /> },
+      { path: "calendar", element: <Calendar /> },
       // { path: "settings", element: <Settings /> },
     ],
+  },
+  {
+    path: "/c",
+    element: (
+      <AuthProvider>
+        <ProtectedRoute>
+          <DashboardLayout />
+        </ProtectedRoute>
+      </AuthProvider>
+    ),
+    children: [{ path: ":classCode", element: <Class /> }],
   },
 ]);
