@@ -146,3 +146,16 @@ input::-ms-clear,
 input::-webkit-credentials-auto-fill-button {
   display: none;
 }
+
+::-webkit-scrollbar {
+  width: 7px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #b7bcc1;
+  border-radius: 6px;
+  cursor: pointer;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #8e959c;
+}

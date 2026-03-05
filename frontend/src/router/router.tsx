@@ -10,7 +10,7 @@ import { AuthProvider } from "@/context/AuthContext";
 import User from "@/features/dashboard/User";
 import Calendar from "@/features/calendar/Calendar";
 import Class from "@/features/classes/Class";
-import People from "@/features/classes/components/People";
+import People from "@/features/classes/subPages/People";
 
 export const router = createBrowserRouter([
   {
