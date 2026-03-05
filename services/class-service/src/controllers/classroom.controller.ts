@@ -21,6 +21,21 @@ async function generateClassCode(length = 8): Promise<string> {
 }
 
 export class ClassroomController {
+  static async getClassroomById(req: Request, res: Response) {
+    try {
+      const { class_Id } = req.body;
+      const classroom = await prisma.classroom.findUnique({
+        where: {
+          classId: class_Id,
+        },
+      });
+      sendSuccess(res, classroom, "Getting classroom by id successfully", 200);
+    } catch (error) {
+      console.error("Error getting classroom by id", error);
+      sendError(res, "Error getting the classroom by id", 500);
+    }
+  }
+
   /**
    * GetAllEnrollClassroom
    * Get /api/classroom/getClassrooms
@@ -175,10 +190,10 @@ export class ClassroomController {
    */
   static async getPeopleEnrolled(req: Request, res: Response) {
     try {
-      const { class_code } = req.body;
+      const { classCode } = req.body;
 
       const classroom = await prisma.classroom.findUnique({
-        where: { class_code },
+        where: { class_code: classCode },
       });
 
       if (!classroom) {
@@ -200,10 +215,25 @@ export class ClassroomController {
           },
         },
       );
+      // TODO: I want to pass the roll for each student
+      const roleByUserId = new Map(
+        enrolled.map((enrollment) => [enrollment.user_id, enrollment.role]),
+      );
+
+      const usersWithRoles = Array.isArray(userResponse.data?.data)
+        ? userResponse.data.data.map((user: { userId: string }) => ({
+            ...user,
+            role: roleByUserId.get(user.userId) ?? "student",
+          }))
+        : [];
+      const mergedUserResponse = {
+        ...userResponse.data,
+        data: usersWithRoles,
+      };
 
       return sendSuccess(
         res,
-        userResponse.data,
+        mergedUserResponse,
         "Getting people enrolled in classroom successfuly",
         201,
       );

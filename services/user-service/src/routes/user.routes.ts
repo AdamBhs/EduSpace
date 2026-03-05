@@ -41,7 +41,7 @@ router.put(
 router.delete("/me", authenticate, UserController.deleteAccount);
 
 /**
- * @route   post /api/user/batch
+ * @route   post /api/user/getUsers
  * @desc    Get multiple users by IDs (for other services)
  * @access  Protected
  */
