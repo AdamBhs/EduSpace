@@ -15,7 +15,7 @@ const Class = () => {
   const { classCode } = useParams();
   const location = useLocation();
 
-  console.log("Class location.state:", location.state.classroomCode);
+  
 
   const tabs = ["Classwork", "Stream", "People", "Chat", "Notes"];
   // TODO: This will change based on the Units on that specifique class class

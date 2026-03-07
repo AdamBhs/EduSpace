@@ -1,8 +1,8 @@
 import { getPeopleEnrolled } from "@/services/classroom-service";
 import { useQuery } from "@tanstack/react-query";
-import { useEffect } from "react";
 import { IoMdPersonAdd } from "react-icons/io";
 import { useLocation } from "react-router-dom";
+import PeopleCard from "../components/PeopleCard";
 
 const People = () => {
   const location = useLocation();
@@ -12,6 +12,7 @@ const People = () => {
     queryKey: ["classrooms"],
     queryFn: () => getPeopleEnrolled(codeClassroom),
   });
+  console.log(data);
 
   if (isLoading) {
     return <p>Loading...</p>;
@@ -32,8 +33,15 @@ const People = () => {
           Add People
         </div>
       </div>
-      <div>
-        <h1 className="text-[">Teachers</h1>
+      <div className="mt-6">
+        <h1 className="text-xl text-[#137FEC] font-semibold border-b border-[#137FEC]/30 pb-2">
+          Teachers
+        </h1>
+        <div>
+          {data?.map((user) => {
+            return user.role === "teacher" ? <PeopleCard user={user} /> : <></>;
+          })}
+        </div>
       </div>
     </div>
   );

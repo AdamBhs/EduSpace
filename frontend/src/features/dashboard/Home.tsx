@@ -2,7 +2,6 @@ import { useQuery } from "@tanstack/react-query";
 import Card from "./components/card";
 import { getClassrooms } from "@/services/classroom-service";
 import type { Classroom } from "@/shared/types";
-import { createContext } from "react";
 
 const Home = () => {
   const { data, isLoading, error } = useQuery<Classroom[]>({
