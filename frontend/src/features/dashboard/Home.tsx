@@ -27,6 +27,7 @@ const Home = () => {
           ))}
         </div>
       )}
+      {/* TODO: Add or join Classroom Button */}
     </>
   );
 };

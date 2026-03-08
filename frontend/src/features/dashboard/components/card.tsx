@@ -21,13 +21,15 @@ const card = ({ data }: any) => {
   const handleClickNav = () => {
     localStorage.setItem("sidebarHidden", "true");
     const classId = String(data?.classId ?? "");
-    const classCode = classId.slice(0, 6);
-    navigate(`/c/${classCode}`, {
+    const classUrlCode = classId;
+
+    navigate(`/c/${classUrlCode}`, {
       state: {
         breadcrumb: {
           name: data?.name ?? "",
           description: data?.description ?? "",
         },
+        classroomCode: data.class_code,
       },
     });
   };

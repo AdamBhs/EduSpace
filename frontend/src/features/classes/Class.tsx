@@ -1,10 +1,11 @@
-import React, { useState } from "react";
+import { useState } from "react";
 import { IoMdAdd } from "react-icons/io";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
 import { IoIosInfinite } from "react-icons/io";
 import { FaFolder } from "react-icons/fa";
-import { Input } from "@/shared/components/ui/input";
-import { IoIosSearch } from "react-icons/io";
+import CardContent from "./components/CardContent";
+import CardFile from "./components/CardFile";
+import SearchInput from "./components/SearchInput";
 
 const Class = () => {
   const [activeTab, setActiveTab] = useState("Classwork");
@@ -14,14 +15,28 @@ const Class = () => {
   const { classCode } = useParams();
   const location = useLocation();
 
+  
+
   const tabs = ["Classwork", "Stream", "People", "Chat", "Notes"];
   // TODO: This will change based on the Units on that specifique class class
   const units = ["All Topics", "Unit 1", "Unit 2"];
 
   const peoplePath = classCode ? `/c/${classCode}/people` : "";
+  const unitSections = [
+    { name: "Unit 1", title: "Unit 1: Fundamentals of Biology" },
+    { name: "Unit 2", title: "Unit 2: Fundamentals of Biology" },
+  ];
+
+  const filteredUnitSections =
+    activeUnit === "All Topics"
+      ? unitSections
+      : unitSections.filter((section) => section.name === activeUnit);
+
   const handleNavSections = (tab: any) => {
     if (tab === "People" && peoplePath) {
-      navigate(peoplePath, { state: location.state });
+      navigate(peoplePath, {
+        state: { classroomCode: location.state?.classroomCode },
+      });
       return;
     }
     setActiveTab(tab);
@@ -60,7 +75,7 @@ const Class = () => {
           })}
         </ul>
       </aside>
-      <section className="flex min-h-0 flex-1 flex-col pl-6 ">
+      <section className="flex min-h-0 flex-1 flex-col pl-6 pb-4">
         <header className="-mx-6 border-b border-[#E2E8F0] px-6">
           <ul className="flex text-sm text-[#64748B] w-max gap-1">
             {tabs.map((tab) => {
@@ -81,26 +96,33 @@ const Class = () => {
             })}
           </ul>
         </header>
-        <div className="flex-1 overflow-y-auto py-2  text-sm text-slate-600 pr-6">
-          <div
-            className="flex items-center max-w-60 border-gray-200 border rounded-md pl-2 mt-4 ml-0.5"
-            style={{ boxShadow: "0 0px 2px rgba(211, 211, 211, 5)" }}
-          >
-            <IoIosSearch size={22} className="cursor-pointer" />
-            <Input
-              className="border-none shadow-none"
-              type="text"
-              placeholder="Search..."
-            />
-          </div>
+        <div className="flex-1 flex flex-col min-h-0 overflow-y-auto py-2 text-sm text-slate-600 pr-6">
+          <SearchInput />
+          <div className="flex flex-col gap-2.5 justify-between flex-1 min-h-0">
+            {filteredUnitSections.map((section) => (
+              <div key={section.name} className="mt-5">
+                <h1 className="text-xl border-b border-[#E2E8F0]/80 pb-1  text-[#1E293B] mb-4">
+                  {section.title}
+                </h1>
+                <CardContent />
+                <CardContent />
+                <CardContent />
+              </div>
+            ))}
 
-          <div className="flex flex-col justify-between h-full">
-            <div className="flex-1 mt-5">
-              <h1 className="text-xl border-b-2 border-[#E2E8F0]/80 pb-1 w-max text-[#1E293B]">
-                Unit 1: Fundamentals of Biology
-              </h1>
+            <div className="mt-6 ">
+              <h3 className="text-[#94A3B8] font-medium mb-4">
+                RECENT SHARED FILES
+              </h3>
+              <div className="flex gap-4">
+                <CardFile />
+                <CardFile />
+                <CardFile />
+                <CardFile />
+                <CardFile />
+                <CardFile />
+              </div>
             </div>
-            <div className="h-50.5 border border-gray-400"></div>
           </div>
         </div>
       </section>

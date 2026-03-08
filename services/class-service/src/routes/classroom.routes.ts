@@ -8,6 +8,13 @@ import { ClassroomController } from "../controllers/classroom.controller";
 const router = Router();
 
 /**
+ * @route   Get /api/classroom/getClassroom
+ * @desc    Getting Classroom by Id that the user enrolled in
+ * @access  Protected
+ */
+router.get("/getClassroom", authenticate, ClassroomController.getClassroomById);
+
+/**
  * @route   Get /api/classroom/getClassrooms
  * @desc    Getting all classrooms that the user enrolled in
  * @access  Protected
@@ -34,13 +41,13 @@ router.post(
  * @desc    join a classroom
  * @access  Protected
  */
-router.post("/join", authenticate, ClassroomController.joinClassroom);
+router.get("/join", authenticate, ClassroomController.joinClassroom);
 
 /**
  * @route   Get /api/classroom/getPeople
  * @desc    get people enrolled at classroom
  * @access  Protected
  */
-router.get("/getPeople", authenticate, ClassroomController.getPeopleEnrolled);
+router.post("/getPeople", authenticate, ClassroomController.getPeopleEnrolled);
 
 export default router;
