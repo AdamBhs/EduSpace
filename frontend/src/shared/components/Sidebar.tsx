@@ -1,14 +1,6 @@
 import { useEffect, useRef, useState } from "react";
-import {
-  FileText,
-  CalendarDays,
-  Users,
-  Settings,
-  ChevronLeft,
-  ChevronRight,
-} from "lucide-react";
+import { FileText, CalendarDays, Users, Settings } from "lucide-react";
 import { GoHomeFill } from "react-icons/go";
-import { Button } from "@/shared/components/ui/button";
 import { Badge } from "@/shared/components/ui/badge";
 import { Separator } from "@/shared/components/ui/separator";
 import {
@@ -140,7 +132,7 @@ export default function Sidebar() {
       onClick={handleMenuClick}
       className={cn(
         "z-50 border-none cursor-pointer rounded-full flex items-center justify-center w-8 h-8 transition-all duration-200 hover:bg-gray-200",
-        hidden ? "fixed left-3.5 top-3.5" : "absolute left-3.5 top-[14px]",
+        hidden ? "fixed left-3.5 top-3.5" : "absolute left-3.5 top-3.5",
       )}
       aria-label={
         hidden
@@ -152,7 +144,7 @@ export default function Sidebar() {
             : "Collapse sidebar"
       }
     >
-      <IoMenu size={22} className="text-[#1a93f6]" />
+      <IoMenu size={22} className="text-[#475569]" />
     </button>
   );
 
@@ -181,17 +173,17 @@ export default function Sidebar() {
       >
         {isActive && (
           <span
-            className="absolute left-0 top-1/2 h-4 w-[3px] -translate-y-1/2 rounded-r-full"
+            className="absolute left-0 top-1/2 h-4 w-0.75 -translate-y-1/2 rounded-r-full"
             style={{ background: "linear-gradient(180deg, #1a93f6, #57ccff)" }}
           />
         )}
 
         <Icon
           className={cn(
-            "h-4 w-4 shrink-0 transition-colors",
+            "h-4.5 w-4.5 shrink-0 transition-colors",
             isActive
               ? "text-[#1a93f6]"
-              : "text-[#57ccff] group-hover:text-[#1a93f6]",
+              : "text-[#475569] group-hover:text-[#1a93f6]",
           )}
         />
 
@@ -207,7 +199,7 @@ export default function Sidebar() {
         {item.badge && !collapsed && (
           <Badge
             variant="secondary"
-            className="h-4 min-w-[18px] rounded-full px-1.5 text-[9px] font-semibold"
+            className="h-4 min-w-4.5 rounded-full px-1.5 text-[9px] font-semibold"
             style={{
               background: "#E2E8F0",
               color: "#137fec",
@@ -251,15 +243,15 @@ export default function Sidebar() {
         className={cn(
           "flex flex-col transition-all duration-300 ease-in-out",
           hidden
-            ? "fixed left-0 top-0 z-40 h-screen w-[250px] shadow-lg transition-transform"
+            ? "fixed left-0 top-0 z-40 h-screen w-62.5 shadow-lg transition-transform"
             : "relative h-full",
           hidden
             ? overlayOpen
               ? "translate-x-0"
               : "-translate-x-full pointer-events-none"
             : collapsed
-              ? "w-[68px]"
-              : "w-[250px]",
+              ? "w-17"
+              : "w-62.5",
         )}
         style={{ background: "white", borderColor: "#E2E8F0" }}
       >

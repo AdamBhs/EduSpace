@@ -54,7 +54,6 @@ const Register = () => {
 
     try {
       const result = await register(userData);
-      console.log(result);
 
       if (result?.success) {
         navigate("/verification", {
