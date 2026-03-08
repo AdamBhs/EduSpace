@@ -6,7 +6,7 @@ export const getClassrooms = async () => {
   return response.data.data;
 };
 
-export const getPeopleEnrolled = async (classCode: any) => {
+export const getPeopleEnrolled = async (classCode: string) => {
   const response = await api.post("/classroom/api/classroom/getPeople", {
     classCode,
   });

@@ -23,3 +23,11 @@ export type Classroom = {
   created_at: string; // ISO date string
   updated_at: string; // ISO date string
 };
+
+export type UserType = {
+  userId: string;
+  userName: string;
+  userLastName: string;
+  profilePic: string;
+  role: string;
+};

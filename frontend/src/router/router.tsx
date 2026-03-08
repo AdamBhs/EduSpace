@@ -11,6 +11,7 @@ import User from "@/features/dashboard/User";
 import Calendar from "@/features/calendar/Calendar";
 import Class from "@/features/classes/Class";
 import People from "@/features/classes/subPages/People";
+import Todo from "@/features/todo/Todo";
 
 export const router = createBrowserRouter([
   {
@@ -54,6 +55,7 @@ export const router = createBrowserRouter([
       { index: true, element: <Home /> },
       { path: "users", element: <User /> },
       { path: "calendar", element: <Calendar /> },
+      { path: "ToDo", element: <Todo /> },
       // { path: "settings", element: <Settings /> },
     ],
   },

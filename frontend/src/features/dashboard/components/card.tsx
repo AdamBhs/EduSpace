@@ -39,11 +39,9 @@ const card = ({ data }: any) => {
         onClick={handleClickNav}
         className="bg-[#137FEC] p-4 text-white relative"
       >
-        <h1 className="font-bold text-xl hover:underline">
-          Advanced Mathematics 101
-        </h1>
+        <h1 className="font-bold text-xl hover:underline">{data?.name}</h1>
         <p className="text-white/80 text-[14px] font-semibold">
-          Room 302 Semester 1
+          {data?.description}
         </p>
         <p className="text-[12px] font-semibold mt-3">Dr. Aris Thorne</p>
         <Avatar

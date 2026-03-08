@@ -75,10 +75,6 @@ export default function Navbar() {
   };
 
   useEffect(() => {
-    console.log(user);
-  }, []);
-
-  useEffect(() => {
     if (!classCodeFromPath) {
       setCachedBreadcrumb(null);
       return;
@@ -169,7 +165,7 @@ export default function Navbar() {
               return crumbs.map((crumb, index) => {
                 const isLast = index === crumbs.length - 1;
                 return (
-                  <Fragment key={crumb.path}>
+                  <Fragment key={crumb.path + index}>
                     <BreadcrumbItem>
                       {isLast ? (
                         <BreadcrumbPage className="text-slate-900 font-semibold">

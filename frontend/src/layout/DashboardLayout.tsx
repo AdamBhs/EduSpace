@@ -14,7 +14,7 @@ const DashboardLayout = () => {
         <Navbar />
         <main className="flex-1 p-2 bg-[#f3f3f3]">
           <div
-            className={`bg-white h-[calc(100vh-60px-16px)] px-6 rounded-2xl shadow-md overflow-auto overflow-hidden ${
+            className={`bg-white h-[calc(100vh-60px-16px)] px-6 rounded-2xl shadow-md overflow-y-auto  ${
               isClassRoute ? "" : " py-5"
             }`}
           >
