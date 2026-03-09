@@ -6,8 +6,6 @@ import dotenv from "dotenv";
 import { errorHandler } from "../../../shared/src/middleware/errorHandler";
 
 // Import routes
-import authRoutes from "./routes/auth.routes";
-import userRoutes from "./routes/user.routes";
 import classroomRoutes from "./routes/classroom.routes";
 
 // Load environment variables
