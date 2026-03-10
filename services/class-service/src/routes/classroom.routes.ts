@@ -50,4 +50,6 @@ router.get("/join", authenticate, ClassroomController.joinClassroom);
  */
 router.post("/getPeople", authenticate, ClassroomController.getPeopleEnrolled);
 
+
+
 export default router;
