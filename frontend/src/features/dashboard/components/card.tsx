@@ -30,6 +30,7 @@ const card = ({ data }: any) => {
           description: data?.description ?? "",
         },
         classroomCode: data.class_code,
+        isTeacher: isTeacher
       },
     });
   };

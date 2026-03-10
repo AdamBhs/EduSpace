@@ -15,7 +15,7 @@ const Class = () => {
   const { classCode } = useParams();
   const location = useLocation();
 
-  
+  const isTeacher = location.state?.isTeacher;
 
   const tabs = ["Classwork", "Stream", "People", "Chat", "Notes"];
   // TODO: This will change based on the Units on that specifique class class
@@ -35,7 +35,10 @@ const Class = () => {
   const handleNavSections = (tab: any) => {
     if (tab === "People" && peoplePath) {
       navigate(peoplePath, {
-        state: { classroomCode: location.state?.classroomCode },
+        state: {
+          classroomCode: location.state?.classroomCode,
+          isTeacher: isTeacher,
+        },
       });
       return;
     }
@@ -48,12 +51,14 @@ const Class = () => {
   return (
     <div className="flex h-full -mx-6 items-stretch overflow-hidden">
       <aside className="w-60 self-stretch border-r border-[#E2E8F0] px-6 py-5">
-        <div
-          className="text-sm font-semibold rounded-lg cursor-pointer hover:opacity-90 text-white bg-[#137FEC] py-3 px-5 flex gap-1 items-center justify-center"
-          style={{ boxShadow: "0 2px 10px rgba(19, 127, 236, 0.5)" }}
-        >
-          <IoMdAdd size={18} /> Create Work
-        </div>
+        {isTeacher && (
+          <div
+            className="text-sm font-semibold rounded-lg cursor-pointer hover:opacity-90 text-white bg-[#137FEC] py-3 px-5 flex gap-1 items-center justify-center"
+            style={{ boxShadow: "0 2px 10px rgba(19, 127, 236, 0.5)" }}
+          >
+            <IoMdAdd size={18} /> Create Work
+          </div>
+        )}
         <h2 className="mt-6 text-[#94A3B8] text-[10px]">FILTERS</h2>
         <ul className="mt-4 space-y-1 text-sm text-slate-600">
           {units.map((unit, index) => {

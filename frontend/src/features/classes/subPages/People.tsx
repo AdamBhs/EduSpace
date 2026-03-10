@@ -10,6 +10,7 @@ import PeopleSkeleton from "../ui/PeopleSkeleton";
 const People = () => {
   const location = useLocation();
   const codeClassroom = location.state.classroomCode;
+  const isTeacher = location.state.isTeacher;
 
   const { data, isLoading, error } = useQuery<any[]>({
     queryKey: ["peopleList", codeClassroom],
@@ -27,15 +28,20 @@ const People = () => {
 
   return (
     <div className="px-68 pt-9 ">
+      <div>
+        
+      </div>
       <div className="flex justify-between w-full">
         <h1 className="text-2xl text-[#1E293B] font-semibold">People</h1>
-        <div
-          className="flex items-center gap-2 bg-[#137FEC] text-white rounded-[50px] hover:opacity-90 cursor-pointer px-6 py-2"
-          style={{ boxShadow: "0 0px 8px rgba(19, 127, 236, 0.5)" }}
-        >
-          <IoMdPersonAdd />
-          Add People
-        </div>
+        {isTeacher ?? (
+          <div
+            className="flex items-center gap-2 bg-[#137FEC] text-white rounded-[50px] hover:opacity-90 cursor-pointer px-6 py-2"
+            style={{ boxShadow: "0 0px 8px rgba(19, 127, 236, 0.5)" }}
+          >
+            <IoMdPersonAdd />
+            Add People
+          </div>
+        )}
       </div>
 
       {/* Teachers Section */}
@@ -85,7 +91,9 @@ const People = () => {
               </>
             ))
           ) : (
-            <p className="text-gray-400 text-sm mt-3">No students found.</p>
+            <p className="text-gray-400 text-sm my-3 mx-2">
+              No students found.
+            </p>
           )}
         </div>
       </div>
