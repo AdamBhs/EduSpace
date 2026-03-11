@@ -1,5 +1,3 @@
-import React from "react";
-import { GoDotFill } from "react-icons/go";
 import { FaRegFolder } from "react-icons/fa";
 import { Avatar, AvatarFallback } from "@/shared/components/ui/avatar";
 import { HiOutlineDotsVertical } from "react-icons/hi";
@@ -29,8 +27,6 @@ const card = ({ data }: any) => {
           name: data?.name ?? "",
           description: data?.description ?? "",
         },
-        classroomCode: data.class_code,
-        isTeacher: isTeacher
       },
     });
   };

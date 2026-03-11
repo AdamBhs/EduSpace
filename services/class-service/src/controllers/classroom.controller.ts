@@ -23,10 +23,10 @@ async function generateClassCode(length = 8): Promise<string> {
 export class ClassroomController {
   static async getClassroomById(req: Request, res: Response) {
     try {
-      const { class_Id } = req.body;
+      const { classId } = req.params as { classId: string };
       const classroom = await prisma.classroom.findUnique({
         where: {
-          classId: class_Id,
+          classId: classId,
         },
       });
       sendSuccess(res, classroom, "Getting classroom by id successfully", 200);
