@@ -69,8 +69,8 @@ export const router = createBrowserRouter([
       </AuthProvider>
     ),
     children: [
-      { path: ":classCode", element: <Class /> },
-      { path: ":classCode/people", element: <People /> },
+      { path: ":classId", element: <Class /> },
+      { path: ":classId/people", element: <People /> },
     ],
   },
 ]);

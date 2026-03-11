@@ -30,8 +30,10 @@ export function SelectMenu({ placeholder, label, data, autoSelect }: Props) {
       >
         <SelectGroup>
           <SelectLabel>{label}</SelectLabel>
-          {data.map((value: string) => (
-            <SelectItem value={value}>{value}</SelectItem>
+          {data.map((value: string, index: any) => (
+            <SelectItem value={value} key={index}>
+              {value}
+            </SelectItem>
           ))}
         </SelectGroup>
       </SelectContent>

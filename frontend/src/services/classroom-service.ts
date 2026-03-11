@@ -13,3 +13,8 @@ export const getPeopleEnrolled = async (classCode: string) => {
 
   return response.data.data.data;
 };
+
+export const getClassroomById = async (classId: string) => {
+  const response = await api.get(`/classroom/api/classroom/${classId}`);
+  return response.data.data;
+};

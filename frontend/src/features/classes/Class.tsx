@@ -1,27 +1,37 @@
 import { useState } from "react";
 import { IoMdAdd } from "react-icons/io";
-import { useLocation, useNavigate, useParams } from "react-router-dom";
+import { useParams } from "react-router-dom";
 import { IoIosInfinite } from "react-icons/io";
 import { FaFolder } from "react-icons/fa";
 import CardContent from "./components/CardContent";
 import CardFile from "./components/CardFile";
 import SearchInput from "./components/SearchInput";
+import { useQuery } from "@tanstack/react-query";
+import type { Classroom } from "@/shared/types";
+import { getClassroomById } from "@/services/classroom-service";
+import NavLinksClass from "./components/NavLinksClass";
 
 const Class = () => {
-  const [activeTab, setActiveTab] = useState("Classwork");
   const [activeUnit, setActiveUnit] = useState("All Topics");
+  const user = JSON.parse(localStorage.getItem("user")!);
 
-  const navigate = useNavigate();
-  const { classCode } = useParams();
-  const location = useLocation();
+  const { classId } = useParams();
 
-  const isTeacher = location.state?.isTeacher;
+  const { data, isLoading, error } = useQuery<Classroom>({
+    queryKey: ["classroom"],
+    queryFn: () => getClassroomById(classId!),
+  });
 
-  const tabs = ["Classwork", "Stream", "People", "Chat", "Notes"];
+  if (isLoading) {
+    return <p>Loading...</p>;
+  }
+  if (error) return <p>Error...</p>;
+
+  const isTeacher = user.userId === data!.teacher_id;
+
   // TODO: This will change based on the Units on that specifique class class
   const units = ["All Topics", "Unit 1", "Unit 2"];
 
-  const peoplePath = classCode ? `/c/${classCode}/people` : "";
   const unitSections = [
     { name: "Unit 1", title: "Unit 1: Fundamentals of Biology" },
     { name: "Unit 2", title: "Unit 2: Fundamentals of Biology" },
@@ -32,22 +42,10 @@ const Class = () => {
       ? unitSections
       : unitSections.filter((section) => section.name === activeUnit);
 
-  const handleNavSections = (tab: any) => {
-    if (tab === "People" && peoplePath) {
-      navigate(peoplePath, {
-        state: {
-          classroomCode: location.state?.classroomCode,
-          isTeacher: isTeacher,
-        },
-      });
-      return;
-    }
-    setActiveTab(tab);
-  };
-
   const handleFilterByUnit = (unit: any) => {
     setActiveUnit(unit);
   };
+
   return (
     <div className="flex h-full -mx-6 items-stretch overflow-hidden">
       <aside className="w-60 self-stretch border-r border-[#E2E8F0] px-6 py-5">
@@ -81,26 +79,11 @@ const Class = () => {
         </ul>
       </aside>
       <section className="flex min-h-0 flex-1 flex-col pl-6 pb-4">
-        <header className="-mx-6 border-b border-[#E2E8F0] px-6">
-          <ul className="flex text-sm text-[#64748B] w-max gap-1">
-            {tabs.map((tab) => {
-              const isActive = activeTab === tab;
-              return (
-                <li
-                  key={tab}
-                  onClick={() => handleNavSections(tab)}
-                  className={`cursor-pointer select-none transition delay-20 px-5 py-3 border-b-2 ${
-                    isActive
-                      ? "text-[#137FEC] border-[#137FEC]"
-                      : "border-transparent hover:text-[#137FEC]/80 hover:border-[#137FEC]/60"
-                  }`}
-                >
-                  {tab}
-                </li>
-              );
-            })}
-          </ul>
-        </header>
+        <NavLinksClass
+          isTeacher={isTeacher}
+          classId={classId!}
+          activeTab="Classwork"
+        />
         <div className="flex-1 flex flex-col min-h-0 overflow-y-auto py-2 text-sm text-slate-600 pr-6">
           <SearchInput />
           <div className="flex flex-col gap-2.5 justify-between flex-1 min-h-0">
