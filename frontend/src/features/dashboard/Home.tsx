@@ -1,5 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import Card from "./components/card";
+import ClassActionButton from "./components/ClassActionButton";
 import { getClassrooms } from "@/services/classroom-service";
 import type { Classroom } from "@/shared/types";
 
@@ -27,7 +28,7 @@ const Home = () => {
           ))}
         </div>
       )}
-      {/* TODO: Add or join Classroom Button */}
+      <ClassActionButton />
     </>
   );
 };
