@@ -53,7 +53,27 @@ export class ClassroomController {
         },
       });
 
-      const classrooms = classes_enrolled.map((enroll) => enroll.classroom);
+      const classrooms = await Promise.all(
+        classes_enrolled.map(async (enroll) => {
+          try {
+            const teacherData = await axios.get(
+              `http://localhost:3002/api/user/${enroll.classroom.teacher_id}`,
+              { headers: { Authorization: req.headers.authorization } },
+            );
+
+            return {
+              teacher: teacherData.data.data.user.profile,
+              classroom: enroll.classroom,
+            };
+          } catch (err) {
+            console.error(
+              `Failed to fetch teacher ${enroll.classroom.teacher_id}:`,
+              err,
+            );
+            sendError(res, "Error fetch Teachers data", 500);
+          }
+        }),
+      );
 
       sendSuccess(
         res,

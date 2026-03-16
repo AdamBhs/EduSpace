@@ -9,6 +9,12 @@ export type AuthContextType = {
   logout: () => void;
 };
 
+export type Teacher = {
+  firstName: string;
+  lastName: string;
+  avatarUrl: string | null;
+};
+
 export type Classroom = {
   classId: string;
   name: string;
@@ -18,10 +24,15 @@ export type Classroom = {
   subject: string;
   section: string;
   chapter: string;
-  material_categories: any[]; // or a more specific type if you know the shape
+  material_categories: any[];
   is_archived: boolean;
-  created_at: string; // ISO date string
-  updated_at: string; // ISO date string
+  created_at: string;
+  updated_at: string;
+};
+
+export type EnrolledClassroom = {
+  teacher: Teacher;
+  classroom: Classroom;
 };
 
 export type UserType = {
