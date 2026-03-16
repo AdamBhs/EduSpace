@@ -2,10 +2,10 @@ import { useQuery } from "@tanstack/react-query";
 import Card from "./components/card";
 import ClassActionButton from "./components/ClassActionButton";
 import { getClassrooms } from "@/services/classroom-service";
-import type { Classroom } from "@/shared/types";
+import type { Classroom, EnrolledClassroom } from "@/shared/types";
 
 const Home = () => {
-  const { data, isLoading, error } = useQuery<Classroom[]>({
+  const { data, isLoading, error } = useQuery<EnrolledClassroom[]>({
     queryKey: ["classrooms"],
     queryFn: getClassrooms,
   });
@@ -23,8 +23,8 @@ const Home = () => {
         <p>No classrooms found.</p>
       ) : (
         <div className="flex flex-wrap gap-4">
-          {data?.map((c: Classroom) => (
-            <Card key={c.classId} data={c} />
+          {data?.map((c: EnrolledClassroom, index) => (
+            <Card key={index} data={c} />
           ))}
         </div>
       )}
