@@ -31,7 +31,7 @@ const ClassActionButton = () => {
         <DropdownMenuTrigger asChild>
           <Button
             size="icon-lg"
-            className="fixed bottom-8 right-8 z-40 size-14 rounded-full bg-blue-500 hover:bg-blue-600 text-white shadow-lg hover:shadow-xl transition-all"
+            className="fixed cursor-pointer bottom-8 right-8 z-40 size-12 rounded-full bg-blue-500 hover:bg-blue-600 text-white shadow-lg hover:shadow-xl transition-all"
           >
             <Plus className="size-6" />
           </Button>

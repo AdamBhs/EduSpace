@@ -57,9 +57,11 @@ const CreateClassDialog = ({ open, onOpenChange }: CreateClassDialogProps) => {
 
   return (
     <Dialog open={open} onOpenChange={handleClose}>
-      <DialogContent className="sm:max-w-[440px]" showCloseButton={false}>
+      <DialogContent className="sm:max-w-110" showCloseButton={false}>
         <DialogHeader>
-          <DialogTitle className="text-xl font-semibold">Create class</DialogTitle>
+          <DialogTitle className="text-xl font-semibold">
+            Create class
+          </DialogTitle>
           <DialogDescription className="sr-only">
             Fill in the details to create a new classroom
           </DialogDescription>
@@ -114,7 +116,7 @@ const CreateClassDialog = ({ open, onOpenChange }: CreateClassDialogProps) => {
             onChange={(v) => handleChange("subject", v)}
           />
           <FloatingInput
-            label="Room"
+            label="Description"
             value={form.description}
             onChange={(v) => handleChange("description", v)}
           />
