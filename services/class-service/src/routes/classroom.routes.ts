@@ -50,4 +50,12 @@ router.post("/getPeople", authenticate, ClassroomController.getPeopleEnrolled);
  */
 router.get("/:classId", authenticate, ClassroomController.getClassroomById);
 
+/**
+ * @route   Delete /api/classroom/:classId
+ * @desc    Deleting Classroom by Id that the user enrolled in
+ * @access  Protected
+ */
+router.delete("/:classId", authenticate, ClassroomController.deleteClassroomById);
+
+
 export default router;

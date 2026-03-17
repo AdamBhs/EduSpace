@@ -10,9 +10,10 @@ export type AuthContextType = {
 };
 
 export type Teacher = {
-  firstName: string;
-  lastName: string;
-  avatarUrl: string | null;
+  userId: string;
+  userName: string;
+  userLastName: string;
+  profilePic: string | null;
 };
 
 export type Classroom = {
@@ -31,8 +32,8 @@ export type Classroom = {
 };
 
 export type EnrolledClassroom = {
-  teacher: Teacher;
   classroom: Classroom;
+  teacher: Teacher;
 };
 
 export type UserType = {
