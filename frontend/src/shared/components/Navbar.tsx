@@ -44,9 +44,11 @@ export default function Navbar() {
   const { user, logout } = useAuth();
   const [searchOpen, setSearchOpen] = useState(false);
   const location = useLocation();
+
   const breadcrumbState = location.state as {
     breadcrumb?: { name?: string; description?: string };
   } | null;
+  
   const classBreadcrumb = breadcrumbState?.breadcrumb;
   const classCodeFromPath = (() => {
     const path = location.pathname.replace(/\/+$/, "");
