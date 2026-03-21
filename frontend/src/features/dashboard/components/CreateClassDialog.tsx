@@ -50,8 +50,14 @@ const CreateClassDialog = ({ open, onOpenChange }: CreateClassDialogProps) => {
     setForm((prev) => ({ ...prev, [field]: value }));
   };
 
+  const isFormValid =
+    form.name.trim() &&
+    form.section.trim() &&
+    form.subject.trim() &&
+    form.description.trim();
+
   const handleCreate = () => {
-    if (!form.name.trim()) return;
+    if (!isFormValid) return;
     createMutation.mutate();
   };
 
@@ -76,7 +82,7 @@ const CreateClassDialog = ({ open, onOpenChange }: CreateClassDialogProps) => {
               <button
                 type="button"
                 onClick={() => setClassroomType("teaching")}
-                className={`flex items-center gap-2 rounded-lg border-2 px-6 py-2.5 text-sm font-medium transition-colors ${
+                className={`flex items-center gap-2 rounded-lg border-2 px-6 py-2.5 text-sm font-medium transition-colors cursor-pointer ${
                   classroomType === "teaching"
                     ? "border-blue-500 text-blue-500 bg-white"
                     : "border-gray-200 text-gray-500 bg-white hover:border-gray-300"
@@ -88,7 +94,7 @@ const CreateClassDialog = ({ open, onOpenChange }: CreateClassDialogProps) => {
               <button
                 type="button"
                 onClick={() => setClassroomType("friendly")}
-                className={`flex items-center gap-2 rounded-lg border-2 px-6 py-2.5 text-sm font-medium transition-colors ${
+                className={`flex items-center gap-2 rounded-lg border-2 px-6 py-2.5 text-sm font-medium transition-colors cursor-pointer ${
                   classroomType === "friendly"
                     ? "border-blue-500 text-blue-500 bg-white"
                     : "border-gray-200 text-gray-500 bg-white hover:border-gray-300"
@@ -106,17 +112,17 @@ const CreateClassDialog = ({ open, onOpenChange }: CreateClassDialogProps) => {
             onChange={(v) => handleChange("name", v)}
           />
           <FloatingInput
-            label="Section"
+            label="Section (required)"
             value={form.section}
             onChange={(v) => handleChange("section", v)}
           />
           <FloatingInput
-            label="Subject"
+            label="Subject (required)"
             value={form.subject}
             onChange={(v) => handleChange("subject", v)}
           />
           <FloatingInput
-            label="Description"
+            label="Description (required)"
             value={form.description}
             onChange={(v) => handleChange("description", v)}
           />
@@ -128,7 +134,7 @@ const CreateClassDialog = ({ open, onOpenChange }: CreateClassDialogProps) => {
           </Button>
           <Button
             onClick={handleCreate}
-            disabled={!form.name.trim() || createMutation.isPending}
+            disabled={!isFormValid || createMutation.isPending}
             className="bg-blue-500 hover:bg-blue-600 text-white disabled:opacity-50"
           >
             {createMutation.isPending ? "Creating..." : "Create"}
