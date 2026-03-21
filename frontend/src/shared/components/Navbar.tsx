@@ -23,7 +23,7 @@ import {
   SheetContent,
   SheetTrigger,
 } from "@/shared/components/ui/sheet";
-import { Link, useLocation } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "@/context/AuthContext";
 import {
   Breadcrumb,
@@ -42,6 +42,7 @@ const notifications = [
 
 export default function Navbar() {
   const { user, logout } = useAuth();
+  const navigate = useNavigate();
   const [searchOpen, setSearchOpen] = useState(false);
   const location = useLocation();
   const breadcrumbState = location.state as {
@@ -380,12 +381,13 @@ export default function Navbar() {
 
           <div className="py-1">
             {[
-              { icon: User, label: "Profile" },
-              { icon: Settings, label: "Settings" },
-              { icon: HelpCircle, label: "Support" },
-            ].map(({ icon: Icon, label }) => (
+              { icon: User, label: "Profile", path: "" },
+              { icon: Settings, label: "Settings", path: "/settings" },
+              { icon: HelpCircle, label: "Support", path: "" },
+            ].map(({ icon: Icon, label, path }) => (
               <DropdownMenuItem
                 key={label}
+                onClick={() => path && navigate(path)}
                 className="mx-1 flex items-center gap-2.5 rounded-md px-3 py-2 text-sm font-medium cursor-pointer focus:bg-[#d9f3ff]"
                 style={{ color: "#185390" }}
               >
