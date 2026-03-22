@@ -36,3 +36,8 @@ export const createClassroom = async (data: {
   const response = await api.post("/classroom/api/classroom/create", data);
   return response.data;
 };
+
+export const deleteClassroomById = async (id: string) => {
+  const response = await api.delete(`/classroom/api/classroom/${id}`);
+  return response
+}

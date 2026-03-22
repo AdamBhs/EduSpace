@@ -3,6 +3,7 @@ import Card from "./components/card";
 import ClassActionButton from "./components/ClassActionButton";
 import { getClassrooms } from "@/services/classroom-service";
 import type { Classroom, EnrolledClassroom } from "@/shared/types";
+import NoClassroomFound from "./components/NoClassroomFound";
 
 const Home = () => {
   const { data, isLoading, error } = useQuery<EnrolledClassroom[]>({
@@ -20,7 +21,7 @@ const Home = () => {
   return (
     <>
       {data?.length === 0 ? (
-        <p>No classrooms found.</p>
+        <NoClassroomFound />
       ) : (
         <div className="flex flex-wrap gap-4">
           {data?.map((c: EnrolledClassroom, index) => (
