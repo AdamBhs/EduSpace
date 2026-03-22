@@ -43,7 +43,6 @@ export class ClassroomController {
   static async getAllEnrollClassroom(req: Request, res: Response) {
     try {
       const userId = req.user!.userId;
-
       const classes_enrolled = await prisma.enrollement.findMany({
         where: {
           user_id: userId,
@@ -52,28 +51,40 @@ export class ClassroomController {
           classroom: true,
         },
       });
+      if (classes_enrolled.length === 0) {
+        return sendSuccess(
+          res,
+          [],
+          "Getting all classrooms enrolled succefully",
+          200,
+        );
+      }
+      const teacherIds = [
+        ...new Set(
+          classes_enrolled.map((enroll) => enroll.classroom.teacher_id),
+        ),
+      ];
 
-      const classrooms = await Promise.all(
-        classes_enrolled.map(async (enroll) => {
-          try {
-            const teacherData = await axios.get(
-              `http://localhost:3002/api/user/${enroll.classroom.teacher_id}`,
-              { headers: { Authorization: req.headers.authorization } },
-            );
-
-            return {
-              teacher: teacherData.data.data.user.profile,
-              classroom: enroll.classroom,
-            };
-          } catch (err) {
-            console.error(
-              `Failed to fetch teacher ${enroll.classroom.teacher_id}:`,
-              err,
-            );
-            sendError(res, "Error fetch Teachers data", 500);
-          }
-        }),
+      const teacherResponse = await axios.post(
+        "http://localhost:3002/api/user/getUsers",
+        { users_ids: teacherIds },
+        { headers: { Authorization: req.headers.authorization } },
       );
+
+      const teachers = Array.isArray(teacherResponse.data?.data)
+        ? teacherResponse.data.data
+        : [];
+      const teacherById = new Map(
+        teachers.map((teacher: { userId: string }) => [
+          teacher.userId,
+          teacher,
+        ]),
+      );
+
+      const classrooms = classes_enrolled.map((enroll) => ({
+        teacher: teacherById.get(enroll.classroom.teacher_id) ?? null,
+        classroom: enroll.classroom,
+      }));
 
       sendSuccess(
         res,
@@ -260,6 +271,27 @@ export class ClassroomController {
     } catch (error) {
       console.error("Error getting people enrolled :", error);
       sendError(res, "Error getting people by classroom ID", 500);
+    }
+  }
+
+  /**
+   * Delete Classroom By Id
+   * Delete /api/classroom/:classId
+   */
+  static async deleteClassroomById(req: Request, res: Response) {
+    try {
+      const id = req.params.classId as string;
+
+      const deleted = await prisma.classroom.delete({
+        where: {
+          classId: id,
+        },
+      });
+
+      sendSuccess(res, deleted, "Deleting classroom successfuly", 201);
+    } catch (error) {
+      console.error("Error deleting classroom by Id : ", error);
+      sendError(res, "Error deleting classroom by id", 500);
     }
   }
 }

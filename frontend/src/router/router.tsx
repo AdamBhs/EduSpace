@@ -13,6 +13,7 @@ import Class from "@/features/classes/Class";
 import People from "@/features/classes/subPages/People";
 import Todo from "@/features/todo/Todo";
 import Settings from "@/features/settings/Settings";
+import Stream from "@/features/classes/subPages/Stream";
 
 export const router = createBrowserRouter([
   {
@@ -72,6 +73,7 @@ export const router = createBrowserRouter([
     children: [
       { path: ":classId", element: <Class /> },
       { path: ":classId/people", element: <People /> },
+      { path: ":classId/stream", element: <Stream /> },
     ],
   },
 ]);

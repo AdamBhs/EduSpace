@@ -47,8 +47,17 @@ export default function Navbar() {
   const location = useLocation();
   const breadcrumbState = location.state as {
     breadcrumb?: { name?: string; description?: string };
+    className?: string;
+    classDescription?: string;
   } | null;
-  const classBreadcrumb = breadcrumbState?.breadcrumb;
+  const classBreadcrumb =
+    breadcrumbState?.breadcrumb ??
+    (breadcrumbState?.className || breadcrumbState?.classDescription
+      ? {
+          name: breadcrumbState?.className,
+          description: breadcrumbState?.classDescription,
+        }
+      : undefined);
   const classCodeFromPath = (() => {
     const path = location.pathname.replace(/\/+$/, "");
     const segments = path ? path.split("/").filter(Boolean) : [];
