@@ -1,4 +1,3 @@
-import React from "react";
 import { FaFileLines } from "react-icons/fa6";
 import { GoDotFill } from "react-icons/go";
 const CardContent = () => {

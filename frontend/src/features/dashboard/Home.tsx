@@ -2,7 +2,7 @@ import { useQuery } from "@tanstack/react-query";
 import Card from "./components/card";
 import ClassActionButton from "./components/ClassActionButton";
 import { getClassrooms } from "@/services/classroom-service";
-import type { Classroom, EnrolledClassroom } from "@/shared/types";
+import type { EnrolledClassroom } from "@/shared/types";
 import NoClassroomFound from "./components/NoClassroomFound";
 
 const Home = () => {
