@@ -14,6 +14,7 @@ import People from "@/features/classes/subPages/People";
 import Todo from "@/features/todo/Todo";
 import Settings from "@/features/settings/Settings";
 import Stream from "@/features/classes/subPages/Stream";
+import Grades from "@/features/classes/subPages/Grades";
 
 export const router = createBrowserRouter([
   {
@@ -74,6 +75,7 @@ export const router = createBrowserRouter([
       { path: ":classId", element: <Class /> },
       { path: ":classId/people", element: <People /> },
       { path: ":classId/stream", element: <Stream /> },
+      { path: ":classId/grades", element: <Grades /> },
     ],
   },
 ]);
