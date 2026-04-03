@@ -66,7 +66,7 @@ export class CommentController {
         orderBy: { created_at: "asc" },
       });
 
-      const formattedComments = comments.map((comment) => ({
+      const formattedComments = comments.map((comment: any) => ({
         commentId: comment.commentId,
         postId: comment.post_id,
         authorId: comment.author_id,
@@ -116,11 +116,15 @@ export class CommentController {
         data: { content },
       });
 
-      sendSuccess(res, {
-        commentId: updatedComment.commentId,
-        content: updatedComment.content,
-        updatedAt: updatedComment.updated_at,
-      }, "Comment updated successfully");
+      sendSuccess(
+        res,
+        {
+          commentId: updatedComment.commentId,
+          content: updatedComment.content,
+          updatedAt: updatedComment.updated_at,
+        },
+        "Comment updated successfully",
+      );
     } catch (error) {
       console.error("Update comment error:", error);
       sendError(res, "Failed to update comment", 500);

@@ -72,7 +72,7 @@ export class MaterialController {
         orderBy: { created_at: "desc" },
       });
 
-      const formattedMaterials = materials.map((material) => ({
+      const formattedMaterials = materials.map((material: any) => ({
         materialId: material.materialId,
         classId: material.class_id,
         authorId: material.author_id,
@@ -168,14 +168,18 @@ export class MaterialController {
         include: { attachments: true },
       });
 
-      sendSuccess(res, {
-        materialId: updatedMaterial.materialId,
-        title: updatedMaterial.title,
-        description: updatedMaterial.description,
-        category: updatedMaterial.category,
-        attachments: updatedMaterial.attachments,
-        updatedAt: updatedMaterial.updated_at,
-      }, "Material updated successfully");
+      sendSuccess(
+        res,
+        {
+          materialId: updatedMaterial.materialId,
+          title: updatedMaterial.title,
+          description: updatedMaterial.description,
+          category: updatedMaterial.category,
+          attachments: updatedMaterial.attachments,
+          updatedAt: updatedMaterial.updated_at,
+        },
+        "Material updated successfully",
+      );
     } catch (error) {
       console.error("Update material error:", error);
       sendError(res, "Failed to update material", 500);

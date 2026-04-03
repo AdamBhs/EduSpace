@@ -1,21 +1,27 @@
 import jwt from "jsonwebtoken";
-import dotenv from "dotenv";
 
-dotenv.config({ path: "../../../.env" });
 export interface JwtPayload {
   userId: string;
   email: string;
 }
 
-const JWT_SECRET: string = process.env.JWT_SECRET ?? "YIwkdNzvnwJYfkTAPeqtIQ==";
+const getJwtSecret = (): string => {
+  const secret = process.env.JWT_SECRET;
+  if (!secret) {
+    throw new Error("JWT_SECRET is not set");
+  }
+  return secret;
+};
 
 export const generateToken = (payload: JwtPayload): string => {
-  return jwt.sign(payload, JWT_SECRET, { expiresIn: "7d" });
+  const secret = getJwtSecret();
+  return jwt.sign(payload, secret, { expiresIn: "7d" });
 };
 
 export const verifyToken = (token: string): JwtPayload | null => {
   try {
-    return jwt.verify(token, JWT_SECRET) as JwtPayload;
+    const secret = getJwtSecret();
+    return jwt.verify(token, secret) as JwtPayload;
   } catch (error) {
     console.error("Invalid or expired token:", error);
     return null;
