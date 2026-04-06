@@ -64,7 +64,7 @@ const NavLinksClass = ({
   };
 
   return (
-    <header className="-mx-6 border-b border-[#E2E8F0] px-6  ">
+    <header className="-mx-6 border-b border-[#E2E8F0] px-8 ">
       <ul className="flex text-sm text-[#64748B] w-max gap-1">
         {tabs.map((tab: string, index: any) => {
           const isActive = activeTab === tab;
