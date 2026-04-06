@@ -1,5 +1,6 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { User, Shield, Bell } from "lucide-react";
+import { useLocation } from "react-router-dom";
 import ProfileSettings from "./components/ProfileSettings";
 import SecuritySettings from "./components/SecuritySettings";
 import NotificationSettings from "./components/NotificationSettings";
@@ -13,7 +14,17 @@ const tabs = [
 type TabId = (typeof tabs)[number]["id"];
 
 const Settings = () => {
-  const [activeTab, setActiveTab] = useState<TabId>("profile");
+  const location = useLocation();
+  const locationState = location.state as { settingsTab?: TabId } | null;
+  const [activeTab, setActiveTab] = useState<TabId>(
+    locationState?.settingsTab ?? "profile",
+  );
+
+  useEffect(() => {
+    if (locationState?.settingsTab && locationState.settingsTab !== activeTab) {
+      setActiveTab(locationState.settingsTab);
+    }
+  }, [locationState?.settingsTab, activeTab]);
 
   const title =
     activeTab === "profile"
