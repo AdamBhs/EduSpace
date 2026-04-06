@@ -59,7 +59,6 @@ export const router = createBrowserRouter([
       { path: "users", element: <User /> },
       { path: "calendar", element: <Calendar /> },
       { path: "ToDo", element: <Todo /> },
-      { path: "settings", element: <Settings /> },
     ],
   },
   {
@@ -76,6 +75,21 @@ export const router = createBrowserRouter([
       { path: ":classId/people", element: <People /> },
       { path: ":classId/stream", element: <Stream /> },
       { path: ":classId/grades", element: <Grades /> },
+    ],
+  },
+  {
+    path: "settings",
+    element: (
+      <AuthProvider>
+        <ProtectedRoute>
+          <DashboardLayout />
+        </ProtectedRoute>
+      </AuthProvider>
+    ),
+    children: [
+      { index: true, element: <Settings /> },
+      { path: "notifications", element: <Settings /> },
+      { path: "security", element: <Settings /> },
     ],
   },
 ]);

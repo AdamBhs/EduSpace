@@ -325,6 +325,11 @@ export default function Navbar() {
           <div
             className="px-4 py-2.5 text-center cursor-pointer hover:bg-[#d9f3ff] transition-colors"
             style={{ borderTop: "1px solid #bbebff" }}
+            onClick={() =>
+              navigate("/settings/notifications", {
+                state: { tab: "notifications" },
+              })
+            }
           >
             <span
               className="text-[11px] font-semibold"
@@ -443,7 +448,7 @@ export default function Navbar() {
           }}
         >
           <div
-            className="flex h-[60px] items-center gap-2.5 px-4"
+            className="flex h-15 items-center gap-2.5 px-4"
             style={{ borderBottom: "1px solid #bbebff" }}
           >
             <div

@@ -1,29 +1,53 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { User, Shield, Bell } from "lucide-react";
 import ProfileSettings from "./components/ProfileSettings";
 import SecuritySettings from "./components/SecuritySettings";
 import NotificationSettings from "./components/NotificationSettings";
+import { useLocation, useNavigate } from "react-router-dom";
 
 const tabs = [
-  { id: "profile", label: "Profile Settings", icon: User },
-  { id: "security", label: "Security", icon: Shield },
-  { id: "notifications", label: "Notifications", icon: Bell },
+  { id: "settings", label: "Profile Settings", icon: User },
+  { id: "security", label: "security", icon: Shield },
+  { id: "notifications", label: "notifications", icon: Bell },
 ] as const;
 
 type TabId = (typeof tabs)[number]["id"];
 
 const Settings = () => {
-  const [activeTab, setActiveTab] = useState<TabId>("profile");
+  const location = useLocation();
+  const navigate = useNavigate();
+
+  const arrayLocation = location.pathname
+    .split("/")
+    .filter((item) => item !== "");
+  const settingsLocation =
+    arrayLocation.length == 2 ? arrayLocation[1] : arrayLocation[0];
+
+  const stateTab = (location.state as { tab?: TabId } | null)?.tab;
+  const locationTab =
+    settingsLocation === "settings" ||
+    settingsLocation === "security" ||
+    settingsLocation === "notifications"
+      ? settingsLocation
+      : "settings";
+
+  const [activeTab, setActiveTab] = useState<TabId>(
+    stateTab ?? locationTab ?? "settings"
+  );
+
+  useEffect(() => {
+    setActiveTab(stateTab ?? locationTab ?? "settings");
+  }, [stateTab, locationTab]);
 
   const title =
-    activeTab === "profile"
+    activeTab === "settings"
       ? "Account Settings"
       : activeTab === "security"
         ? "Security Settings"
         : "Notification Settings";
 
   const subtitle =
-    activeTab === "profile"
+    activeTab === "settings"
       ? "Manage your account preferences and profile information."
       : activeTab === "security"
         ? "Manage your account security and active sessions."
@@ -45,7 +69,15 @@ const Settings = () => {
           return (
             <button
               key={tab.id}
-              onClick={() => setActiveTab(tab.id)}
+              onClick={() => {
+                if (tab.id === "settings") {
+                  navigate("/settings");
+                  setActiveTab(tab.id);
+                } else {
+                  navigate(`/settings/${tab.id}`);
+                  setActiveTab(tab.id);
+                }
+              }}
               className={`flex items-center gap-1.5 pb-3 text-sm font-medium cursor-pointer transition-colors border-b-2 ${
                 isActive
                   ? "border-blue-500 text-blue-600"
@@ -60,9 +92,9 @@ const Settings = () => {
       </div>
 
       {/* Tab Content */}
-      {activeTab === "profile" && <ProfileSettings />}
-      {activeTab === "security" && <SecuritySettings />}
-      {activeTab === "notifications" && <NotificationSettings />}
+      {settingsLocation === "settings" && <ProfileSettings />}
+      {settingsLocation === "security" && <SecuritySettings />}
+      {settingsLocation === "notifications" && <NotificationSettings />}
     </div>
   );
 };

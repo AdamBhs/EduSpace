@@ -78,6 +78,7 @@ const Class = () => {
           })}
         </ul>
       </aside>
+
       <section className="flex min-h-0 flex-1 flex-col pl-6 pb-4">
         <NavLinksClass
           isTeacher={isTeacher}
