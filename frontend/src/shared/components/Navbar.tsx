@@ -45,6 +45,7 @@ export default function Navbar() {
   const navigate = useNavigate();
   const [searchOpen, setSearchOpen] = useState(false);
   const location = useLocation();
+
   const breadcrumbState = location.state as {
     breadcrumb?: { name?: string; description?: string };
     className?: string;
@@ -78,10 +79,9 @@ export default function Navbar() {
       : undefined);
 
   const capitalized = (name: String) => {
-    const newName = name
+    return name
       ? name.charAt(0).toUpperCase() + name.slice(1).toLowerCase()
       : "";
-    return newName;
   };
 
   useEffect(() => {
@@ -365,7 +365,11 @@ export default function Navbar() {
                   background: "linear-gradient(135deg, #1a93f6, #57ccff)",
                 }}
               >
-                AK
+                {`${user?.profile?.firstName?.[0] ?? ""}${
+                  user?.profile?.lastName?.[0] ?? ""
+                }`.toUpperCase() ||
+                  user?.email?.[0]?.toUpperCase() ||
+                  "?"}
               </AvatarFallback>
             </Avatar>
             <ChevronDown
@@ -395,8 +399,7 @@ export default function Navbar() {
 
           <div className="py-1">
             {[
-              { icon: User, label: "Profile", path: "" },
-              { icon: Settings, label: "Settings", path: "/settings" },
+              { icon: User, label: "Profile", path: "/settings" },
               { icon: HelpCircle, label: "Support", path: "" },
             ].map(({ icon: Icon, label, path }) => (
               <DropdownMenuItem
