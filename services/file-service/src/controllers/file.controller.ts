@@ -11,12 +11,14 @@ dotenv.config();
 export const uploadFile = async (req: Request, res: Response) => {
   try {
     const file = req.file;
+    const { entityId } = req.body;
+
     if (!file) {
       return sendError(res, "No File uploaded", 400);
     }
-    const fileId = uuid();
+    const fileId = entityId;
     const bucket = process.env.MINIO_BUCKET!;
-    const key = `files/${fileId}-${file.originalname}`;
+    const key = `files/${fileId}$${file.originalname}`;
 
     // Upload to MinIO
     await s3.send(

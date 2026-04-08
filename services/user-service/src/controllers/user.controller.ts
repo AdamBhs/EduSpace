@@ -231,13 +231,17 @@ export class UserController {
       const file = req.file;
       const userId = req.user?.userId;
 
+      console.log("req.file:", req.file);
+      console.log("req.body:", req.body);
+      console.log("req.headers:", req.headers["content-type"]);
+
       if (!file) return sendError(res, "No File uploaded", 400);
       if (!userId) return sendError(res, "User not authenticated", 401);
 
       const formData = new FormData();
       formData.append("file", file.buffer, file.originalname);
-      formData.append("entityType", "user");
       formData.append("entityId", userId);
+      formData.append("entityType", "avatar");
 
       // Call the API of the File service for uploading to s3 in minIO
       const response = await axios.post(
@@ -268,7 +272,7 @@ export class UserController {
         "Avatar uploaded successfully",
         200,
       );
-    } catch (error) {
+    } catch (error: any) {
       console.error(error);
       sendError(res, "Faild to Upload Avatar in User Service", 500);
     }
