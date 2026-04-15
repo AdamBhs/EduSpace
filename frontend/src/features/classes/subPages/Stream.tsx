@@ -142,10 +142,10 @@ const Stream = () => {
                   <Dialog>
                     <DialogTrigger asChild>
                       <div className="flex justify-center items-center w-8 h-8 cursor-pointer rounded-full hover:bg-[#94A3B8]/10">
-                        <IoMdExpand className="text-[#94A3B8] " />
+                        <IoMdExpand className="text-[#94A3B8]" />
                       </div>
                     </DialogTrigger>
-                    <DialogContent className="w-full max-w-175 ">
+                    <DialogContent className="w-full max-w-175">
                       <DialogHeader>
                         <DialogTitle>Class code</DialogTitle>
                         <DialogDescription>
@@ -153,10 +153,7 @@ const Stream = () => {
                         </DialogDescription>
                       </DialogHeader>
                       <div className="flex items-center justify-center rounded-lg border bg-[#F8FAFC] py-6">
-                        <span
-                          className="text-8xli want you know when i click post it take the links and the comment i type in textarea and put that post in 
-                       font-semibold tracking-widest text-[#137FEC]"
-                        >
+                        <span className="text-[60px] font-semibold tracking-widest text-[#137FEC]">
                           {classroom.class_code}
                         </span>
                       </div>

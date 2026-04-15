@@ -3,14 +3,17 @@ import {
   Search,
   Bell,
   ChevronDown,
-  Settings,
   LogOut,
   User,
   HelpCircle,
   Menu,
 } from "lucide-react";
 import { Button } from "@/shared/components/ui/button";
-import { Avatar, AvatarFallback } from "@/shared/components/ui/avatar";
+import {
+  Avatar,
+  AvatarFallback,
+  AvatarImage,
+} from "@/shared/components/ui/avatar";
 import { Badge } from "@/shared/components/ui/badge";
 import {
   DropdownMenu,
@@ -45,6 +48,7 @@ export default function Navbar() {
   const navigate = useNavigate();
   const [searchOpen, setSearchOpen] = useState(false);
   const location = useLocation();
+
   const breadcrumbState = location.state as {
     breadcrumb?: { name?: string; description?: string };
     className?: string;
@@ -78,10 +82,9 @@ export default function Navbar() {
       : undefined);
 
   const capitalized = (name: String) => {
-    const newName = name
+    return name
       ? name.charAt(0).toUpperCase() + name.slice(1).toLowerCase()
       : "";
-    return newName;
   };
 
   useEffect(() => {
@@ -359,13 +362,22 @@ export default function Navbar() {
               className="h-7 w-7 border"
               style={{ borderColor: "#8de0ff" }}
             >
+              <AvatarImage
+                src={user?.profile?.avatarUrl ?? undefined}
+                alt="Profile"
+                className="object-cover"
+              />
               <AvatarFallback
                 className="text-[10px] font-bold text-white"
                 style={{
                   background: "linear-gradient(135deg, #1a93f6, #57ccff)",
                 }}
               >
-                AK
+                {`${user?.profile?.firstName?.[0] ?? ""}${
+                  user?.profile?.lastName?.[0] ?? ""
+                }`.toUpperCase() ||
+                  user?.email?.[0]?.toUpperCase() ||
+                  "?"}
               </AvatarFallback>
             </Avatar>
             <ChevronDown
@@ -395,8 +407,7 @@ export default function Navbar() {
 
           <div className="py-1">
             {[
-              { icon: User, label: "Profile", path: "" },
-              { icon: Settings, label: "Settings", path: "/settings" },
+              { icon: User, label: "Profile", path: "/settings" },
               { icon: HelpCircle, label: "Support", path: "" },
             ].map(({ icon: Icon, label, path }) => (
               <DropdownMenuItem

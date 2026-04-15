@@ -236,8 +236,8 @@ export class UserController {
 
       const formData = new FormData();
       formData.append("file", file.buffer, file.originalname);
-      formData.append("entityType", "user");
       formData.append("entityId", userId);
+      formData.append("entityType", "avatar");
 
       // Call the API of the File service for uploading to s3 in minIO
       const response = await axios.post(
@@ -251,24 +251,34 @@ export class UserController {
         },
       );
 
-      const { fileId, key } = response.data.data;
+      const response_url = await axios.get(
+        "http://localhost:3010/api/auth/avatar_url/getProfilePic",
+        {
+          headers: {
+            Authorization: req.headers.authorization!,
+          },
+        },
+      );
+
+      const { fileId } = response.data.data;
+      const { url } = response_url.data.data;
 
       // Update user's avatar_url in user-pofile
       await prisma.user_profile.update({
         where: { user_id: userId },
-        data: { avatar_url: key },
+        data: { avatar_url: url },
       });
 
       return sendSuccess(
         res,
         {
           fileId,
-          avatarUrl: key,
+          avatarUrl: url,
         },
         "Avatar uploaded successfully",
         200,
       );
-    } catch (error) {
+    } catch (error: any) {
       console.error(error);
       sendError(res, "Faild to Upload Avatar in User Service", 500);
     }

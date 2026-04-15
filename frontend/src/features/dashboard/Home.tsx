@@ -29,6 +29,7 @@ const Home = () => {
           ))}
         </div>
       )}
+      {/* Adding classroom or join classroom */}
       <ClassActionButton />
     </>
   );

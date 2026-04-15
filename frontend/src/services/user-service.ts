@@ -47,3 +47,18 @@ export const resendCode = async (email: string) => {
   const response = await api.post("/users/api/auth/resendCode", { email });
   return response.data;
 };
+
+export const uploadProfilePicture = async (file: File, userId?: string) => {
+  const formData = new FormData();
+  formData.append("file", file, file.name);
+  if (userId) formData.append("userId", userId);
+  formData.append("entityType", "avatar");
+
+  const response = await api.put("/users/api/user/upload_avatar", formData, {
+    headers: {
+      "Content-Type": "multipart/form-data",
+    },
+  });
+  return response.data;
+};
+

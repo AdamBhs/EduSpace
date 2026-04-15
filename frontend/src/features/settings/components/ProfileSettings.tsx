@@ -1,10 +1,16 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useAuth } from "@/context/AuthContext";
 import { Button } from "@/shared/components/ui/button";
+import { uploadProfilePicture } from "@/services/user-service";
 
 const ProfileSettings = () => {
-  const { user } = useAuth();
+  const { user, token, setAuth } = useAuth();
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
+  const [profileImageUrl, setProfileImageUrl] = useState<string | null>(
+    user.profile.avatarUrl,
+  );
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [form, setForm] = useState({
     fullName: user?.profile
       ? `${user.profile.firstName ?? ""} ${user.profile.lastName ?? ""}`.trim()
@@ -14,8 +20,62 @@ const ProfileSettings = () => {
     bio: "",
   });
 
+  useEffect(() => {
+    return () => {
+      if (profileImageUrl) URL.revokeObjectURL(profileImageUrl);
+    };
+  }, [profileImageUrl]);
+
   const handleChange = (field: string, value: string) => {
     setForm((prev) => ({ ...prev, [field]: value }));
+  };
+
+  const handleUploadClick = () => {
+    fileInputRef.current?.click();
+  };
+
+  const handleImageChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+    setSelectedFile(file);
+    setProfileImageUrl((prev) => {
+      if (prev) URL.revokeObjectURL(prev);
+      return URL.createObjectURL(file);
+    });
+  };
+
+  const handleRemoveImage = () => {
+    setProfileImageUrl((prev) => {
+      if (prev) URL.revokeObjectURL(prev);
+      return null;
+    });
+    if (fileInputRef.current) fileInputRef.current.value = "";
+  };
+
+  const handleUpdatedChanges = async () => {
+    if (!selectedFile) return;
+    const resolvedUserId = user?.userId;
+    const response = await uploadProfilePicture(
+      selectedFile,
+      resolvedUserId ? String(resolvedUserId) : undefined,
+    );
+    const newAvatarUrl =
+      response?.data?.avatarUrl ??
+      response?.data?.key ??
+      response?.avatarUrl ??
+      response?.key ??
+      null;
+    if (newAvatarUrl && user && token) {
+      const updatedUser = {
+        ...user,
+        profile: {
+          ...(user.profile ?? {}),
+          avatarUrl: newAvatarUrl,
+        },
+      };
+      setAuth(token, updatedUser);
+    }
+    setSelectedFile(null);
   };
 
   return (
@@ -23,24 +83,48 @@ const ProfileSettings = () => {
       {/* Profile Picture */}
       <div className="flex items-center gap-5">
         <div className="w-20 h-20 rounded-full bg-[#d4c5a9] flex items-center justify-center overflow-hidden shrink-0">
-          <svg
-            className="w-12 h-12 text-[#5c5040]"
-            fill="currentColor"
-            viewBox="0 0 24 24"
-          >
-            <path d="M12 12c2.7 0 4.8-2.1 4.8-4.8S14.7 2.4 12 2.4 7.2 4.5 7.2 7.2 9.3 12 12 12zm0 2.4c-3.2 0-9.6 1.6-9.6 4.8v1.2c0 .7.5 1.2 1.2 1.2h16.8c.7 0 1.2-.5 1.2-1.2v-1.2c0-3.2-6.4-4.8-9.6-4.8z" />
-          </svg>
+          {profileImageUrl ? (
+            <img
+              src={profileImageUrl ?? undefined}
+              alt="Profile"
+              className="w-full h-full object-cover"
+            />
+          ) : (
+            <svg
+              className="w-12 h-12 text-[#5c5040]"
+              fill="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path d="M12 12c2.7 0 4.8-2.1 4.8-4.8S14.7 2.4 12 2.4 7.2 4.5 7.2 7.2 9.3 12 12 12zm0 2.4c-3.2 0-9.6 1.6-9.6 4.8v1.2c0 .7.5 1.2 1.2 1.2h16.8c.7 0 1.2-.5 1.2-1.2v-1.2c0-3.2-6.4-4.8-9.6-4.8z" />
+            </svg>
+          )}
         </div>
+
         <div>
           <p className="text-sm font-semibold text-gray-900">Profile Picture</p>
           <p className="text-xs text-gray-500 mt-0.5">
             JPG, GIF or PNG. Max size of 800K.
           </p>
           <div className="flex items-center gap-3 mt-2.5">
-            <Button className="bg-blue-500 hover:bg-blue-600 text-white text-xs h-8 px-4 rounded-md">
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/*"
+              className="hidden"
+              onChange={handleImageChange}
+            />
+            <Button
+              type="button"
+              onClick={handleUploadClick}
+              className="bg-blue-500 hover:bg-blue-600 text-white text-xs h-8 px-4 rounded-md cursor-pointer"
+            >
               Upload New
             </Button>
-            <button className="text-sm text-gray-600 hover:text-gray-800 cursor-pointer">
+            <button
+              type="button"
+              onClick={handleRemoveImage}
+              className="text-sm text-gray-600 hover:text-gray-800 cursor-pointer"
+            >
               Remove
             </button>
           </div>
@@ -81,7 +165,8 @@ const ProfileSettings = () => {
         <textarea
           value={form.bio}
           onChange={(e) => {
-            if (e.target.value.length <= 200) handleChange("bio", e.target.value);
+            if (e.target.value.length <= 200)
+              handleChange("bio", e.target.value);
           }}
           rows={3}
           className="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm text-gray-900 outline-none focus:border-blue-500 transition-colors resize-none"
@@ -94,7 +179,10 @@ const ProfileSettings = () => {
         <Button variant="ghost" className="text-gray-600">
           Cancel Changes
         </Button>
-        <Button className="bg-blue-500 hover:bg-blue-600 text-white px-6">
+        <Button
+          onClick={handleUpdatedChanges}
+          className="bg-blue-500 hover:bg-blue-600 text-white px-6"
+        >
           Save Changes
         </Button>
       </div>
