@@ -231,10 +231,6 @@ export class UserController {
       const file = req.file;
       const userId = req.user?.userId;
 
-      console.log("req.file:", req.file);
-      console.log("req.body:", req.body);
-      console.log("req.headers:", req.headers["content-type"]);
-
       if (!file) return sendError(res, "No File uploaded", 400);
       if (!userId) return sendError(res, "User not authenticated", 401);
 
@@ -255,19 +251,29 @@ export class UserController {
         },
       );
 
-      const { fileId, key } = response.data.data;
+      const response_url = await axios.get(
+        "http://localhost:3010/api/auth/avatar_url/getProfilePic",
+        {
+          headers: {
+            Authorization: req.headers.authorization!,
+          },
+        },
+      );
+
+      const { fileId } = response.data.data;
+      const { url } = response_url.data.data;
 
       // Update user's avatar_url in user-pofile
       await prisma.user_profile.update({
         where: { user_id: userId },
-        data: { avatar_url: key },
+        data: { avatar_url: url },
       });
 
       return sendSuccess(
         res,
         {
           fileId,
-          avatarUrl: key,
+          avatarUrl: url,
         },
         "Avatar uploaded successfully",
         200,

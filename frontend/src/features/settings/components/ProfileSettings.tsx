@@ -1,14 +1,16 @@
 import { useEffect, useRef, useState } from "react";
 import { useAuth } from "@/context/AuthContext";
 import { Button } from "@/shared/components/ui/button";
-import { uploadFile } from "@/services/user-service";
+import { uploadProfilePicture } from "@/services/user-service";
 
 const ProfileSettings = () => {
   const { user, token, setAuth } = useAuth();
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const [profileImageUrl, setProfileImageUrl] = useState<string | null>(null);
-  const [selectedFile, setSelectedFile] = useState<File | null>(null);
 
+  const [profileImageUrl, setProfileImageUrl] = useState<string | null>(
+    user.profile.avatarUrl,
+  );
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [form, setForm] = useState({
     fullName: user?.profile
       ? `${user.profile.firstName ?? ""} ${user.profile.lastName ?? ""}`.trim()
@@ -17,6 +19,12 @@ const ProfileSettings = () => {
     email: user?.email ?? "",
     bio: "",
   });
+
+  useEffect(() => {
+    return () => {
+      if (profileImageUrl) URL.revokeObjectURL(profileImageUrl);
+    };
+  }, [profileImageUrl]);
 
   const handleChange = (field: string, value: string) => {
     setForm((prev) => ({ ...prev, [field]: value }));
@@ -29,9 +37,7 @@ const ProfileSettings = () => {
   const handleImageChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file) return;
-
     setSelectedFile(file);
-
     setProfileImageUrl((prev) => {
       if (prev) URL.revokeObjectURL(prev);
       return URL.createObjectURL(file);
@@ -46,32 +52,25 @@ const ProfileSettings = () => {
     if (fileInputRef.current) fileInputRef.current.value = "";
   };
 
-  useEffect(() => {
-    return () => {
-      if (profileImageUrl) URL.revokeObjectURL(profileImageUrl);
-    };
-  }, [profileImageUrl]);
-
   const handleUpdatedChanges = async () => {
     if (!selectedFile) return;
-    const resolvedUserId =
-      user?.userId ?? user?.id ?? user?.user_id ?? user?.profile?.userId ?? null;
-    const response = await uploadFile(
+    const resolvedUserId = user?.userId;
+    const response = await uploadProfilePicture(
       selectedFile,
       resolvedUserId ? String(resolvedUserId) : undefined,
     );
-    const avatarUrl =
+    const newAvatarUrl =
       response?.data?.avatarUrl ??
       response?.data?.key ??
       response?.avatarUrl ??
       response?.key ??
       null;
-    if (avatarUrl && user && token) {
+    if (newAvatarUrl && user && token) {
       const updatedUser = {
         ...user,
         profile: {
           ...(user.profile ?? {}),
-          avatarUrl,
+          avatarUrl: newAvatarUrl,
         },
       };
       setAuth(token, updatedUser);
@@ -86,7 +85,7 @@ const ProfileSettings = () => {
         <div className="w-20 h-20 rounded-full bg-[#d4c5a9] flex items-center justify-center overflow-hidden shrink-0">
           {profileImageUrl ? (
             <img
-              src={profileImageUrl}
+              src={profileImageUrl ?? undefined}
               alt="Profile"
               className="w-full h-full object-cover"
             />
@@ -100,6 +99,7 @@ const ProfileSettings = () => {
             </svg>
           )}
         </div>
+
         <div>
           <p className="text-sm font-semibold text-gray-900">Profile Picture</p>
           <p className="text-xs text-gray-500 mt-0.5">

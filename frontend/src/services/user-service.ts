@@ -48,10 +48,11 @@ export const resendCode = async (email: string) => {
   return response.data;
 };
 
-export const uploadFile = async (file: File, userId?: string) => {
+export const uploadProfilePicture = async (file: File, userId?: string) => {
   const formData = new FormData();
   formData.append("file", file, file.name);
   if (userId) formData.append("userId", userId);
+  formData.append("entityType", "avatar");
 
   const response = await api.put("/users/api/user/upload_avatar", formData, {
     headers: {
@@ -60,3 +61,4 @@ export const uploadFile = async (file: File, userId?: string) => {
   });
   return response.data;
 };
+

@@ -3,14 +3,17 @@ import {
   Search,
   Bell,
   ChevronDown,
-  Settings,
   LogOut,
   User,
   HelpCircle,
   Menu,
 } from "lucide-react";
 import { Button } from "@/shared/components/ui/button";
-import { Avatar, AvatarFallback } from "@/shared/components/ui/avatar";
+import {
+  Avatar,
+  AvatarFallback,
+  AvatarImage,
+} from "@/shared/components/ui/avatar";
 import { Badge } from "@/shared/components/ui/badge";
 import {
   DropdownMenu,
@@ -359,6 +362,11 @@ export default function Navbar() {
               className="h-7 w-7 border"
               style={{ borderColor: "#8de0ff" }}
             >
+              <AvatarImage
+                src={user?.profile?.avatarUrl ?? undefined}
+                alt="Profile"
+                className="object-cover"
+              />
               <AvatarFallback
                 className="text-[10px] font-bold text-white"
                 style={{
