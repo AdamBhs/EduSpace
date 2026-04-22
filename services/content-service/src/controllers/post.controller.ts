@@ -6,12 +6,12 @@ import { sendSuccess, sendError } from "../../../../shared/src/utils/response";
 export class PostController {
   /**
    * Create a new post (announcement or assignment)
-   * POST /api/posts
+   * POST /api/posts/createPost
    */
   static async createPost(req: Request, res: Response): Promise<void> {
     try {
       const authorId = req.user?.userId;
-      const { classId, title, content, type } = req.body;
+      const { classId, title, content, attachments, type } = req.body;
 
       if (!authorId) {
         sendError(res, "User not authenticated", 401);
@@ -24,6 +24,7 @@ export class PostController {
           author_id: authorId,
           title,
           content,
+          attachments,
           type: type || "ANNOUNCEMENT",
         },
         include: {
@@ -58,7 +59,13 @@ export class PostController {
    */
   static async getPostsByClass(req: Request, res: Response): Promise<void> {
     try {
+      const authorId = req.user?.userId;
       const { classId } = req.params as { classId: string };
+
+      if (!authorId) {
+        sendError(res, "User not authenticated", 401);
+        return;
+      }
 
       const posts = await prisma.post.findMany({
         where: { class_id: classId },
@@ -175,14 +182,18 @@ export class PostController {
         include: { attachments: true },
       });
 
-      sendSuccess(res, {
-        postId: updatedPost.postId,
-        title: updatedPost.title,
-        content: updatedPost.content,
-        type: updatedPost.type,
-        attachments: updatedPost.attachments,
-        updatedAt: updatedPost.updated_at,
-      }, "Post updated successfully");
+      sendSuccess(
+        res,
+        {
+          postId: updatedPost.postId,
+          title: updatedPost.title,
+          content: updatedPost.content,
+          type: updatedPost.type,
+          attachments: updatedPost.attachments,
+          updatedAt: updatedPost.updated_at,
+        },
+        "Post updated successfully",
+      );
     } catch (error) {
       console.error("Update post error:", error);
       sendError(res, "Failed to update post", 500);

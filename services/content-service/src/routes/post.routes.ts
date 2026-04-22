@@ -6,14 +6,14 @@ import { authenticate } from "../../../../shared/src/middleware/auth";
 const router = Router();
 
 /**
- * @route   POST /api/posts
+ * @route   POST /api/posts/createPost
  * @desc    Create a new post (announcement or assignment)
  * @access  Protected
  */
-router.post("/", authenticate, PostController.createPost);
+router.post("/createPost", authenticate, PostController.createPost);
 
 /**
- * @route   GET /api/posts/class/:classId
+ * @route   GET /api/posts/:classId
  * @desc    Get all posts for a classroom
  * @access  Protected
  */

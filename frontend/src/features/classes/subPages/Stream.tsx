@@ -1,8 +1,9 @@
 import NavLinksClass from "../components/NavLinksClass";
 import { useParams } from "react-router-dom";
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import PeopleSkeleton from "../ui/PeopleSkeleton";
 import { getClassroomById } from "@/services/classroom-service";
+import { createPost, healthContent } from "@/services/content-service";
 import { IoMdExpand } from "react-icons/io";
 import { useState } from "react";
 import type { FormEvent } from "react";
@@ -23,6 +24,7 @@ import {
 } from "@/shared/components/ui/avatar";
 import { Cloud, Link2, Paperclip, PlayCircle, ChevronDown } from "lucide-react";
 import { useGooglePicker } from "@/shared/hooks/useGooglePicker";
+import StreamSkeleton from "../ui/StreamSkeleton";
 
 type StreamPost = {
   id: string;
@@ -61,8 +63,17 @@ const Stream = () => {
     enabled: !!classId,
   });
 
-  if (classLoading) return <PeopleSkeleton />;
-  if (classError) return <p>Error loading data</p>;
+  const {
+    data: contentHealth,
+    isLoading: contentHealthLoading,
+    error: contentHealthError,
+  } = useQuery({
+    queryKey: ["content-health"],
+    queryFn: healthContent,
+  });
+
+  if (classLoading && contentHealthLoading) return <StreamSkeleton />;
+  if (classError && contentHealthError) return <p>Error loading data</p>;
 
   const isTeacher = user.userId === classroom.teacher_id;
 
@@ -99,6 +110,17 @@ const Stream = () => {
     setPendingLink("");
     setPostDialogOpen(false);
   };
+
+  // const createMutation = useMutation({
+  //   mutationFn: () => createPost({ ...form, chapter: classroomType }),
+  //   onSuccess: () => {
+  //     queryClient.invalidateQueries({ queryKey: ["classrooms"] });
+  //     handleClose();
+  //   },
+  //   onError: (err: any) => {
+  //     console.error("Failed to create classroom:", err);
+  //   },
+  // });
 
   return (
     <div className="flex h-full -mx-6 items-stretch overflow-hidden">
