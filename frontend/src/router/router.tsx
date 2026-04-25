@@ -15,6 +15,7 @@ import Todo from "@/features/todo/Todo";
 import Settings from "@/features/settings/Settings";
 import Stream from "@/features/classes/subPages/Stream";
 import Grades from "@/features/classes/subPages/Grades";
+import Chat from "@/features/classes/subPages/Chat";
 
 export const router = createBrowserRouter([
   {
@@ -75,6 +76,7 @@ export const router = createBrowserRouter([
       { path: ":classId/people", element: <People /> },
       { path: ":classId/stream", element: <Stream /> },
       { path: ":classId/grades", element: <Grades /> },
+      { path: ":classId/chat", element: <Chat /> },
     ],
   },
   {
