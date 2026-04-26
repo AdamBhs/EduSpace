@@ -2,6 +2,7 @@
 import { Request, Response } from "express";
 import { prisma } from "../db/prisma";
 import { sendSuccess, sendError } from "../../../../shared/src/utils/response";
+import axios from "axios";
 
 export class PostController {
   /**
@@ -18,6 +19,14 @@ export class PostController {
         return;
       }
 
+      const user = await axios.get(
+        `http://localhost:3002/api/users/${authorId}`,
+        {
+          headers: {
+            Authorization: req.headers.authorization,
+          },
+        },
+      );
       const post = await prisma.post.create({
         data: {
           class_id: classId,
