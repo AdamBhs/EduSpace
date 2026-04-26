@@ -6,16 +6,6 @@ export const healthContent = async () => {
   return response.data;
 };
 
-export const createPost = async (data: {
-  classId: string;
-  title: string;
-  content: string;
-  type?: string;
-}) => {
-  const response = await api.post("/content/api/posts", data);
-  return response.data;
-};
-
 export const createPostByClass = async (data: {
   classId: string;
   authorId: string;
@@ -36,6 +26,6 @@ export const createPostByClass = async (data: {
 };
 
 export const getAllPostByClass = async (classId: string) => {
-  const response = await api.get(`/content/api/posts?class_id=${classId}`);
+  const response = await api.get(`/content/api/posts/class/${classId}`);
   return response.data;
 };

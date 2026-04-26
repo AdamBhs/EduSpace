@@ -3,9 +3,9 @@ import { useParams } from "react-router-dom";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import PeopleSkeleton from "../ui/PeopleSkeleton";
 import { getClassroomById } from "@/services/classroom-service";
-import { createPost, healthContent } from "@/services/content-service";
+import { getAllPostByClass } from "@/services/content-service";
 import { IoMdExpand } from "react-icons/io";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import type { FormEvent } from "react";
 import {
   Dialog,
@@ -64,16 +64,37 @@ const Stream = () => {
   });
 
   const {
-    data: contentHealth,
-    isLoading: contentHealthLoading,
-    error: contentHealthError,
+    data: allPosts,
+    isLoading: allPostsLoading,
+    error: allPostsError,
   } = useQuery({
-    queryKey: ["content-health"],
-    queryFn: healthContent,
+    queryKey: ["All-posts", classId],
+    queryFn: () => getAllPostByClass(classId!),
+    enabled: !!classId,
   });
+  console.log(allPosts?.data);
 
-  if (classLoading && contentHealthLoading) return <StreamSkeleton />;
-  if (classError && contentHealthError) return <p>Error loading data</p>;
+  const combinedPosts = useMemo(() => {
+    const postsArray = Array.isArray(allPosts)
+      ? allPosts
+      : allPosts?.posts || allPosts?.data || [];
+    const fetchedPosts: StreamPost[] = postsArray.map((post: any) => ({
+      id: post.postId || post.postId,
+      message: post.message || "",
+      links: post.attachments || [],
+      commentCount: post.commentCount || 0,
+      createdAt: post.createdAt || new Date().toISOString(),
+      authorName:
+        post.authorName ||
+        post.author?.firstName + " " + post.author?.lastName ||
+        "Unknown",
+      authorRole: post.authorRole || "student",
+    }));
+    return [...posts, ...fetchedPosts];
+  }, [allPosts, posts]);
+
+  if (classLoading && allPostsLoading) return <StreamSkeleton />;
+  if (classError && allPostsError) return <p>Error loading data</p>;
 
   const isTeacher = user.userId === classroom.teacher_id;
 
@@ -399,14 +420,14 @@ const Stream = () => {
               </Dialog>
               {/* fixed: added post */}
               <div className="mt-6 space-y-4">
-                {posts.length === 0 && (
+                {combinedPosts.length === 0 && (
                   <div className="rounded-lg border border-[#E2E8F0] bg-white p-6 text-sm text-[#64748B]">
                     No posts yet. Be the first to share something.
                   </div>
                 )}
-                {posts.map((post) => (
+                {combinedPosts.map((post) => (
                   <div
-                    key={post.id}
+                    key={post}
                     className="rounded-lg border border-[#E2E8F0] bg-white p-6"
                   >
                     <div className="flex items-center justify-between">
