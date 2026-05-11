@@ -1,16 +1,15 @@
 // src/index.ts
+import dotenv from "dotenv";
+dotenv.config();
+
 import express, { Application, Request, Response } from "express";
 import cors from "cors";
 import morgan from "morgan";
-import dotenv from "dotenv";
 import { errorHandler } from "../../../shared/src/middleware/errorHandler";
 
 // Import routes
 import authRoutes from "./routes/auth.routes";
 import userRoutes from "./routes/user.routes";
-
-// Load environment variables
-dotenv.config();
 
 const app: Application = express();
 

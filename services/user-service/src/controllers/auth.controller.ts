@@ -174,7 +174,7 @@ export class AuthController {
       ).toString();
       const codeExpiresAt = new Date(Date.now() + 5 * 60 * 1000); // 5 minutes
 
-      const user = await prisma.$transaction(async (tx) => {
+      const user = await prisma.$transaction(async (tx: any) => {
         const newUser = await tx.user.create({
           data: {
             email,

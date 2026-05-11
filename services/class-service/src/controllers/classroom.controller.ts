@@ -61,7 +61,7 @@ export class ClassroomController {
       }
       const teacherIds = [
         ...new Set(
-          classes_enrolled.map((enroll) => enroll.classroom.teacher_id),
+          classes_enrolled.map((enroll: any) => enroll.classroom.teacher_id),
         ),
       ];
 
@@ -81,7 +81,7 @@ export class ClassroomController {
         ]),
       );
 
-      const classrooms = classes_enrolled.map((enroll) => ({
+      const classrooms = classes_enrolled.map((enroll: any) => ({
         teacher: teacherById.get(enroll.classroom.teacher_id) ?? null,
         classroom: enroll.classroom,
       }));
@@ -235,7 +235,7 @@ export class ClassroomController {
         where: { class_id: classroom.classId },
       });
 
-      const users_ids = enrolled.map((e) => e.user_id);
+      const users_ids = enrolled.map((e: any) => e.user_id);
 
       const userResponse = await axios.post(
         "http://localhost:3002/api/user/getUsers",
@@ -248,7 +248,7 @@ export class ClassroomController {
       );
       // TODO: I want to pass the roll for each student
       const roleByUserId = new Map(
-        enrolled.map((enrollment) => [enrollment.user_id, enrollment.role]),
+        enrolled.map((enrollment: any) => [enrollment.user_id, enrollment.role]),
       );
 
       const usersWithRoles = Array.isArray(userResponse.data?.data)
