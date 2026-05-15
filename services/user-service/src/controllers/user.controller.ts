@@ -1,4 +1,3 @@
-// src/controllers/user.controller.ts
 import { Request, Response } from "express";
 import { prisma } from "../db/prisma";
 import { sendSuccess, sendError } from "../../../../shared/src/utils/response";
@@ -7,7 +6,6 @@ import FormData from "form-data";
 
 export class UserController {
   /**
-   * Get current user profile
    * GET /api/user/me
    */
   static async getProfile(req: Request, res: Response): Promise<void> {
@@ -21,9 +19,7 @@ export class UserController {
 
       const user = await prisma.user.findUnique({
         where: { userId },
-        include: {
-          profile: true,
-        },
+        include: { profile: true },
       });
 
       if (!user) {
@@ -55,7 +51,6 @@ export class UserController {
   }
 
   /**
-   * Update user profile
    * PUT /api/user/me
    */
   static async updateProfile(req: Request, res: Response): Promise<void> {
@@ -68,7 +63,6 @@ export class UserController {
         return;
       }
 
-      // Check if user exists
       const user = await prisma.user.findUnique({
         where: { userId },
         include: { profile: true },
@@ -79,14 +73,12 @@ export class UserController {
         return;
       }
 
-      // Prepare update data (only include provided fields)
       const updateData: any = {};
       if (firstName !== undefined) updateData.first_name = firstName;
       if (lastName !== undefined) updateData.last_name = lastName;
       if (phoneNumber !== undefined) updateData.phone_number = phoneNumber;
       if (timezone !== undefined) updateData.timezone = timezone;
 
-      // Update or create profile
       const updatedProfile = await prisma.user_profile.upsert({
         where: { user_id: userId },
         update: updateData,
@@ -117,18 +109,15 @@ export class UserController {
   }
 
   /**
-   * Get user by ID (for other services)
    * GET /api/user/:userId
    */
   static async getUserById(req: Request, res: Response): Promise<void> {
     try {
-      const userId = req.user?.userId;
+      const { userId } = req.params as { userId: string };
 
       const user = await prisma.user.findUnique({
         where: { userId },
-        include: {
-          profile: true,
-        },
+        include: { profile: true },
       });
 
       if (!user) {
@@ -157,7 +146,6 @@ export class UserController {
   }
 
   /**
-   * Delete user account
    * DELETE /api/user/me
    */
   static async deleteAccount(req: Request, res: Response): Promise<void> {
@@ -169,16 +157,9 @@ export class UserController {
         return;
       }
 
-      await prisma.user_profile.delete({
-        where: { user_id: userId },
-      });
-      await prisma.user.delete({
-        where: { userId },
-      });
+      await prisma.user.delete({ where: { userId } });
 
-      sendSuccess(res, {
-        message: "Account deleted successfully",
-      });
+      sendSuccess(res, { message: "Account deleted successfully" });
     } catch (error) {
       console.error("Delete account error:", error);
       sendError(res, "Failed to delete account", 500);
@@ -186,25 +167,19 @@ export class UserController {
   }
 
   /**
-   * Get multiple user by IDs (for other services)
-   * Post /api/user/getUsers
+   * POST /api/user/getUsers
    */
   static async getUsers(req: Request, res: Response): Promise<void> {
     try {
       const { users_ids } = req.body;
       if (!Array.isArray(users_ids) || users_ids.length === 0) {
         sendError(res, "users_ids must be a non-empty array", 400);
+        return;
       }
 
       const users = await prisma.user.findMany({
-        where: {
-          userId: {
-            in: users_ids,
-          },
-        },
-        include: {
-          profile: true,
-        },
+        where: { userId: { in: users_ids } },
+        include: { profile: true },
       });
 
       const formattedUsers = users.map((user) => ({
@@ -214,24 +189,22 @@ export class UserController {
         profilePic: user.profile?.avatar_url ?? null,
       }));
 
-      sendSuccess(res, formattedUsers, "Getting all users successfully", 201);
+      sendSuccess(res, formattedUsers, "Getting all users successfully");
     } catch (error) {
       console.error("Error getting all users", error);
-      sendError(res, "Faild getting all Users", 500);
+      sendError(res, "Failed getting all users", 500);
     }
   }
 
   /**
-   * Update user profile picture
-   * put /api/user/updatePic
+   * PUT /api/user/upload_avatar
    */
-
   static async uploadAvatar(req: Request, res: Response) {
     try {
       const file = req.file;
       const userId = req.user?.userId;
 
-      if (!file) return sendError(res, "No File uploaded", 400);
+      if (!file) return sendError(res, "No file uploaded", 400);
       if (!userId) return sendError(res, "User not authenticated", 401);
 
       const formData = new FormData();
@@ -239,31 +212,19 @@ export class UserController {
       formData.append("entityId", userId);
       formData.append("entityType", "avatar");
 
-      // Call the API of the File service for uploading to s3 in minIO
       const response = await axios.post(
-        "http://localhost:3010/api/auth/avatar_url/upload",
+        "http://localhost:3010/api/files/upload",
         formData,
         {
           headers: {
             ...formData.getHeaders(),
-            Authorization: req.headers.authorization!, // pass JWT
-          },
-        },
-      );
-
-      const response_url = await axios.get(
-        "http://localhost:3010/api/auth/avatar_url/getProfilePic",
-        {
-          headers: {
             Authorization: req.headers.authorization!,
           },
         },
       );
 
-      const { fileId } = response.data.data;
-      const { url } = response_url.data.data;
+      const { fileKey, url } = response.data.data;
 
-      // Update user's avatar_url in user-pofile
       await prisma.user_profile.update({
         where: { user_id: userId },
         data: { avatar_url: url },
@@ -271,16 +232,12 @@ export class UserController {
 
       return sendSuccess(
         res,
-        {
-          fileId,
-          avatarUrl: url,
-        },
+        { avatarUrl: url },
         "Avatar uploaded successfully",
-        200,
       );
-    } catch (error: any) {
-      console.error(error);
-      sendError(res, "Faild to Upload Avatar in User Service", 500);
+    } catch (error) {
+      console.error("Upload avatar error:", error);
+      sendError(res, "Failed to upload avatar", 500);
     }
   }
 }

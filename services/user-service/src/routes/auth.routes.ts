@@ -36,7 +36,7 @@ router.post(
  * @desc    Resend a verification code
  * @access  Public
  */
-router.post("/resendCode", AuthController.verifyCode);
+router.post("/resendCode", AuthController.resendCode);
 
 /**
  * @route   POST /api/auth/login

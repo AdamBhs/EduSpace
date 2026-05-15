@@ -1,29 +1,24 @@
-// src/controllers/auth.controller.ts
 import { Request, Response } from "express";
 import { prisma } from "../db/prisma";
 import {
   hashPassword,
   comparePassword,
 } from "../../../../shared/src/utils/password";
-import { generateToken, verifyToken } from "../../../../shared/src/utils/jwt";
+import { generateToken } from "../../../../shared/src/utils/jwt";
 import { sendSuccess, sendError } from "../../../../shared/src/utils/response";
 import crypto from "crypto";
 import nodemailer from "nodemailer";
 
-declare global {
-  namespace Express {
-    interface Request {
-      user?: {
-        userId: string;
-        email: string;
-      };
-    }
-  }
-}
+const transporter = nodemailer.createTransport({
+  service: "gmail",
+  auth: {
+    user: process.env.EMAIL_USER,
+    pass: process.env.EMAIL_PASS,
+  },
+});
 
 export class AuthController {
   /**
-   * resend code
    * POST /api/auth/resendCode
    */
   static async resendCode(req: Request, res: Response): Promise<void> {
@@ -45,8 +40,7 @@ export class AuthController {
         return;
       }
 
-      // Rate limit — prevent spamming resend
-      const cooldown = 60 * 1000; // 1 minute
+      const cooldown = 60 * 1000;
       if (user.codeExpiresAt) {
         const timeElapsed =
           Date.now() - (user.codeExpiresAt.getTime() - 5 * 60 * 1000);
@@ -71,14 +65,6 @@ export class AuthController {
         data: { verificationCode, codeExpiresAt },
       });
 
-      const transporter = nodemailer.createTransport({
-        service: "gmail",
-        auth: {
-          user: process.env.EMAIL_USER,
-          pass: process.env.EMAIL_PASS,
-        },
-      });
-
       const firstName = user.profile?.first_name || "there";
 
       await transporter.sendMail({
@@ -100,7 +86,6 @@ export class AuthController {
   }
 
   /**
-   * Verifiy code
    * POST /api/auth/verifyCode
    */
   static async verifyCode(req: Request, res: Response): Promise<void> {
@@ -152,7 +137,6 @@ export class AuthController {
   }
 
   /**
-   * Register a new user
    * POST /api/auth/register
    */
   static async register(req: Request, res: Response): Promise<void> {
@@ -168,18 +152,17 @@ export class AuthController {
 
       const hashedPassword = await hashPassword(password);
 
-      // Generate 6-digit code
       const verificationCode = Math.floor(
         100000 + Math.random() * 900000,
       ).toString();
-      const codeExpiresAt = new Date(Date.now() + 5 * 60 * 1000); // 5 minutes
+      const codeExpiresAt = new Date(Date.now() + 5 * 60 * 1000);
 
       const user = await prisma.$transaction(async (tx: any) => {
         const newUser = await tx.user.create({
           data: {
             email,
             password: hashedPassword,
-            verificationCode, // add these fields to your schema
+            verificationCode,
             codeExpiresAt,
             isVerified: false,
           },
@@ -196,14 +179,6 @@ export class AuthController {
         });
 
         return newUser;
-      });
-
-      const transporter = nodemailer.createTransport({
-        service: "gmail",
-        auth: {
-          user: process.env.EMAIL_USER,
-          pass: process.env.EMAIL_PASS,
-        },
       });
 
       await transporter.sendMail({
@@ -228,20 +203,17 @@ export class AuthController {
       sendError(res, "Registration failed", 500);
     }
   }
+
   /**
-   * Login user
    * POST /api/auth/login
    */
   static async login(req: Request, res: Response): Promise<void> {
     try {
       const { email, password } = req.body;
 
-      // Find user with profile
       const user = await prisma.user.findUnique({
         where: { email },
-        include: {
-          profile: true,
-        },
+        include: { profile: true },
       });
 
       if (!user) {
@@ -249,20 +221,17 @@ export class AuthController {
         return;
       }
 
-      // Check if account is active
       if (!user.isVerified) {
         sendError(res, "Account is not active", 403);
         return;
       }
 
-      // Verify password
       const isValidPassword = await comparePassword(password, user.password);
       if (!isValidPassword) {
         sendError(res, "Invalid credentials", 401);
         return;
       }
 
-      // Generate JWT token
       const token = generateToken({
         userId: user.userId,
         email: user.email,
@@ -274,7 +243,6 @@ export class AuthController {
         user: {
           userId: user.userId,
           email: user.email,
-
           profile: user.profile
             ? {
                 firstName: user.profile.first_name,
@@ -293,12 +261,10 @@ export class AuthController {
   }
 
   /**
-   * Verify JWT token (for other services)
    * GET /api/auth/verify
    */
   static async verify(req: Request, res: Response): Promise<void> {
     try {
-      // User is already authenticated by auth middleware
       const userId = req.user?.userId;
 
       if (!userId) {
@@ -308,9 +274,7 @@ export class AuthController {
 
       const user = await prisma.user.findUnique({
         where: { userId },
-        include: {
-          profile: true,
-        },
+        include: { profile: true },
       });
 
       if (!user) {
@@ -339,7 +303,6 @@ export class AuthController {
   }
 
   /**
-   * Request password reset
    * POST /api/auth/request-reset
    */
   static async requestPasswordReset(
@@ -349,42 +312,31 @@ export class AuthController {
     try {
       const { email } = req.body;
 
-      // Find user
-      const user = await prisma.user.findUnique({
-        where: { email },
-      });
+      const user = await prisma.user.findUnique({ where: { email } });
 
-      // Don't reveal if user exists (security)
       if (!user) {
-        sendSuccess(res, {
-          message: "A password reset link has been sent",
-        });
+        sendSuccess(res, { message: "A password reset link has been sent" });
         return;
       }
 
-      // Generate reset token
       const resetToken = crypto.randomBytes(32).toString("hex");
       const resetTokenHash = crypto
         .createHash("sha256")
         .update(resetToken)
         .digest("hex");
 
-      // Save reset token (expires in 1 hour)
       await prisma.password_reset.create({
         data: {
           user_id: user.userId,
           reset_token_hash: resetTokenHash,
-          expires_at: new Date(Date.now() + 60 * 60 * 1000), // 1 hour
+          expires_at: new Date(Date.now() + 60 * 60 * 1000),
         },
       });
 
-      // TODO: Send email with reset token
-      // For now, return token (remove in production!)
       console.log("Reset Token:", resetToken);
 
       sendSuccess(res, {
         message: "A password reset link has been sent",
-        // Remove in production:
         resetToken:
           process.env.NODE_ENV === "development" ? resetToken : undefined,
       });
@@ -395,20 +347,17 @@ export class AuthController {
   }
 
   /**
-   * Reset password with token
    * POST /api/auth/reset-password
    */
   static async resetPassword(req: Request, res: Response): Promise<void> {
     try {
       const { resetToken, newPassword } = req.body;
 
-      // Hash the token to compare with database
       const resetTokenHash = crypto
         .createHash("sha256")
         .update(resetToken)
         .digest("hex");
 
-      // Find valid reset token
       const passwordReset = await prisma.password_reset.findUnique({
         where: { reset_token_hash: resetTokenHash },
         include: { user: true },
@@ -419,22 +368,18 @@ export class AuthController {
         return;
       }
 
-      // Check if token is expired
       if (passwordReset.expires_at < new Date()) {
         sendError(res, "Reset token has expired", 400);
         return;
       }
 
-      // Check if token was already used
       if (passwordReset.used_at) {
         sendError(res, "Reset token has already been used", 400);
         return;
       }
 
-      // Hash new password
       const hashedPassword = await hashPassword(newPassword);
 
-      // Update password and mark token as used in a transaction
       await prisma.$transaction([
         prisma.user.update({
           where: { userId: passwordReset.user_id },
@@ -446,9 +391,7 @@ export class AuthController {
         }),
       ]);
 
-      sendSuccess(res, {
-        message: "Password reset successful",
-      });
+      sendSuccess(res, { message: "Password reset successful" });
     } catch (error) {
       console.error("Reset password error:", error);
       sendError(res, "Password reset failed", 500);
@@ -456,17 +399,11 @@ export class AuthController {
   }
 
   /**
-   * Logout (optional - mainly client-side token removal)
    * POST /api/auth/logout
    */
   static async logout(req: Request, res: Response): Promise<void> {
     try {
-      // In JWT-based auth, logout is mainly client-side
-      // But we can add token to blacklist if needed
-
-      sendSuccess(res, {
-        message: "Logout successful",
-      });
+      sendSuccess(res, { message: "Logout successful" });
     } catch (error) {
       console.error("Logout error:", error);
       sendError(res, "Logout failed", 500);
