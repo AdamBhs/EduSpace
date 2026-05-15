@@ -1,8 +1,11 @@
 {
-  "name": "@repo/shared",
+  "name": "@eduspace/shared",
   "version": "0.0.1",
   "main": "src/index.ts",
   "private": true,
+  "dependencies": {
+    "jsonwebtoken": "^9.0.3"
+  },
   "peerDependencies": {
     "bcryptjs": "^3.0.3",
     "express": "^5.2.1",
@@ -11,8 +14,5 @@
   "devDependencies": {
     "@types/express": "^5.0.6",
     "@types/jsonwebtoken": "^9.0.10"
-  },
-  "dependencies": {
-    "jsonwebtoken": "^9.0.3"
   }
 }

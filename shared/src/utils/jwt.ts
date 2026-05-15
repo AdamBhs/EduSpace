@@ -14,16 +14,13 @@ const getJwtSecret = (): string => {
 };
 
 export const generateToken = (payload: JwtPayload): string => {
-  const secret = getJwtSecret();
-  return jwt.sign(payload, secret, { expiresIn: "7d" });
+  return jwt.sign(payload, getJwtSecret(), { expiresIn: "7d" });
 };
 
 export const verifyToken = (token: string): JwtPayload | null => {
   try {
-    const secret = getJwtSecret();
-    return jwt.verify(token, secret) as JwtPayload;
-  } catch (error) {
-    console.error("Invalid or expired token:", error);
+    return jwt.verify(token, getJwtSecret()) as JwtPayload;
+  } catch {
     return null;
   }
 };
