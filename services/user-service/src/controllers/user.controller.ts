@@ -171,14 +171,14 @@ export class UserController {
    */
   static async getUsers(req: Request, res: Response): Promise<void> {
     try {
-      const { users_ids } = req.body;
-      if (!Array.isArray(users_ids) || users_ids.length === 0) {
-        sendError(res, "users_ids must be a non-empty array", 400);
+      const { userIds } = req.body;
+      if (!Array.isArray(userIds) || userIds.length === 0) {
+        sendError(res, "userIds must be a non-empty array", 400);
         return;
       }
 
       const users = await prisma.user.findMany({
-        where: { userId: { in: users_ids } },
+        where: { userId: { in: userIds } },
         include: { profile: true },
       });
 

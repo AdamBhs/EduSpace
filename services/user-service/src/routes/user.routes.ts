@@ -2,7 +2,10 @@ import { Router } from "express";
 import { UserController } from "../controllers/user.controller";
 import { authenticate } from "../../../../shared/src/middleware/auth";
 import { validate } from "../../../../shared/src/middleware/validate";
-import { updateProfileSchema } from "../../../../shared/src/utils/validationSchemas";
+import {
+  updateProfileSchema,
+  batchUsersSchema,
+} from "../../../../shared/src/utils/validationSchemas";
 import multer from "multer";
 
 const router = Router();
@@ -19,7 +22,12 @@ router.put(
 
 router.delete("/me", authenticate, UserController.deleteAccount);
 
-router.post("/getUsers", authenticate, UserController.getUsers);
+router.post(
+  "/getUsers",
+  authenticate,
+  validate(batchUsersSchema),
+  UserController.getUsers,
+);
 
 router.get("/:userId", authenticate, UserController.getUserById);
 

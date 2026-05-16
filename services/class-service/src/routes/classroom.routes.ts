@@ -1,61 +1,102 @@
-// src/routes/classroom.routes.ts
 import { Router } from "express";
 import { authenticate } from "../../../../shared/src/middleware/auth";
 import { validate } from "../../../../shared/src/middleware/validate";
-import { createClassroomSchema } from "../../../../shared/src/utils/validationSchemas";
+import {
+  createClassroomSchema,
+  updateClassroomSchema,
+  joinClassroomSchema,
+  createChapterSchema,
+  updateChapterSchema,
+  reorderChaptersSchema,
+} from "../../../../shared/src/utils/validationSchemas";
 import { ClassroomController } from "../controllers/classroom.controller";
+import { MemberController } from "../controllers/member.controller";
+import { ChapterController } from "../controllers/chapter.controller";
 
 const router = Router();
 
-/**
- * @route   Get /api/classroom/getClassrooms
- * @desc    Getting all classrooms that the user enrolled in
- * @access  Protected
- */
-router.get(
-  "/getClassrooms",
-  authenticate,
-  ClassroomController.getAllEnrollClassroom,
-);
-/**
- * @route   POST /api/classroom/create
- * @desc    Create a classroom
- * @access  Protected
- */
+// ─── Classrooms ─────────────────────────────────────────────
+
+router.get("/my", authenticate, ClassroomController.getMyClassrooms);
+
 router.post(
   "/create",
   authenticate,
   validate(createClassroomSchema),
-  ClassroomController.createClassroom,
+  ClassroomController.create,
 );
 
-/**
- * @route   POST /api/classroom/join
- * @desc    join a classroom
- * @access  Protected
- */
-router.post("/join", authenticate, ClassroomController.joinClassroom);
+router.post(
+  "/join",
+  authenticate,
+  validate(joinClassroomSchema),
+  ClassroomController.join,
+);
 
-/**
- * @route   Get /api/classroom/getPeople
- * @desc    get people enrolled at classroom
- * @access  Protected
- */
-router.post("/getPeople", authenticate, ClassroomController.getPeopleEnrolled);
+router.get("/:classId", authenticate, ClassroomController.getById);
 
-/**
- * @route   Get /api/classroom/:classId
- * @desc    Getting Classroom by Id that the user enrolled in
- * @access  Protected
- */
-router.get("/:classId", authenticate, ClassroomController.getClassroomById);
+router.put(
+  "/:classId",
+  authenticate,
+  validate(updateClassroomSchema),
+  ClassroomController.update,
+);
 
-/**
- * @route   Delete /api/classroom/:classId
- * @desc    Deleting Classroom by Id that the user enrolled in
- * @access  Protected
- */
-router.delete("/:classId", authenticate, ClassroomController.deleteClassroomById);
+router.delete("/:classId", authenticate, ClassroomController.delete);
 
+router.post("/:classId/leave", authenticate, ClassroomController.leave);
+
+// ─── Members ────────────────────────────────────────────────
+
+router.get("/:classId/members", authenticate, MemberController.getMembers);
+
+router.get(
+  "/:classId/members/check/:userId",
+  authenticate,
+  MemberController.checkMembership,
+);
+
+router.put(
+  "/:classId/members/:memberId/role",
+  authenticate,
+  MemberController.updateRole,
+);
+
+router.delete(
+  "/:classId/members/:memberId",
+  authenticate,
+  MemberController.removeMember,
+);
+
+// ─── Chapters ───────────────────────────────────────────────
+
+router.get("/:classId/chapters", authenticate, ChapterController.getChapters);
+
+router.post(
+  "/:classId/chapters",
+  authenticate,
+  validate(createChapterSchema),
+  ChapterController.create,
+);
+
+router.put(
+  "/:classId/chapters/reorder",
+  authenticate,
+  validate(reorderChaptersSchema),
+  ChapterController.reorder,
+);
+
+router.put(
+  "/:classId/chapters/:chapterId",
+  authenticate,
+  validate(updateChapterSchema),
+  ChapterController.update,
+);
+
+router.delete(
+  "/:classId/chapters/:chapterId",
+  authenticate,
+  ChapterController.delete,
+);
 
 export default router;
