@@ -7,27 +7,25 @@ const router = Router();
 
 const upload = multer({
   storage: multer.memoryStorage(),
-  limits: { fileSize: 10 * 1024 * 1024 },
+  limits: { fileSize: 50 * 1024 * 1024 },
 });
 
-/**
- * @route   Get /api/auth/avatar_url/getProfilePic
- * @desc    Get avatar_url
- * @access  Protected
- */
-
-router.get("/getProfilePic", authenticate, FileController.getAvatarUrl);
-
-/**
- * @route   POST /api/auth/avatar_url/upload
- * @desc    Upload avatar image
- * @access  Protected
- */
 router.post(
   "/upload",
   authenticate,
   upload.single("file"),
-  FileController.uploadFile,
+  FileController.upload,
 );
+
+router.post(
+  "/upload-multiple",
+  authenticate,
+  upload.array("files", 10),
+  FileController.uploadMultiple,
+);
+
+router.get("/url/:fileKey", authenticate, FileController.getUrl);
+
+router.delete("/:fileKey", authenticate, FileController.remove);
 
 export default router;
