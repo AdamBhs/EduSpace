@@ -29,13 +29,13 @@ const Register = () => {
   const [lastName, setLastName] = useState("");
   const [email, setEmail] = useState("");
   const [timezone, setTimezone] = useState("UTC+1");
+  const [error, setError] = useState("");
 
   const passwordRules = {
     length: password.length >= 8,
     uppercase: /[A-Z]/.test(password),
     lowercase: /[a-z]/.test(password),
     number: /[0-9]/.test(password),
-    symbol: /[^A-Za-z0-9]/.test(password),
   };
 
   const isValid = Object.values(passwordRules).every(Boolean);
@@ -53,6 +53,7 @@ const Register = () => {
     };
 
     try {
+      setError("");
       const result = await register(userData);
 
       if (result?.success) {
@@ -60,8 +61,8 @@ const Register = () => {
           state: { email: email },
         });
       }
-    } catch (err) {
-      console.log("Failed to register:", err);
+    } catch (err: any) {
+      setError(err.response?.data?.error || "Registration failed. Please try again.");
     }
   };
 
@@ -233,6 +234,10 @@ const Register = () => {
                   />
                 </div>
               </Field>
+
+              {error && (
+                <p className="text-red-400 text-sm text-center">{error}</p>
+              )}
 
               {/* BUTTON */}
               <Field>

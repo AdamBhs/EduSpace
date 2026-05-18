@@ -3,53 +3,64 @@ import { IoMdAdd } from "react-icons/io";
 import { useParams } from "react-router-dom";
 import { IoIosInfinite } from "react-icons/io";
 import { FaFolder } from "react-icons/fa";
-import CardContent from "./components/CardContent";
-import CardFile from "./components/CardFile";
 import SearchInput from "./components/SearchInput";
 import { useQuery } from "@tanstack/react-query";
-import type { Classroom } from "@/shared/types";
+import type { Classroom, Chapter, Post } from "@/shared/types";
 import { getClassroomById } from "@/services/classroom-service";
+import { getPostsByClass } from "@/services/content-service";
 import NavLinksClass from "./components/NavLinksClass";
+import { FileText, HelpCircle, ClipboardList, Megaphone, BookOpen } from "lucide-react";
+
+const postTypeIcon = (type: string) => {
+  switch (type) {
+    case "STUDY_MATERIAL": return <BookOpen className="w-4 h-4 text-[#137FEC]" />;
+    case "ASSIGNMENT": return <ClipboardList className="w-4 h-4 text-green-600" />;
+    case "QUIZ": return <FileText className="w-4 h-4 text-purple-600" />;
+    case "QUESTION": return <HelpCircle className="w-4 h-4 text-amber-600" />;
+    case "ANNOUNCEMENT": return <Megaphone className="w-4 h-4 text-red-500" />;
+    default: return <FileText className="w-4 h-4 text-gray-500" />;
+  }
+};
 
 const Class = () => {
-  const [activeUnit, setActiveUnit] = useState("All Topics");
-  const user = JSON.parse(localStorage.getItem("user")!);
-
+  const [activeChapter, setActiveChapter] = useState<string>("all");
   const { classId } = useParams();
 
-  const { data, isLoading, error } = useQuery<Classroom>({
-    queryKey: ["classroom"],
+  const { data: classroom, isLoading: classLoading, error: classError } = useQuery<Classroom>({
+    queryKey: ["classroom", classId],
     queryFn: () => getClassroomById(classId!),
+    enabled: !!classId,
   });
 
-  if (isLoading) {
-    return <p>Loading...</p>;
+  const { data: posts, isLoading: postsLoading } = useQuery<Post[]>({
+    queryKey: ["posts", classId],
+    queryFn: () => getPostsByClass(classId!),
+    enabled: !!classId,
+  });
+
+  if (classLoading) return <p>Loading...</p>;
+  if (classError) return <p>Error loading classroom</p>;
+
+  const chapters = classroom?.chapters ?? [];
+  const isAdmin = classroom?.userRole === "ADMIN";
+
+  const filteredPosts = activeChapter === "all"
+    ? (posts ?? [])
+    : (posts ?? []).filter((p) => p.chapterId === activeChapter);
+
+  const postsByChapter = new Map<string, Post[]>();
+  for (const post of filteredPosts) {
+    const chap = postsByChapter.get(post.chapterId) ?? [];
+    chap.push(post);
+    postsByChapter.set(post.chapterId, chap);
   }
-  if (error) return <p>Error...</p>;
 
-  const isTeacher = user.userId === data!.teacher_id;
-
-  // TODO: This will change based on the Units on that specifique class class
-  const units = ["All Topics", "Unit 1", "Unit 2"];
-
-  const unitSections = [
-    { name: "Unit 1", title: "Unit 1: Fundamentals of Biology" },
-    { name: "Unit 2", title: "Unit 2: Fundamentals of Biology" },
-  ];
-
-  const filteredUnitSections =
-    activeUnit === "All Topics"
-      ? unitSections
-      : unitSections.filter((section) => section.name === activeUnit);
-
-  const handleFilterByUnit = (unit: any) => {
-    setActiveUnit(unit);
-  };
+  const chapterById = new Map(chapters.map((c) => [c.id, c]));
 
   return (
     <div className="flex h-full -mx-6 items-stretch overflow-hidden">
       <aside className="w-60 self-stretch border-r border-[#E2E8F0] px-6 py-5">
-        {isTeacher && (
+        {isAdmin && (
           <div
             className="text-sm font-semibold rounded-lg cursor-pointer hover:opacity-90 text-white bg-[#137FEC] py-3 px-5 flex gap-1 items-center justify-center"
             style={{ boxShadow: "0 2px 10px rgba(19, 127, 236, 0.5)" }}
@@ -57,61 +68,86 @@ const Class = () => {
             <IoMdAdd size={18} /> Create Work
           </div>
         )}
-        <h2 className="mt-6 text-[#94A3B8] text-[10px]">FILTERS</h2>
+        <h2 className="mt-6 text-[#94A3B8] text-[10px]">CHAPTERS</h2>
         <ul className="mt-4 space-y-1 text-sm text-slate-600">
-          {units.map((unit, index) => {
-            const isActiveUnit = activeUnit === unit;
-            return (
-              <li
-                key={unit}
-                onClick={() => handleFilterByUnit(unit)}
-                className={`flex gap-2 items-center select-none cursor-pointer hover:bg-[#137FEC]/10 px-2 py-1.5 rounded-md ${
-                  isActiveUnit
-                    ? "text-[#137FEC] bg-[#137FEC]/10"
-                    : "hover:text-[#137FEC]/80"
-                }`}
-              >
-                {index === 0 ? <IoIosInfinite size={16} /> : <FaFolder />}
-                {unit}
-              </li>
-            );
-          })}
+          <li
+            onClick={() => setActiveChapter("all")}
+            className={`flex gap-2 items-center select-none cursor-pointer hover:bg-[#137FEC]/10 px-2 py-1.5 rounded-md ${
+              activeChapter === "all"
+                ? "text-[#137FEC] bg-[#137FEC]/10"
+                : "hover:text-[#137FEC]/80"
+            }`}
+          >
+            <IoIosInfinite size={16} />
+            All Chapters
+          </li>
+          {chapters.map((chapter) => (
+            <li
+              key={chapter.id}
+              onClick={() => setActiveChapter(chapter.id)}
+              className={`flex gap-2 items-center select-none cursor-pointer hover:bg-[#137FEC]/10 px-2 py-1.5 rounded-md ${
+                activeChapter === chapter.id
+                  ? "text-[#137FEC] bg-[#137FEC]/10"
+                  : "hover:text-[#137FEC]/80"
+              }`}
+            >
+              <FaFolder />
+              {chapter.name}
+            </li>
+          ))}
         </ul>
       </aside>
 
       <section className="flex min-h-0 flex-1 flex-col pl-6 pb-4">
         <NavLinksClass
-          isTeacher={isTeacher}
           classId={classId!}
-          activeTab="Classwork"
+          activeTab="Materials"
+          classroomType={classroom!.type}
+          userRole={classroom!.userRole!}
+          chatEnabled={classroom!.chatEnabled}
         />
         <div className="flex-1 flex flex-col min-h-0 overflow-y-auto py-2 text-sm text-slate-600 pr-6">
           <SearchInput />
-          <div className="flex flex-col gap-2.5 justify-between flex-1 min-h-0">
-            {filteredUnitSections.map((section) => (
-              <div key={section.name} className="mt-5">
-                <h1 className="text-xl border-b border-[#E2E8F0]/80 pb-1  text-[#1E293B] mb-4">
-                  {section.title}
-                </h1>
-                <CardContent />
-                <CardContent />
-                <CardContent />
+          <div className="flex flex-col gap-2.5 flex-1 min-h-0">
+            {filteredPosts.length === 0 && !postsLoading && (
+              <div className="flex items-center justify-center h-40 text-gray-400">
+                No posts yet
               </div>
-            ))}
-
-            <div className="mt-6 ">
-              <h3 className="text-[#94A3B8] font-medium mb-4">
-                RECENT SHARED FILES
-              </h3>
-              <div className="flex gap-4">
-                <CardFile />
-                <CardFile />
-                <CardFile />
-                <CardFile />
-                <CardFile />
-                <CardFile />
-              </div>
-            </div>
+            )}
+            {[...postsByChapter.entries()].map(([chapterId, chapterPosts]) => {
+              const chapter = chapterById.get(chapterId);
+              return (
+                <div key={chapterId} className="mt-5">
+                  <h1 className="text-xl border-b border-[#E2E8F0]/80 pb-1 text-[#1E293B] mb-4">
+                    {chapter?.name ?? "Unknown Chapter"}
+                  </h1>
+                  {chapterPosts.map((post) => (
+                    <div
+                      key={post.id}
+                      className="flex items-center gap-3 p-3 rounded-lg hover:bg-[#F8FAFC] cursor-pointer border border-transparent hover:border-[#E2E8F0] mb-1"
+                    >
+                      <div className="w-8 h-8 rounded-full bg-[#F1F5F9] flex items-center justify-center">
+                        {postTypeIcon(post.type)}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="font-medium text-[#1E293B] truncate">{post.title}</p>
+                        <p className="text-xs text-[#94A3B8]">
+                          {post.type.replace("_", " ")}
+                          {post.studyMaterialType ? ` - ${post.studyMaterialType}` : ""}
+                          {" · "}
+                          {new Date(post.createdAt).toLocaleDateString()}
+                        </p>
+                      </div>
+                      {post._count?.comments !== undefined && (
+                        <span className="text-xs text-[#94A3B8]">
+                          {post._count.comments} comments
+                        </span>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              );
+            })}
           </div>
         </div>
       </section>

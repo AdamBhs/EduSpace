@@ -67,16 +67,20 @@ export class AuthController {
 
       const firstName = user.profile?.first_name || "there";
 
-      await transporter.sendMail({
-        to: email,
-        subject: "Your new verification code",
-        html: `
-        <h2>Hi ${firstName}!</h2>
-        <p>Your new verification code is:</p>
-        <h1 style="letter-spacing: 8px; color: #137FEC;">${verificationCode}</h1>
-        <p>This code expires in <strong>5 minutes</strong>.</p>
-      `,
-      });
+      try {
+        await transporter.sendMail({
+          to: email,
+          subject: "Your new verification code",
+          html: `
+          <h2>Hi ${firstName}!</h2>
+          <p>Your new verification code is:</p>
+          <h1 style="letter-spacing: 8px; color: #137FEC;">${verificationCode}</h1>
+          <p>This code expires in <strong>5 minutes</strong>.</p>
+        `,
+        });
+      } catch (emailErr) {
+        console.warn("Email sending failed — verification code:", verificationCode);
+      }
 
       sendSuccess(res, null, "Verification code resent successfully");
     } catch (error) {
@@ -181,16 +185,20 @@ export class AuthController {
         return newUser;
       });
 
-      await transporter.sendMail({
-        to: user.email,
-        subject: "Your verification code",
-        html: `
-        <h2>Welcome ${firstName}!</h2>
-        <p>Your verification code is:</p>
-        <h1 style="letter-spacing: 8px; color: #137FEC;">${verificationCode}</h1>
-        <p>This code expires in <strong>5 minutes</strong>.</p>
-      `,
-      });
+      try {
+        await transporter.sendMail({
+          to: user.email,
+          subject: "Your verification code",
+          html: `
+          <h2>Welcome ${firstName}!</h2>
+          <p>Your verification code is:</p>
+          <h1 style="letter-spacing: 8px; color: #137FEC;">${verificationCode}</h1>
+          <p>This code expires in <strong>5 minutes</strong>.</p>
+        `,
+        });
+      } catch (emailErr) {
+        console.warn("Email sending failed — verification code:", verificationCode);
+      }
 
       sendSuccess(
         res,

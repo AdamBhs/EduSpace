@@ -54,8 +54,8 @@ const JoinClassDialog = ({ open, onOpenChange }: JoinClassDialogProps) => {
     joinMutation.mutate();
   };
 
-  const initials = user
-    ? `${user.firstName?.[0] ?? ""}${user.lastName?.[0] ?? ""}`.toUpperCase()
+  const initials = user?.profile
+    ? `${user.profile.firstName?.[0] ?? ""}${user.profile.lastName?.[0] ?? ""}`.toUpperCase()
     : "?";
 
   return (
@@ -81,18 +81,11 @@ const JoinClassDialog = ({ open, onOpenChange }: JoinClassDialogProps) => {
               </Avatar>
               <div>
                 <p className="text-sm font-medium leading-tight">
-                  {user?.firstName} {user?.lastName}
+                  {user?.profile?.firstName} {user?.profile?.lastName}
                 </p>
                 <p className="text-xs text-muted-foreground">{user?.email}</p>
               </div>
             </div>
-            <button
-              type="button"
-              className="text-sm text-blue-500 hover:text-blue-600 font-medium"
-              onClick={() => {}}
-            >
-              Switch account
-            </button>
           </div>
         </div>
 
@@ -103,7 +96,7 @@ const JoinClassDialog = ({ open, onOpenChange }: JoinClassDialogProps) => {
             classroom workspace.
           </p>
           <Input
-            placeholder="Enter 6-7 character code"
+            placeholder="Enter 6-character code"
             value={classCode}
             onChange={(e) => {
               setClassCode(e.target.value);
@@ -121,7 +114,7 @@ const JoinClassDialog = ({ open, onOpenChange }: JoinClassDialogProps) => {
           <div className="flex items-start gap-1.5 mt-3 text-xs text-muted-foreground">
             <CircleAlert className="size-3 mt-0.5 shrink-0" />
             <div>
-              <p>Use 6-7 letters or numbers, and no spaces or symbols</p>
+              <p>Use 6 letters or numbers, no spaces or symbols</p>
               <p>If you have trouble, contact your instructor</p>
             </div>
           </div>

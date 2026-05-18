@@ -469,10 +469,10 @@ export default function Navbar() {
                 boxShadow: "0 4px 14px rgba(26,147,246,0.28)",
               }}
             >
-              N
+              E
             </div>
             <span className="text-[17px] font-extrabold tracking-tight text-[#133358]">
-              Nucleus<span style={{ color: "#1a93f6" }}>.</span>
+              EduSpace
             </span>
           </div>
         </SheetContent>
