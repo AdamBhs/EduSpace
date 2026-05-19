@@ -15,6 +15,7 @@ import Settings from "@/features/settings/Settings";
 import Stream from "@/features/classes/subPages/Stream";
 import Grades from "@/features/classes/subPages/Grades";
 import Chat from "@/features/classes/subPages/Chat";
+import PostDetail from "@/features/classes/subPages/PostDetail";
 
 export const router = createBrowserRouter([
   {
@@ -62,6 +63,7 @@ export const router = createBrowserRouter([
           { path: "stream", element: <Stream /> },
           { path: "grades", element: <Grades /> },
           { path: "chat", element: <Chat /> },
+          { path: "post/:postId", element: <PostDetail /> },
         ],
       },
       {

@@ -1,7 +1,7 @@
 import { useState } from "react";
 import NavLinksClass from "../components/NavLinksClass";
 import CreatePostDialog from "../components/CreatePostDialog";
-import { useParams } from "react-router-dom";
+import { useParams, useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { getClassroomById } from "@/services/classroom-service";
 import { getPostsByClass } from "@/services/content-service";
@@ -36,6 +36,7 @@ const postTypeIcon = (type: string) => {
 
 const Stream = () => {
   const { classId } = useParams<{ classId: string }>();
+  const navigate = useNavigate();
   const { user } = useAuth();
   const [createOpen, setCreateOpen] = useState(false);
 
@@ -165,6 +166,7 @@ const Stream = () => {
                 {allPosts.map((post) => (
                   <div
                     key={post.id}
+                    onClick={() => navigate(`/c/${classId}/post/${post.id}`)}
                     className="rounded-lg border border-[#E2E8F0] bg-white p-5 hover:shadow-sm transition-shadow cursor-pointer"
                   >
                     <div className="flex items-center gap-3">

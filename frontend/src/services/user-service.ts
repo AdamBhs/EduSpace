@@ -58,6 +58,11 @@ export const uploadProfilePicture = async (file: File) => {
   return response.data.data;
 };
 
+export const getUsers = async (userIds: string[]): Promise<import("@/shared/types").UserSummary[]> => {
+  const response = await api.post("/users/api/user/getUsers", { userIds });
+  return response.data.data;
+};
+
 export const requestPasswordReset = async (email: string) => {
   const response = await api.post("/users/api/auth/request-reset", { email });
   return response.data;

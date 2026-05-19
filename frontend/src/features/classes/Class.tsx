@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { IoMdAdd } from "react-icons/io";
-import { useParams } from "react-router-dom";
+import { useParams, useNavigate } from "react-router-dom";
 import { IoIosInfinite } from "react-icons/io";
 import { FaFolder } from "react-icons/fa";
 import SearchInput from "./components/SearchInput";
@@ -27,6 +27,7 @@ const Class = () => {
   const [activeChapter, setActiveChapter] = useState<string>("all");
   const [createOpen, setCreateOpen] = useState(false);
   const { classId } = useParams();
+  const navigate = useNavigate();
 
   const { data: classroom, isLoading: classLoading, error: classError } = useQuery<Classroom>({
     queryKey: ["classroom", classId],
@@ -136,6 +137,7 @@ const Class = () => {
                   {chapterPosts.map((post) => (
                     <div
                       key={post.id}
+                      onClick={() => navigate(`/c/${classId}/post/${post.id}`)}
                       className="flex items-center gap-3 p-3 rounded-lg hover:bg-[#F8FAFC] cursor-pointer border border-transparent hover:border-[#E2E8F0] mb-1"
                     >
                       <div className="w-8 h-8 rounded-full bg-[#F1F5F9] flex items-center justify-center">
