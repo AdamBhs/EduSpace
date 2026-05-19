@@ -171,10 +171,11 @@ export type Notification = {
 
 export type ChatMessage = {
   id: string;
-  roomId: string;
+  chatRoomId: string;
   senderId: string;
-  content: string;
+  content: string | null;
   fileKey: string | null;
   fileName: string | null;
   createdAt: string;
+  classId?: string;
 };
