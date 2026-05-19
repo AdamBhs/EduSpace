@@ -9,6 +9,7 @@ import postRoutes from "./routes/post.routes";
 import commentRoutes from "./routes/comment.routes";
 import submissionRoutes from "./routes/submission.routes";
 import gradeRoutes from "./routes/grade.routes";
+import { startConsumers } from "./events/consumer";
 
 const app: Application = express();
 
@@ -44,4 +45,7 @@ app.use(errorHandler);
 const PORT = process.env.PORT || 3004;
 app.listen(PORT, () => {
   console.log(`Content service running on http://localhost:${PORT}`);
+  startConsumers().catch((err) => {
+    console.error("Failed to start RabbitMQ consumers:", err.message);
+  });
 });

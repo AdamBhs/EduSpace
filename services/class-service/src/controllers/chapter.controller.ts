@@ -1,6 +1,7 @@
 import { Request, Response } from "express";
 import { prisma } from "../db/prisma";
 import { sendSuccess, sendError } from "../../../../shared/src/utils/response";
+import { publishEvent, Events } from "../../../../shared/src";
 import { Role } from "../generated/prisma/enums";
 
 export class ChapterController {
@@ -82,6 +83,10 @@ export class ChapterController {
         return sendError(res, "Chapter not found", 404);
       }
 
+      if (chapter.name === "General" && chapter.position === 0) {
+        return sendError(res, "Cannot rename the General chapter", 400);
+      }
+
       const updated = await prisma.chapter.update({
         where: { id: chapterId },
         data: { name },
@@ -118,7 +123,18 @@ export class ChapterController {
         return sendError(res, "Cannot delete the General chapter", 400);
       }
 
+      const generalChapter = await prisma.chapter.findFirst({
+        where: { classId, name: "General", position: 0 },
+        select: { id: true },
+      });
+
       await prisma.chapter.delete({ where: { id: chapterId } });
+
+      await publishEvent(Events.CHAPTER_DELETED, {
+        chapterId,
+        classId,
+        generalChapterId: generalChapter?.id,
+      });
 
       sendSuccess(res, null, "Chapter deleted");
     } catch (error) {

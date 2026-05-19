@@ -40,6 +40,7 @@ export const Events = {
   POST_DELETED: "post.deleted",
   SUBMISSION_GRADED: "submission.graded",
   CHAT_MESSAGE: "chat.message",
+  CHAPTER_DELETED: "chapter.deleted",
 } as const;
 
 // ─── Display labels per classroom type ───────────────────────
