@@ -1,5 +1,8 @@
-import { useState } from "react";
+import { useState, useCallback } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { uploadMultipleFiles } from "@/services/file-service";
+import FileAttachments from "./FileAttachments";
+import type { AttachmentMeta } from "./FileAttachments";
 import {
   Dialog,
   DialogContent,
@@ -68,6 +71,30 @@ const CreatePostDialog = ({
   const [content, setContent] = useState("");
   const [dueDate, setDueDate] = useState("");
   const [maxPoints, setMaxPoints] = useState("");
+  const [attachments, setAttachments] = useState<AttachmentMeta[]>([]);
+  const [uploading, setUploading] = useState(false);
+
+  const handleAddFiles = useCallback(async (files: FileList) => {
+    setUploading(true);
+    try {
+      const uploaded = await uploadMultipleFiles(Array.from(files));
+      const metas: AttachmentMeta[] = uploaded.map((f: any) => ({
+        fileKey: f.fileKey,
+        fileName: f.fileName,
+        fileSize: f.fileSize,
+        fileType: f.fileType,
+      }));
+      setAttachments((prev) => [...prev, ...metas]);
+    } catch {
+      // upload failed — user can retry
+    } finally {
+      setUploading(false);
+    }
+  }, []);
+
+  const handleRemoveFile = useCallback((index: number) => {
+    setAttachments((prev) => prev.filter((_, i) => i !== index));
+  }, []);
 
   const mutation = useMutation({
     mutationFn: () =>
@@ -80,6 +107,7 @@ const CreatePostDialog = ({
         studyMaterialType: postType === "STUDY_MATERIAL" ? studyMaterialType : undefined,
         dueDate: postType === "ASSIGNMENT" && dueDate ? dueDate : undefined,
         maxPoints: postType === "ASSIGNMENT" && maxPoints ? Number(maxPoints) : undefined,
+        attachments: attachments.length > 0 ? attachments : undefined,
       }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["posts", classId] });
@@ -95,6 +123,7 @@ const CreatePostDialog = ({
     setContent("");
     setDueDate("");
     setMaxPoints("");
+    setAttachments([]);
     onOpenChange(false);
   };
 
@@ -202,6 +231,14 @@ const CreatePostDialog = ({
             />
           </div>
 
+          {/* File attachments */}
+          <FileAttachments
+            attachments={attachments}
+            onAdd={handleAddFiles}
+            onRemove={handleRemoveFile}
+            uploading={uploading}
+          />
+
           {/* Assignment-specific fields */}
           {postType === "ASSIGNMENT" && isTeaching && (
             <div className="flex gap-4">
@@ -235,7 +272,7 @@ const CreatePostDialog = ({
           </Button>
           <Button
             onClick={() => mutation.mutate()}
-            disabled={!isValid || mutation.isPending}
+            disabled={!isValid || mutation.isPending || uploading}
             className="bg-blue-500 hover:bg-blue-600 text-white disabled:opacity-50"
           >
             {mutation.isPending ? "Posting..." : "Post"}

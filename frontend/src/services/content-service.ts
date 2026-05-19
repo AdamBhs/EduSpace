@@ -12,7 +12,7 @@ export const createPost = async (data: {
   studyMaterialType?: StudyMaterialType;
   dueDate?: string;
   maxPoints?: number;
-  attachments?: { fileKey: string; fileName: string; fileSize: number; mimeType: string }[];
+  attachments?: { fileKey: string; fileName: string; fileSize: number; fileType: string }[];
 }) => {
   const response = await api.post("/content/api/posts", data);
   return response.data.data;
@@ -80,7 +80,7 @@ export const deleteComment = async (commentId: string) => {
 export const submitAssignment = async (data: {
   postId: string;
   content?: string;
-  attachments?: { fileKey: string; fileName: string; fileSize: number; mimeType: string }[];
+  attachments?: { fileKey: string; fileName: string; fileSize: number; fileType: string }[];
 }) => {
   const response = await api.post("/content/api/submissions", data);
   return response.data.data;

@@ -23,15 +23,11 @@ export const uploadMultipleFiles = async (files: File[]) => {
 };
 
 export const getFileUrl = async (fileKey: string): Promise<string> => {
-  const response = await api.get("/files/api/files/url", {
-    params: { fileKey },
-  });
+  const response = await api.get(`/files/api/files/url/${encodeURIComponent(fileKey)}`);
   return response.data.data.url;
 };
 
 export const deleteFile = async (fileKey: string) => {
-  const response = await api.delete("/files/api/files", {
-    data: { fileKey },
-  });
+  const response = await api.delete(`/files/api/files/${encodeURIComponent(fileKey)}`);
   return response.data;
 };

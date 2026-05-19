@@ -1,11 +1,15 @@
-import { useState } from "react";
+import { useState, useCallback } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { getPostById, getComments, createComment, deleteComment, getSubmissions, submitAssignment, gradeSubmission } from "@/services/content-service";
 import { getClassroomById } from "@/services/classroom-service";
 import { getUsers } from "@/services/user-service";
+import { getFileUrl } from "@/services/file-service";
+import { uploadMultipleFiles } from "@/services/file-service";
 import { useAuth } from "@/context/AuthContext";
 import NavLinksClass from "../components/NavLinksClass";
+import FileAttachments from "../components/FileAttachments";
+import type { AttachmentMeta } from "../components/FileAttachments";
 import { Button } from "@/shared/components/ui/button";
 import { Avatar, AvatarFallback } from "@/shared/components/ui/avatar";
 import {
@@ -42,6 +46,8 @@ const PostDetail = () => {
 
   const [commentText, setCommentText] = useState("");
   const [submissionText, setSubmissionText] = useState("");
+  const [submissionFiles, setSubmissionFiles] = useState<AttachmentMeta[]>([]);
+  const [subUploading, setSubUploading] = useState(false);
   const [gradeInputs, setGradeInputs] = useState<Record<string, { points: string; feedback: string }>>({});
 
   const { data: classroom } = useQuery<Classroom>({
@@ -90,6 +96,38 @@ const PostDetail = () => {
     enabled: allUserIds.length > 0,
   });
 
+  const handleSubAddFiles = useCallback(async (files: FileList) => {
+    setSubUploading(true);
+    try {
+      const uploaded = await uploadMultipleFiles(Array.from(files));
+      const metas: AttachmentMeta[] = uploaded.map((f: any) => ({
+        fileKey: f.fileKey,
+        fileName: f.fileName,
+        fileSize: f.fileSize,
+        fileType: f.fileType,
+      }));
+      setSubmissionFiles((prev) => [...prev, ...metas]);
+    } catch {
+      // upload failed
+    } finally {
+      setSubUploading(false);
+    }
+  }, []);
+
+  const handleSubRemoveFile = useCallback((index: number) => {
+    setSubmissionFiles((prev) => prev.filter((_, i) => i !== index));
+  }, []);
+
+  const handleDownload = async (fileKey: string, fileName: string) => {
+    const url = await getFileUrl(fileKey);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = fileName;
+    a.target = "_blank";
+    a.rel = "noopener noreferrer";
+    a.click();
+  };
+
   const addComment = useMutation({
     mutationFn: () => createComment(postId!, commentText.trim()),
     onSuccess: () => {
@@ -108,9 +146,14 @@ const PostDetail = () => {
   });
 
   const submit = useMutation({
-    mutationFn: () => submitAssignment({ postId: postId!, content: submissionText.trim() || undefined }),
+    mutationFn: () => submitAssignment({
+      postId: postId!,
+      content: submissionText.trim() || undefined,
+      attachments: submissionFiles.length > 0 ? submissionFiles : undefined,
+    }),
     onSuccess: () => {
       setSubmissionText("");
+      setSubmissionFiles([]);
       queryClient.invalidateQueries({ queryKey: ["submissions", postId] });
     },
   });
@@ -216,16 +259,18 @@ const PostDetail = () => {
               <h3 className="text-sm font-semibold text-[#0F172A] mb-2">Attachments</h3>
               <div className="space-y-2">
                 {post.attachments.map((att) => (
-                  <div
+                  <button
                     key={att.id}
-                    className="flex items-center gap-3 rounded-lg border border-[#E2E8F0] p-3 text-sm"
+                    type="button"
+                    onClick={() => handleDownload(att.fileKey, att.fileName)}
+                    className="flex w-full items-center gap-3 rounded-lg border border-[#E2E8F0] p-3 text-sm hover:bg-[#F8FAFC] hover:border-[#137FEC]/40 transition-colors cursor-pointer"
                   >
-                    <Download className="w-4 h-4 text-[#64748B]" />
-                    <span className="flex-1 truncate text-[#334155]">{att.fileName}</span>
+                    <Download className="w-4 h-4 text-[#137FEC]" />
+                    <span className="flex-1 truncate text-[#334155] text-left">{att.fileName}</span>
                     <span className="text-xs text-[#94A3B8]">
                       {att.fileSize ? `${(att.fileSize / 1024).toFixed(1)} KB` : ""}
                     </span>
-                  </div>
+                  </button>
                 ))}
               </div>
             </div>
@@ -239,6 +284,21 @@ const PostDetail = () => {
                 <div className="space-y-2">
                   {mySubmission.content && (
                     <p className="text-sm text-[#334155] whitespace-pre-wrap">{mySubmission.content}</p>
+                  )}
+                  {mySubmission.attachments && mySubmission.attachments.length > 0 && (
+                    <div className="space-y-1.5 mt-2">
+                      {mySubmission.attachments.map((att: any) => (
+                        <button
+                          key={att.id ?? att.fileKey}
+                          type="button"
+                          onClick={() => handleDownload(att.fileKey, att.fileName)}
+                          className="flex w-full items-center gap-2 rounded-lg border border-[#E2E8F0] p-2.5 text-sm hover:bg-[#F8FAFC] hover:border-[#137FEC]/40 transition-colors cursor-pointer"
+                        >
+                          <Download className="w-3.5 h-3.5 text-[#137FEC]" />
+                          <span className="flex-1 truncate text-[#334155] text-left">{att.fileName}</span>
+                        </button>
+                      ))}
+                    </div>
                   )}
                   <p className="text-xs text-[#64748B]">
                     Submitted {new Date(mySubmission.submittedAt).toLocaleString()}
@@ -263,9 +323,15 @@ const PostDetail = () => {
                     rows={4}
                     className="w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm outline-none focus:border-blue-500 resize-none"
                   />
+                  <FileAttachments
+                    attachments={submissionFiles}
+                    onAdd={handleSubAddFiles}
+                    onRemove={handleSubRemoveFile}
+                    uploading={subUploading}
+                  />
                   <Button
                     onClick={() => submit.mutate()}
-                    disabled={submit.isPending}
+                    disabled={submit.isPending || subUploading}
                     className="bg-blue-500 hover:bg-blue-600 text-white"
                     size="sm"
                   >
@@ -305,6 +371,21 @@ const PostDetail = () => {
                       </div>
                       {sub.content && (
                         <p className="text-sm text-[#334155] mb-3 whitespace-pre-wrap">{sub.content}</p>
+                      )}
+                      {sub.attachments && sub.attachments.length > 0 && (
+                        <div className="space-y-1.5 mb-3">
+                          {sub.attachments.map((att: any) => (
+                            <button
+                              key={att.id ?? att.fileKey}
+                              type="button"
+                              onClick={() => handleDownload(att.fileKey, att.fileName)}
+                              className="flex w-full items-center gap-2 rounded-lg border border-[#E2E8F0] p-2.5 text-sm hover:bg-[#F8FAFC] hover:border-[#137FEC]/40 transition-colors cursor-pointer"
+                            >
+                              <Download className="w-3.5 h-3.5 text-[#137FEC]" />
+                              <span className="flex-1 truncate text-[#334155] text-left">{att.fileName}</span>
+                            </button>
+                          ))}
+                        </div>
                       )}
                       <div className="flex items-end gap-3">
                         <div className="flex-1">
