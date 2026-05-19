@@ -1,4 +1,6 @@
+import { useState } from "react";
 import NavLinksClass from "../components/NavLinksClass";
+import CreatePostDialog from "../components/CreatePostDialog";
 import { useParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { getClassroomById } from "@/services/classroom-service";
@@ -15,7 +17,6 @@ import {
 import {
   Avatar,
   AvatarFallback,
-  AvatarImage,
 } from "@/shared/components/ui/avatar";
 import StreamSkeleton from "../ui/StreamSkeleton";
 import { useAuth } from "@/context/AuthContext";
@@ -36,6 +37,7 @@ const postTypeIcon = (type: string) => {
 const Stream = () => {
   const { classId } = useParams<{ classId: string }>();
   const { user } = useAuth();
+  const [createOpen, setCreateOpen] = useState(false);
 
   const {
     data: classroom,
@@ -128,18 +130,30 @@ const Stream = () => {
             </div>
             <div className="flex-1">
               {isAdmin && (
-                <div className="w-full p-4 flex gap-4 cursor-pointer border border-[#E2E8F0] rounded-lg overflow-hidden h-18 mb-4">
-                  <div className="flex w-full items-center gap-4">
-                    <Avatar>
-                      <AvatarFallback className="bg-blue-100 text-blue-700 text-sm font-semibold">
-                        {userInitials}
-                      </AvatarFallback>
-                    </Avatar>
-                    <h3 className="text-[#64748B]">
-                      Share something with your class...
-                    </h3>
+                <>
+                  <div
+                    onClick={() => setCreateOpen(true)}
+                    className="w-full p-4 flex gap-4 cursor-pointer border border-[#E2E8F0] rounded-lg overflow-hidden h-18 mb-4 hover:border-[#137FEC]/40 transition-colors"
+                  >
+                    <div className="flex w-full items-center gap-4">
+                      <Avatar>
+                        <AvatarFallback className="bg-blue-100 text-blue-700 text-sm font-semibold">
+                          {userInitials}
+                        </AvatarFallback>
+                      </Avatar>
+                      <h3 className="text-[#64748B]">
+                        Share something with your class...
+                      </h3>
+                    </div>
                   </div>
-                </div>
+                  <CreatePostDialog
+                    open={createOpen}
+                    onOpenChange={setCreateOpen}
+                    classId={classId!}
+                    classroomType={classroom!.type}
+                    chapters={classroom!.chapters ?? []}
+                  />
+                </>
               )}
 
               <div className="space-y-4">
