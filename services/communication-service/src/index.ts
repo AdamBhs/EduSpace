@@ -9,6 +9,7 @@ import morgan from "morgan";
 import { errorHandler } from "../../../shared/src/middleware/errorHandler";
 import { setupSocket } from "./socket/handler";
 import chatRoutes from "./routes/chat.routes";
+import { startConsumers } from "./events/consumer";
 
 const app: Application = express();
 const httpServer = createServer(app);
@@ -50,4 +51,7 @@ setupSocket(io);
 const PORT = process.env.PORT || 3005;
 httpServer.listen(PORT, () => {
   console.log(`Communication service running on http://localhost:${PORT}`);
+  startConsumers().catch((err) => {
+    console.error("Failed to start RabbitMQ consumers:", err.message);
+  });
 });

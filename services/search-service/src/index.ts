@@ -7,6 +7,7 @@ import morgan from "morgan";
 import { errorHandler } from "../../../shared/src/middleware/errorHandler";
 import { ensureIndex } from "./utils/elastic";
 import searchRoutes from "./routes/search.routes";
+import { startConsumers } from "./events/consumer";
 
 const app: Application = express();
 
@@ -41,6 +42,9 @@ ensureIndex()
   .then(() => {
     app.listen(PORT, () => {
       console.log(`Search service running on http://localhost:${PORT}`);
+      startConsumers().catch((err) => {
+        console.error("Failed to start RabbitMQ consumers:", err.message);
+      });
     });
   })
   .catch((err) => {

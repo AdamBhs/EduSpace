@@ -8,4 +8,6 @@ export * from "./middleware/auth";
 export * from "./middleware/errorHandler";
 export * from "./middleware/validate";
 
+export * from "./utils/rabbitmq";
+
 export * from "./types";

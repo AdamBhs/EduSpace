@@ -1,6 +1,7 @@
 import { Request, Response } from "express";
 import { prisma } from "../db/prisma";
 import { sendSuccess, sendError } from "../../../../shared/src/utils/response";
+import { publishEvent, Events } from "../../../../shared/src";
 import { checkMembership } from "../utils/classService";
 
 export class PostController {
@@ -56,7 +57,19 @@ export class PostController {
         include: { attachments: true },
       });
 
-      // TODO: publish RabbitMQ event (post.created)
+      await publishEvent(Events.POST_CREATED, {
+        postId: post.id,
+        classId,
+        chapterId,
+        authorId: userId,
+        title: post.title,
+        content: post.content,
+        type: post.type,
+        studyMaterialType: post.studyMaterialType,
+        attachmentNames: post.attachments.map((a: any) => a.fileName),
+        createdAt: post.createdAt,
+        updatedAt: post.updatedAt,
+      });
 
       sendSuccess(res, post, "Post created", 201);
     } catch (error) {
@@ -159,7 +172,17 @@ export class PostController {
         include: { attachments: true },
       });
 
-      // TODO: publish RabbitMQ event (post.updated)
+      await publishEvent(Events.POST_UPDATED, {
+        postId: updated.id,
+        classId: updated.classId,
+        chapterId: updated.chapterId,
+        title: updated.title,
+        content: updated.content,
+        type: updated.type,
+        studyMaterialType: updated.studyMaterialType,
+        attachmentNames: updated.attachments.map((a: any) => a.fileName),
+        updatedAt: updated.updatedAt,
+      });
 
       sendSuccess(res, updated, "Post updated");
     } catch (error) {
@@ -185,7 +208,10 @@ export class PostController {
 
       await prisma.post.delete({ where: { id: postId } });
 
-      // TODO: publish RabbitMQ event (post.deleted)
+      await publishEvent(Events.POST_DELETED, {
+        postId: post.id,
+        classId: post.classId,
+      });
 
       sendSuccess(res, null, "Post deleted");
     } catch (error) {

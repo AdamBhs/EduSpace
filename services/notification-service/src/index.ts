@@ -6,6 +6,7 @@ import cors from "cors";
 import morgan from "morgan";
 import { errorHandler } from "../../../shared/src/middleware/errorHandler";
 import notificationRoutes from "./routes/notification.routes";
+import { startConsumers } from "./events/consumer";
 
 const app: Application = express();
 
@@ -37,4 +38,7 @@ app.use(errorHandler);
 const PORT = process.env.PORT || 3006;
 app.listen(PORT, () => {
   console.log(`Notification service running on http://localhost:${PORT}`);
+  startConsumers().catch((err) => {
+    console.error("Failed to start RabbitMQ consumers:", err.message);
+  });
 });

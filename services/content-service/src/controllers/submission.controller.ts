@@ -1,6 +1,7 @@
 import { Request, Response } from "express";
 import { prisma } from "../db/prisma";
 import { sendSuccess, sendError } from "../../../../shared/src/utils/response";
+import { publishEvent, Events } from "../../../../shared/src";
 import { checkMembership } from "../utils/classService";
 
 export class SubmissionController {
@@ -186,7 +187,15 @@ export class SubmissionController {
         include: { attachments: true },
       });
 
-      // TODO: publish RabbitMQ event (submission.graded)
+      await publishEvent(Events.SUBMISSION_GRADED, {
+        submissionId: graded.id,
+        studentId: graded.studentId,
+        postId: graded.postId,
+        classId: submission.post.classId,
+        points: graded.points,
+        maxPoints: submission.post.maxPoints,
+        postTitle: submission.post.title,
+      });
 
       sendSuccess(res, graded, "Submission graded");
     } catch (error) {

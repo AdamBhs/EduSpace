@@ -1,6 +1,7 @@
 import { Request, Response } from "express";
 import { prisma } from "../db/prisma";
 import { sendSuccess, sendError } from "../../../../shared/src/utils/response";
+import { publishEvent, Events } from "../../../../shared/src";
 import { ClassroomType, Role } from "../generated/prisma/enums";
 import { fetchUsers } from "../utils/userService";
 
@@ -61,7 +62,12 @@ export class ClassroomController {
         return newClass;
       });
 
-      // TODO: publish RabbitMQ event (classroom.created) once RabbitMQ is set up
+      await publishEvent(Events.CLASSROOM_CREATED, {
+        classId: classroom.id,
+        name: classroom.name,
+        chatEnabled: classroom.chatEnabled,
+        creatorId: userId,
+      });
 
       sendSuccess(res, classroom, "Classroom created", 201);
     } catch (error) {
@@ -163,7 +169,11 @@ export class ClassroomController {
         },
       });
 
-      // TODO: publish RabbitMQ event (member.joined)
+      await publishEvent(Events.MEMBER_JOINED, {
+        classId: classroom.id,
+        userId,
+        classroomName: classroom.name,
+      });
 
       sendSuccess(res, { member, classroom }, "Joined classroom", 201);
     } catch (error) {
@@ -198,7 +208,12 @@ export class ClassroomController {
         },
       });
 
-      // TODO: if chatEnabled changed, publish RabbitMQ event (chat.toggled)
+      if (chatEnabled !== undefined) {
+        await publishEvent(Events.CHAT_TOGGLED, {
+          classId,
+          enabled: classroom.chatEnabled,
+        });
+      }
 
       sendSuccess(res, classroom, "Classroom updated");
     } catch (error) {
@@ -226,7 +241,7 @@ export class ClassroomController {
 
       await prisma.classroom.delete({ where: { id: classId } });
 
-      // TODO: publish RabbitMQ event (classroom.deleted)
+      await publishEvent(Events.CLASSROOM_DELETED, { classId });
 
       sendSuccess(res, null, "Classroom deleted");
     } catch (error) {
@@ -264,7 +279,11 @@ export class ClassroomController {
         where: { classId_userId: { classId, userId } },
       });
 
-      // TODO: publish RabbitMQ event (member.removed)
+      await publishEvent(Events.MEMBER_REMOVED, {
+        classId,
+        userId,
+        classroomName: classroom.name,
+      });
 
       sendSuccess(res, null, "Left classroom");
     } catch (error) {

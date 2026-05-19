@@ -46,6 +46,10 @@ router.delete("/:classId", authenticate, ClassroomController.delete);
 
 router.post("/:classId/leave", authenticate, ClassroomController.leave);
 
+// ─── Internal (service-to-service, no auth) ────────────────
+
+router.get("/internal/:classId/member-ids", MemberController.getMemberIds);
+
 // ─── Members ────────────────────────────────────────────────
 
 router.get("/:classId/members", authenticate, MemberController.getMembers);

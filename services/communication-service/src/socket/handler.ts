@@ -1,5 +1,6 @@
 import { Server, Socket } from "socket.io";
 import { verifyToken } from "../../../../shared/src/utils/jwt";
+import { publishEvent, Events } from "../../../../shared/src";
 import { prisma } from "../db/prisma";
 import { setOnline, setOffline, refreshPresence, getOnlineUsers } from "../utils/redis";
 
@@ -75,6 +76,12 @@ export function setupSocket(io: Server): void {
       io.to(`chat:${classId}`).emit("new-message", {
         ...message,
         classId,
+      });
+
+      await publishEvent(Events.CHAT_MESSAGE, {
+        classId,
+        senderId: userId,
+        content: content || null,
       });
     });
 

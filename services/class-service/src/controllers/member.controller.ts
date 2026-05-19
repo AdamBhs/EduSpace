@@ -1,6 +1,7 @@
 import { Request, Response } from "express";
 import { prisma } from "../db/prisma";
 import { sendSuccess, sendError } from "../../../../shared/src/utils/response";
+import { publishEvent, Events } from "../../../../shared/src";
 import { Role } from "../generated/prisma/enums";
 import { fetchUsers } from "../utils/userService";
 
@@ -78,7 +79,17 @@ export class MemberController {
         data: { role: role as Role },
       });
 
-      // TODO: publish RabbitMQ event (member.role.changed)
+      const classroomInfo = await prisma.classroom.findUnique({
+        where: { id: classId },
+        select: { name: true },
+      });
+
+      await publishEvent(Events.MEMBER_ROLE_CHANGED, {
+        classId,
+        userId: target.userId,
+        newRole: role,
+        classroomName: classroomInfo?.name,
+      });
 
       sendSuccess(res, updated, "Role updated");
     } catch (error) {
@@ -117,12 +128,41 @@ export class MemberController {
 
       await prisma.member.delete({ where: { id: memberId } });
 
-      // TODO: publish RabbitMQ event (member.removed)
+      const classroomInfo = await prisma.classroom.findUnique({
+        where: { id: classId },
+        select: { name: true },
+      });
+
+      await publishEvent(Events.MEMBER_REMOVED, {
+        classId,
+        userId: target.userId,
+        classroomName: classroomInfo?.name,
+      });
 
       sendSuccess(res, null, "Member removed");
     } catch (error) {
       console.error("Error removing member:", error);
       sendError(res, "Failed to remove member", 500);
+    }
+  }
+
+  static async getMemberIds(req: Request, res: Response) {
+    try {
+      const classId = req.params.classId as string;
+
+      const members = await prisma.member.findMany({
+        where: { classId },
+        select: { userId: true, role: true },
+      });
+
+      const adminIds = members.filter((m: any) => m.role === Role.ADMIN).map((m: any) => m.userId);
+      const memberIds = members.filter((m: any) => m.role === Role.MEMBER).map((m: any) => m.userId);
+      const allIds = members.map((m: any) => m.userId);
+
+      sendSuccess(res, { adminIds, memberIds, allIds }, "Member IDs retrieved");
+    } catch (error) {
+      console.error("Error getting member IDs:", error);
+      sendError(res, "Failed to get member IDs", 500);
     }
   }
 
