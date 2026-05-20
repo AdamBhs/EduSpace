@@ -40,7 +40,11 @@ const Grades = () => {
           userRole={classroom!.userRole!}
           chatEnabled={classroom!.chatEnabled}
         />
-        <TableGrades />
+        <TableGrades
+          classId={classId!}
+          classroomName={classroom!.name}
+          userRole={classroom!.userRole!}
+        />
       </section>
     </div>
   );
