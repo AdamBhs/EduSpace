@@ -16,6 +16,7 @@ import Stream from "@/features/classes/subPages/Stream";
 import Grades from "@/features/classes/subPages/Grades";
 import Chat from "@/features/classes/subPages/Chat";
 import PostDetail from "@/features/classes/subPages/PostDetail";
+import Assignments from "@/features/classes/subPages/Assignments";
 
 export const router = createBrowserRouter([
   {
@@ -61,6 +62,7 @@ export const router = createBrowserRouter([
           { index: true, element: <Class /> },
           { path: "people", element: <People /> },
           { path: "stream", element: <Stream /> },
+          { path: "assignments", element: <Assignments /> },
           { path: "grades", element: <Grades /> },
           { path: "chat", element: <Chat /> },
           { path: "post/:postId", element: <PostDetail /> },

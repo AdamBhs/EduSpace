@@ -41,7 +41,7 @@ const NavLinksClass = ({
         navigate(`/c/${classId}/people`);
         break;
       case "Assignments":
-        navigate(`/c/${classId}`);
+        navigate(`/c/${classId}/assignments`);
         break;
       case "Chat":
         navigate(`/c/${classId}/chat`);
