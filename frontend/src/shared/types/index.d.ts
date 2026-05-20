@@ -36,6 +36,7 @@ export type PropsChildrenReact = {
 
 export type UserSummary = {
   userId: string;
+  email?: string;
   userName: string | null;
   userLastName: string | null;
   profilePic: string | null;

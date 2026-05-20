@@ -184,6 +184,7 @@ export class UserController {
 
       const formattedUsers = users.map((user) => ({
         userId: user.userId,
+        email: user.email,
         userName: user.profile?.first_name ?? null,
         userLastName: user.profile?.last_name ?? null,
         profilePic: user.profile?.avatar_url ?? null,
