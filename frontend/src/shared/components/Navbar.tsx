@@ -7,6 +7,8 @@ import {
   User,
   HelpCircle,
   Menu,
+  Check,
+  Trash2,
 } from "lucide-react";
 import { Button } from "@/shared/components/ui/button";
 import {
@@ -27,7 +29,16 @@ import {
   SheetTrigger,
 } from "@/shared/components/ui/sheet";
 import { Link, useLocation, useNavigate } from "react-router-dom";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@/context/AuthContext";
+import {
+  getNotifications,
+  getUnreadCount,
+  markAsRead,
+  markAllAsRead,
+  deleteNotification,
+} from "@/services/notification-service";
+import type { Notification } from "@/shared/types";
 import {
   Breadcrumb,
   BreadcrumbItem,
@@ -37,17 +48,59 @@ import {
   BreadcrumbSeparator,
 } from "@/shared/components/ui/breadcrumb";
 
-const notifications = [
-  { title: "New comment on Dashboard", time: "2m ago", unread: true },
-  { title: "Project Alpha deployed", time: "1h ago", unread: true },
-  { title: "Team invite accepted", time: "3h ago", unread: false },
-];
-
 export default function Navbar() {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const [searchOpen, setSearchOpen] = useState(false);
   const location = useLocation();
+
+  const { data: unreadCount = 0 } = useQuery<number>({
+    queryKey: ["unreadCount"],
+    queryFn: getUnreadCount,
+    refetchInterval: 30_000,
+  });
+
+  const { data: notifList = [] } = useQuery<Notification[]>({
+    queryKey: ["notifications"],
+    queryFn: () => getNotifications({ limit: 8 }),
+    refetchInterval: 30_000,
+  });
+
+  const readMutation = useMutation({
+    mutationFn: markAsRead,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["notifications"] });
+      queryClient.invalidateQueries({ queryKey: ["unreadCount"] });
+    },
+  });
+
+  const readAllMutation = useMutation({
+    mutationFn: markAllAsRead,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["notifications"] });
+      queryClient.invalidateQueries({ queryKey: ["unreadCount"] });
+    },
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: deleteNotification,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["notifications"] });
+      queryClient.invalidateQueries({ queryKey: ["unreadCount"] });
+    },
+  });
+
+  const timeAgo = (dateStr: string) => {
+    const diff = Date.now() - new Date(dateStr).getTime();
+    const mins = Math.floor(diff / 60000);
+    if (mins < 1) return "just now";
+    if (mins < 60) return `${mins}m ago`;
+    const hours = Math.floor(mins / 60);
+    if (hours < 24) return `${hours}h ago`;
+    const days = Math.floor(hours / 24);
+    return `${days}d ago`;
+  };
 
   const breadcrumbState = location.state as {
     breadcrumb?: { name?: string; description?: string };
@@ -262,18 +315,22 @@ export default function Navbar() {
             style={{ color: "#57ccff" }}
           >
             <Bell className="h-4 w-4" />
-            <span
-              className="absolute right-1.5 top-1.5 h-2 w-2 rounded-full"
-              style={{
-                background: "#1a93f6",
-                boxShadow: "0 0 0 2px #eefaff",
-              }}
-            />
+            {unreadCount > 0 && (
+              <span
+                className="absolute right-1 top-1 h-3.5 min-w-3.5 flex items-center justify-center rounded-full text-[8px] font-bold text-white px-0.5"
+                style={{
+                  background: "#1a93f6",
+                  boxShadow: "0 0 0 2px white",
+                }}
+              >
+                {unreadCount > 9 ? "9+" : unreadCount}
+              </span>
+            )}
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent
           align="end"
-          className="w-72 p-0 overflow-hidden"
+          className="w-80 p-0 overflow-hidden"
           style={{ background: "#eefaff", border: "1px solid #bbebff" }}
         >
           <div
@@ -286,44 +343,86 @@ export default function Navbar() {
             >
               Notifications
             </span>
-            <Badge
-              className="h-4 rounded-full px-1.5 text-[9px] font-semibold"
-              style={{
-                background: "#bbebff",
-                color: "#137fec",
-                border: "1px solid #8de0ff",
-              }}
-            >
-              2 new
-            </Badge>
+            <div className="flex items-center gap-2">
+              {unreadCount > 0 && (
+                <Badge
+                  className="h-4 rounded-full px-1.5 text-[9px] font-semibold"
+                  style={{
+                    background: "#bbebff",
+                    color: "#137fec",
+                    border: "1px solid #8de0ff",
+                  }}
+                >
+                  {unreadCount} new
+                </Badge>
+              )}
+              {unreadCount > 0 && (
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    readAllMutation.mutate();
+                  }}
+                  className="text-[10px] font-semibold hover:underline cursor-pointer"
+                  style={{ color: "#1a93f6" }}
+                >
+                  Mark all read
+                </button>
+              )}
+            </div>
           </div>
 
-          {notifications.map((n, i) => (
-            <div
-              key={i}
-              className="flex items-start gap-3 px-4 py-3 cursor-pointer transition-colors hover:bg-[#d9f3ff]"
-              style={{
-                borderBottom:
-                  i < notifications.length - 1 ? "1px solid #d9f3ff" : "none",
-              }}
-            >
-              <span
-                className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full"
-                style={{
-                  background: n.unread ? "#1a93f6" : "transparent",
-                  border: n.unread ? "none" : "1px solid #bbebff",
-                }}
-              />
-              <div className="flex-1 min-w-0">
-                <p className="text-[12px] font-medium text-[#133358]">
-                  {n.title}
-                </p>
-                <p className="mt-0.5 text-[10px]" style={{ color: "#57ccff" }}>
-                  {n.time}
-                </p>
+          <div className="max-h-80 overflow-y-auto">
+            {notifList.length === 0 && (
+              <div className="px-4 py-6 text-center text-xs" style={{ color: "#57ccff" }}>
+                No notifications yet
               </div>
-            </div>
-          ))}
+            )}
+            {notifList.map((n, i) => (
+              <div
+                key={n.id}
+                className="flex items-start gap-3 px-4 py-3 cursor-pointer transition-colors hover:bg-[#d9f3ff] group"
+                style={{
+                  borderBottom:
+                    i < notifList.length - 1 ? "1px solid #d9f3ff" : "none",
+                }}
+                onClick={() => {
+                  if (!n.isRead) readMutation.mutate(n.id);
+                  if (n.postId && n.classId) navigate(`/c/${n.classId}/post/${n.postId}`);
+                  else if (n.classId) navigate(`/c/${n.classId}/stream`);
+                }}
+              >
+                <span
+                  className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full"
+                  style={{
+                    background: n.isRead ? "transparent" : "#1a93f6",
+                    border: n.isRead ? "1px solid #bbebff" : "none",
+                  }}
+                />
+                <div className="flex-1 min-w-0">
+                  <p className="text-[12px] font-medium text-[#133358]">
+                    {n.title}
+                  </p>
+                  {n.body && (
+                    <p className="text-[11px] text-[#5A6C84] truncate mt-0.5">
+                      {n.body}
+                    </p>
+                  )}
+                  <p className="mt-0.5 text-[10px]" style={{ color: "#57ccff" }}>
+                    {timeAgo(n.createdAt)}
+                  </p>
+                </div>
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    deleteMutation.mutate(n.id);
+                  }}
+                  className="opacity-0 group-hover:opacity-100 p-1 rounded hover:bg-red-100 text-[#94A3B8] hover:text-red-500 transition-all cursor-pointer"
+                >
+                  <Trash2 className="w-3 h-3" />
+                </button>
+              </div>
+            ))}
+          </div>
 
           <div
             className="px-4 py-2.5 text-center cursor-pointer hover:bg-[#d9f3ff] transition-colors"
