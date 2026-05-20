@@ -73,9 +73,9 @@ export function LoginForm({ className, onSubmit, ...props }: any) {
           <FieldLabel htmlFor="password" className="text-white text-md">
             <div className="flex justify-between w-full">
               <p>Password</p>
-              <p className="text-[#137FEC] cursor-pointer hover:underline">
+              <Link to="/forgot-password" className="text-[#137FEC] cursor-pointer hover:underline">
                 Forget password?
-              </p>
+              </Link>
             </div>
           </FieldLabel>
 

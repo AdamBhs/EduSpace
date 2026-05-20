@@ -17,6 +17,8 @@ import Grades from "@/features/classes/subPages/Grades";
 import Chat from "@/features/classes/subPages/Chat";
 import PostDetail from "@/features/classes/subPages/PostDetail";
 import Assignments from "@/features/classes/subPages/Assignments";
+import ForgotPassword from "@/features/auth/ForgotPassword";
+import ResetPassword from "@/features/auth/ResetPassword";
 
 export const router = createBrowserRouter([
   {
@@ -40,6 +42,22 @@ export const router = createBrowserRouter([
     element: (
       <AlreadyLoginRoute>
         <Register />
+      </AlreadyLoginRoute>
+    ),
+  },
+  {
+    path: "/forgot-password",
+    element: (
+      <AlreadyLoginRoute>
+        <ForgotPassword />
+      </AlreadyLoginRoute>
+    ),
+  },
+  {
+    path: "/reset-password",
+    element: (
+      <AlreadyLoginRoute>
+        <ResetPassword />
       </AlreadyLoginRoute>
     ),
   },
