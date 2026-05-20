@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { Settings } from "lucide-react";
 import type { ClassroomType, Role } from "@/shared/types";
 
 const NavLinksClass = ({
@@ -53,7 +54,7 @@ const NavLinksClass = ({
   };
 
   return (
-    <header className="-mx-6 border-b border-[#E2E8F0] px-8">
+    <header className="-mx-6 border-b border-[#E2E8F0] px-8 flex items-center justify-between">
       <ul className="flex text-sm text-[#64748B] w-max gap-1">
         {tabs.map((tab) => {
           const isActive = activeTab === tab;
@@ -72,6 +73,15 @@ const NavLinksClass = ({
           );
         })}
       </ul>
+      {isAdmin && (
+        <button
+          onClick={() => navigate(`/c/${classId}/settings`)}
+          className="p-2 rounded-full hover:bg-[#F1F5F9] text-[#94A3B8] hover:text-[#64748B] transition-colors cursor-pointer"
+          title="Classroom Settings"
+        >
+          <Settings className="w-4.5 h-4.5" />
+        </button>
+      )}
     </header>
   );
 };

@@ -19,6 +19,7 @@ import PostDetail from "@/features/classes/subPages/PostDetail";
 import Assignments from "@/features/classes/subPages/Assignments";
 import ForgotPassword from "@/features/auth/ForgotPassword";
 import ResetPassword from "@/features/auth/ResetPassword";
+import ClassSettings from "@/features/classes/subPages/ClassSettings";
 
 export const router = createBrowserRouter([
   {
@@ -84,6 +85,7 @@ export const router = createBrowserRouter([
           { path: "grades", element: <Grades /> },
           { path: "chat", element: <Chat /> },
           { path: "post/:postId", element: <PostDetail /> },
+          { path: "settings", element: <ClassSettings /> },
         ],
       },
       {
