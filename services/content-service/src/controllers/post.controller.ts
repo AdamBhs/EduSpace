@@ -204,6 +204,31 @@ export class PostController {
     }
   }
 
+  static async getUpcomingDue(req: Request, res: Response) {
+    try {
+      const now = new Date();
+      const in24h = new Date(now.getTime() + 24 * 60 * 60 * 1000);
+
+      const posts = await prisma.post.findMany({
+        where: {
+          type: "ASSIGNMENT",
+          dueDate: { gte: now, lte: in24h },
+        },
+        select: {
+          id: true,
+          classId: true,
+          title: true,
+          dueDate: true,
+        },
+      });
+
+      sendSuccess(res, posts, "Upcoming assignments retrieved");
+    } catch (error) {
+      console.error("Error getting upcoming assignments:", error);
+      sendError(res, "Failed to get upcoming assignments", 500);
+    }
+  }
+
   static async delete(req: Request, res: Response) {
     try {
       const userId = req.user!.userId;

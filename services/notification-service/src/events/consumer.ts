@@ -2,6 +2,8 @@ import { subscribeToEvents, Events } from "../../../../shared/src";
 import { prisma } from "../db/prisma";
 import { pushNotification } from "../utils/redis";
 import { fetchMemberIds } from "../utils/classService";
+import { fetchUserEmails } from "../utils/userService";
+import { sendEmail } from "../utils/email";
 
 async function createAndPush(data: {
   userId: string;
@@ -111,6 +113,22 @@ export async function startConsumers(): Promise<void> {
             classId: payload.classId,
             postId: payload.postId,
           });
+
+          const emails = await fetchUserEmails([payload.studentId]);
+          const studentEmail = emails.get(payload.studentId);
+          if (studentEmail) {
+            await sendEmail(
+              studentEmail,
+              `Your submission for "${payload.postTitle}" has been graded`,
+              `
+              <h2>Submission Graded</h2>
+              <p>Your submission for <strong>"${payload.postTitle}"</strong> has been graded.</p>
+              <p style="font-size: 24px; color: #137FEC; font-weight: bold;">${score}</p>
+              ${payload.feedback ? `<p><strong>Feedback:</strong> ${payload.feedback}</p>` : ""}
+              <p>Log in to EduSpace to view the details.</p>
+              `,
+            );
+          }
           break;
         }
 

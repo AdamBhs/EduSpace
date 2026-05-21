@@ -29,4 +29,6 @@ router.put(
 
 router.delete("/:postId", authenticate, PostController.delete);
 
+router.get("/internal/upcoming-due", PostController.getUpcomingDue);
+
 export default router;

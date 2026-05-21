@@ -7,6 +7,7 @@ import morgan from "morgan";
 import { errorHandler } from "../../../shared/src/middleware/errorHandler";
 import notificationRoutes from "./routes/notification.routes";
 import { startConsumers } from "./events/consumer";
+import { startDueReminderJob } from "./jobs/dueReminder";
 
 const app: Application = express();
 
@@ -41,4 +42,5 @@ app.listen(PORT, () => {
   startConsumers().catch((err) => {
     console.error("Failed to start RabbitMQ consumers:", err.message);
   });
+  startDueReminderJob();
 });
