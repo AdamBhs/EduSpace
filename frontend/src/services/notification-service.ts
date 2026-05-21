@@ -2,7 +2,7 @@ import { api } from "./axios";
 
 export const getNotifications = async (params?: { unreadOnly?: boolean; limit?: number; offset?: number }) => {
   const response = await api.get("/notifications/api/notifications", { params });
-  return response.data.data;
+  return response.data.data ?? [];
 };
 
 export const getUnreadCount = async (): Promise<number> => {

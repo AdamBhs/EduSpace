@@ -61,11 +61,12 @@ export default function Navbar() {
     refetchInterval: 30_000,
   });
 
-  const { data: notifList = [] } = useQuery<Notification[]>({
+  const { data: notifListRaw } = useQuery<Notification[]>({
     queryKey: ["notifications"],
     queryFn: () => getNotifications({ limit: 8 }),
     refetchInterval: 30_000,
   });
+  const notifList = Array.isArray(notifListRaw) ? notifListRaw : [];
 
   const readMutation = useMutation({
     mutationFn: markAsRead,
