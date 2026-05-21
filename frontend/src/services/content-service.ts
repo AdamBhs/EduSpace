@@ -24,8 +24,7 @@ export const getPostsByClass = async (
     type?: PostType;
     studyMaterialType?: StudyMaterialType;
     chapterId?: string;
-    sortBy?: string;
-    sortOrder?: string;
+    sort?: string;
   },
 ) => {
   const response = await api.get(`/content/api/posts/class/${classId}`, {

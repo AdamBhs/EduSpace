@@ -1,27 +1,25 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import NavLinksClass from "../components/NavLinksClass";
 import CreatePostDialog from "../components/CreatePostDialog";
 import { useParams, useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { getClassroomById } from "@/services/classroom-service";
 import { getPostsByClass } from "@/services/content-service";
-import { IoMdExpand } from "react-icons/io";
 import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/shared/components/ui/dialog";
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/shared/components/ui/select";
 import {
   Avatar,
   AvatarFallback,
 } from "@/shared/components/ui/avatar";
 import StreamSkeleton from "../ui/StreamSkeleton";
 import { useAuth } from "@/context/AuthContext";
-import type { Classroom, Post } from "@/shared/types";
-import { FileText, HelpCircle, ClipboardList, Megaphone, BookOpen } from "lucide-react";
+import type { Classroom, Post, PostType, StudyMaterialType } from "@/shared/types";
+import { FileText, HelpCircle, ClipboardList, Megaphone, BookOpen, Calendar } from "lucide-react";
 
 const postTypeIcon = (type: string) => {
   switch (type) {
@@ -34,11 +32,16 @@ const postTypeIcon = (type: string) => {
   }
 };
 
+type SortOption = "newest" | "oldest" | "title-az" | "title-za";
+
 const Stream = () => {
   const { classId } = useParams<{ classId: string }>();
   const navigate = useNavigate();
   const { user } = useAuth();
   const [createOpen, setCreateOpen] = useState(false);
+  const [typeFilter, setTypeFilter] = useState<string>("all");
+  const [subTypeFilter, setSubTypeFilter] = useState<string>("all");
+  const [sortBy, setSortBy] = useState<SortOption>("newest");
 
   const {
     data: classroom,
@@ -65,11 +68,60 @@ const Stream = () => {
 
   const isAdmin = classroom?.userRole === "ADMIN";
   const isTeaching = classroom?.type === "TEACHING";
+
   const allPosts = posts ?? [];
+
+  const filteredPosts = useMemo(() => {
+    let list = allPosts;
+    if (typeFilter !== "all") list = list.filter((p) => p.type === typeFilter);
+    if (subTypeFilter !== "all" && typeFilter === "STUDY_MATERIAL") {
+      list = list.filter((p) => p.studyMaterialType === subTypeFilter);
+    }
+
+    switch (sortBy) {
+      case "oldest": return [...list].sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
+      case "title-az": return [...list].sort((a, b) => a.title.localeCompare(b.title));
+      case "title-za": return [...list].sort((a, b) => b.title.localeCompare(a.title));
+      default: return [...list].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+    }
+  }, [allPosts, typeFilter, subTypeFilter, sortBy]);
+
+  const upcomingAssignments = useMemo(() => {
+    if (!isTeaching) return [];
+    const now = new Date();
+    return allPosts
+      .filter((p) => p.type === "ASSIGNMENT" && p.dueDate && new Date(p.dueDate) > now)
+      .sort((a, b) => new Date(a.dueDate!).getTime() - new Date(b.dueDate!).getTime())
+      .slice(0, 5);
+  }, [allPosts, isTeaching]);
 
   const userInitials = user?.profile
     ? `${user.profile.firstName?.[0] ?? ""}${user.profile.lastName?.[0] ?? ""}`.toUpperCase()
     : "?";
+
+  const POST_TYPE_OPTIONS: { value: string; label: string }[] = [
+    { value: "all", label: "All Types" },
+    { value: "ANNOUNCEMENT", label: "Announcement" },
+    { value: "STUDY_MATERIAL", label: "Study Material" },
+    { value: "QUIZ", label: "Quiz" },
+    { value: "QUESTION", label: "Question" },
+    ...(isTeaching ? [{ value: "ASSIGNMENT", label: "Assignment" }] : []),
+  ];
+
+  const SUB_TYPE_OPTIONS = [
+    { value: "all", label: "All Materials" },
+    { value: "COURS", label: "Cours" },
+    { value: "TD", label: "TD" },
+    { value: "TP", label: "TP" },
+    { value: "RESUME", label: "Résumé" },
+  ];
+
+  const SORT_OPTIONS: { value: SortOption; label: string }[] = [
+    { value: "newest", label: "Newest First" },
+    { value: "oldest", label: "Oldest First" },
+    { value: "title-az", label: "Title A → Z" },
+    { value: "title-za", label: "Title Z → A" },
+  ];
 
   return (
     <div className="flex h-full -mx-6 items-stretch overflow-hidden">
@@ -95,38 +147,32 @@ const Stream = () => {
               {isTeaching && (
                 <div className="flex flex-col gap-4 border border-[#E2E8F0] p-5 rounded-lg">
                   <h4 className="font-bold text-[14px]">Upcoming Work</h4>
-                  <p className="text-[#64748B] text-[12px]">
-                    No upcoming assignments
-                  </p>
+                  {upcomingAssignments.length === 0 ? (
+                    <p className="text-[#64748B] text-[12px]">No upcoming assignments</p>
+                  ) : (
+                    <div className="space-y-2">
+                      {upcomingAssignments.map((a) => (
+                        <div
+                          key={a.id}
+                          onClick={() => navigate(`/c/${classId}/post/${a.id}`)}
+                          className="flex items-center gap-2 text-[12px] cursor-pointer hover:text-[#137FEC] transition-colors"
+                        >
+                          <Calendar className="w-3.5 h-3.5 text-[#94A3B8] shrink-0" />
+                          <span className="truncate flex-1 text-[#334155]">{a.title}</span>
+                          <span className="text-[#94A3B8] shrink-0">
+                            {new Date(a.dueDate!).toLocaleDateString()}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
               )}
               <div className="flex flex-col gap-4 border border-[#E2E8F0] p-5 rounded-lg mt-4">
                 <h4 className="font-bold text-[14px]">Class Code</h4>
-                <div className="flex justify-between items-center">
-                  <h2 className="text-[#137FEC] font-medium text-[18px]">
-                    {classroom?.classCode}
-                  </h2>
-                  <Dialog>
-                    <DialogTrigger asChild>
-                      <div className="flex justify-center items-center w-8 h-8 cursor-pointer rounded-full hover:bg-[#94A3B8]/10">
-                        <IoMdExpand className="text-[#94A3B8]" />
-                      </div>
-                    </DialogTrigger>
-                    <DialogContent className="w-full max-w-175">
-                      <DialogHeader>
-                        <DialogTitle>Class code</DialogTitle>
-                        <DialogDescription>
-                          Share this code with others to join the class.
-                        </DialogDescription>
-                      </DialogHeader>
-                      <div className="flex items-center justify-center rounded-lg border bg-[#F8FAFC] py-6">
-                        <span className="text-[60px] font-semibold tracking-widest text-[#137FEC]">
-                          {classroom?.classCode}
-                        </span>
-                      </div>
-                    </DialogContent>
-                  </Dialog>
-                </div>
+                <h2 className="text-[#137FEC] font-medium text-[18px]">
+                  {classroom?.classCode}
+                </h2>
               </div>
             </div>
             <div className="flex-1">
@@ -157,13 +203,51 @@ const Stream = () => {
                 </>
               )}
 
+              {/* Filters */}
+              <div className="flex flex-wrap gap-2 mb-4">
+                <Select value={typeFilter} onValueChange={(v) => { setTypeFilter(v); if (v !== "STUDY_MATERIAL") setSubTypeFilter("all"); }}>
+                  <SelectTrigger className="w-40 h-8 text-xs">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {POST_TYPE_OPTIONS.map((o) => (
+                      <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+
+                {typeFilter === "STUDY_MATERIAL" && (
+                  <Select value={subTypeFilter} onValueChange={setSubTypeFilter}>
+                    <SelectTrigger className="w-36 h-8 text-xs">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {SUB_TYPE_OPTIONS.map((o) => (
+                        <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                )}
+
+                <Select value={sortBy} onValueChange={(v) => setSortBy(v as SortOption)}>
+                  <SelectTrigger className="w-36 h-8 text-xs">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {SORT_OPTIONS.map((o) => (
+                      <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
               <div className="space-y-4">
-                {allPosts.length === 0 && (
+                {filteredPosts.length === 0 && (
                   <div className="rounded-lg border border-[#E2E8F0] bg-white p-6 text-sm text-[#64748B]">
-                    No posts yet. {isAdmin ? "Create the first post." : "Check back later."}
+                    No posts found. {typeFilter !== "all" ? "Try removing filters." : isAdmin ? "Create the first post." : "Check back later."}
                   </div>
                 )}
-                {allPosts.map((post) => (
+                {filteredPosts.map((post) => (
                   <div
                     key={post.id}
                     onClick={() => navigate(`/c/${classId}/post/${post.id}`)}
