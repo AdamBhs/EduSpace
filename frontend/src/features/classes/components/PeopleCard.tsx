@@ -18,7 +18,7 @@ type Props = {
     email?: string;
     userName: string;
     userLastName: string;
-    profilePic: string | null;
+    avatarUrl: string | null;
     role: string;
   };
   isLast?: boolean;
@@ -60,8 +60,8 @@ const PeopleCard = ({
     >
       <div className="flex items-center gap-6">
         <Avatar>
-          {user.profilePic ? (
-            <AvatarImage src={user.profilePic} alt={displayName} />
+          {user.avatarUrl ? (
+            <AvatarImage src={user.avatarUrl} alt={displayName} />
           ) : null}
           <AvatarFallback className="bg-blue-100 text-blue-700 text-sm font-semibold">
             {initials}

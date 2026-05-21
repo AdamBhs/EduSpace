@@ -16,7 +16,8 @@ export async function checkMembership(
       },
     );
     return response.data?.success === true;
-  } catch {
+  } catch (error) {
+    console.error("[classService] Failed to check membership:", error instanceof Error ? error.message : error);
     return false;
   }
 }

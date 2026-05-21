@@ -171,7 +171,7 @@ const People = () => {
                   email: member.user?.email,
                   userName: member.user?.userName ?? "",
                   userLastName: member.user?.userLastName ?? "",
-                  profilePic: member.user?.profilePic ?? null,
+                  avatarUrl: member.user?.avatarUrl ?? null,
                   role: member.role,
                 }}
                 isCreator={member.isCreator}
@@ -204,7 +204,7 @@ const People = () => {
                     email: member.user?.email,
                     userName: member.user?.userName ?? "",
                     userLastName: member.user?.userLastName ?? "",
-                    profilePic: member.user?.profilePic ?? null,
+                    avatarUrl: member.user?.avatarUrl ?? null,
                     role: member.role,
                   }}
                   isLast={index === regularMembers.length - 1}

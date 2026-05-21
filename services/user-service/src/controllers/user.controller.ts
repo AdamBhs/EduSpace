@@ -187,7 +187,7 @@ export class UserController {
         email: user.email,
         userName: user.profile?.first_name ?? null,
         userLastName: user.profile?.last_name ?? null,
-        profilePic: user.profile?.avatar_url ?? null,
+        avatarUrl: user.profile?.avatar_url ?? null,
       }));
 
       sendSuccess(res, formattedUsers, "Getting all users successfully");
@@ -213,8 +213,9 @@ export class UserController {
       formData.append("entityId", userId);
       formData.append("entityType", "avatar");
 
+      const fileServiceUrl = process.env.FILE_SERVICE_URL || "http://localhost:3010";
       const response = await axios.post(
-        "http://localhost:3010/api/files/upload",
+        `${fileServiceUrl}/api/files/upload`,
         formData,
         {
           headers: {

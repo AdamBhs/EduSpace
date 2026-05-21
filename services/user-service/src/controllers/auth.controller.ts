@@ -407,6 +407,44 @@ export class AuthController {
   }
 
   /**
+   * POST /api/auth/change-password
+   */
+  static async changePassword(req: Request, res: Response): Promise<void> {
+    try {
+      const userId = req.user?.userId;
+      const { currentPassword, newPassword } = req.body;
+
+      if (!userId) {
+        sendError(res, "User not authenticated", 401);
+        return;
+      }
+
+      const user = await prisma.user.findUnique({ where: { userId } });
+      if (!user) {
+        sendError(res, "User not found", 404);
+        return;
+      }
+
+      const isValid = await comparePassword(currentPassword, user.password);
+      if (!isValid) {
+        sendError(res, "Current password is incorrect", 400);
+        return;
+      }
+
+      const hashedPassword = await hashPassword(newPassword);
+      await prisma.user.update({
+        where: { userId },
+        data: { password: hashedPassword },
+      });
+
+      sendSuccess(res, null, "Password changed successfully");
+    } catch (error) {
+      console.error("Change password error:", error);
+      sendError(res, "Failed to change password", 500);
+    }
+  }
+
+  /**
    * POST /api/auth/logout
    */
   static async logout(req: Request, res: Response): Promise<void> {

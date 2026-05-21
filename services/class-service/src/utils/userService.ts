@@ -18,7 +18,8 @@ export async function fetchUsers(
       },
     );
     return Array.isArray(response.data?.data) ? response.data.data : [];
-  } catch {
+  } catch (error) {
+    console.error("[userService] Failed to fetch users:", error instanceof Error ? error.message : error);
     return [];
   }
 }

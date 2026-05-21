@@ -20,8 +20,17 @@ import Assignments from "@/features/classes/subPages/Assignments";
 import ForgotPassword from "@/features/auth/ForgotPassword";
 import ResetPassword from "@/features/auth/ResetPassword";
 import ClassSettings from "@/features/classes/subPages/ClassSettings";
+import Landing from "@/features/landing/Landing";
 
 export const router = createBrowserRouter([
+  {
+    path: "/welcome",
+    element: (
+      <AlreadyLoginRoute>
+        <Landing />
+      </AlreadyLoginRoute>
+    ),
+  },
   {
     path: "/verification",
     element: (

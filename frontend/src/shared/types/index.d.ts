@@ -39,7 +39,7 @@ export type UserSummary = {
   email?: string;
   userName: string | null;
   userLastName: string | null;
-  profilePic: string | null;
+  avatarUrl: string | null;
 };
 
 // ─── Classroom ──────────────────────────────────────────────

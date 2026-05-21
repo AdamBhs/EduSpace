@@ -22,7 +22,8 @@ export async function checkMembership(
       },
     );
     return response.data?.data ?? null;
-  } catch {
+  } catch (error) {
+    console.error("[classService] Failed to check membership:", error instanceof Error ? error.message : error);
     return null;
   }
 }

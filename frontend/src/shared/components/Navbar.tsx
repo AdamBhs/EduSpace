@@ -507,7 +507,7 @@ export default function Navbar() {
           <div className="py-1">
             {[
               { icon: User, label: "Profile", path: "/settings" },
-              { icon: HelpCircle, label: "Support", path: "" },
+              { icon: HelpCircle, label: "Support", path: "/settings" },
             ].map(({ icon: Icon, label, path }) => (
               <DropdownMenuItem
                 key={label}
