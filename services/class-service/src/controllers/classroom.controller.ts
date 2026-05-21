@@ -2,6 +2,7 @@ import { Request, Response } from "express";
 import { prisma } from "../db/prisma";
 import { sendSuccess, sendError } from "../../../../shared/src/utils/response";
 import { publishEvent, Events } from "../../../../shared/src";
+import { cacheGet, cacheSet, cacheDel, cacheDelPattern } from "../../../../shared/src/utils/redis";
 import { ClassroomType, Role } from "../generated/prisma/enums";
 import { fetchUsers } from "../utils/userService";
 
@@ -88,6 +89,12 @@ export class ClassroomController {
         return sendError(res, "Not a member of this classroom", 403);
       }
 
+      const cacheKey = `classroom:${classId}`;
+      const cached = await cacheGet<any>(cacheKey);
+      if (cached) {
+        return sendSuccess(res, { ...cached, userRole: member.role }, "Classroom retrieved");
+      }
+
       const classroom = await prisma.classroom.findUnique({
         where: { id: classId },
         include: {
@@ -99,6 +106,8 @@ export class ClassroomController {
       if (!classroom) {
         return sendError(res, "Classroom not found", 404);
       }
+
+      await cacheSet(cacheKey, classroom, 300);
 
       sendSuccess(res, { ...classroom, userRole: member.role }, "Classroom retrieved");
     } catch (error) {
@@ -169,6 +178,8 @@ export class ClassroomController {
         },
       });
 
+      await cacheDel(`classroom:${classroom.id}`, `members:${classroom.id}`);
+
       await publishEvent(Events.MEMBER_JOINED, {
         classId: classroom.id,
         userId,
@@ -208,6 +219,8 @@ export class ClassroomController {
         },
       });
 
+      await cacheDel(`classroom:${classId}`);
+
       if (chatEnabled !== undefined) {
         await publishEvent(Events.CHAT_TOGGLED, {
           classId,
@@ -240,6 +253,8 @@ export class ClassroomController {
       }
 
       await prisma.classroom.delete({ where: { id: classId } });
+
+      await cacheDelPattern(`*:${classId}*`);
 
       await publishEvent(Events.CLASSROOM_DELETED, { classId });
 
@@ -278,6 +293,8 @@ export class ClassroomController {
       await prisma.member.delete({
         where: { classId_userId: { classId, userId } },
       });
+
+      await cacheDel(`classroom:${classId}`, `members:${classId}`);
 
       await publishEvent(Events.MEMBER_REMOVED, {
         classId,

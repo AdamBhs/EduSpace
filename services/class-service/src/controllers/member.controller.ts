@@ -2,6 +2,7 @@ import { Request, Response } from "express";
 import { prisma } from "../db/prisma";
 import { sendSuccess, sendError } from "../../../../shared/src/utils/response";
 import { publishEvent, Events } from "../../../../shared/src";
+import { cacheGet, cacheSet, cacheDel } from "../../../../shared/src/utils/redis";
 import { Role } from "../generated/prisma/enums";
 import { fetchUsers } from "../utils/userService";
 
@@ -16,6 +17,12 @@ export class MemberController {
       });
       if (!requester) {
         return sendError(res, "Not a member of this classroom", 403);
+      }
+
+      const cacheKey = `members:${classId}`;
+      const cached = await cacheGet<any>(cacheKey);
+      if (cached) {
+        return sendSuccess(res, cached, "Members retrieved");
       }
 
       const members = await prisma.member.findMany({
@@ -38,7 +45,10 @@ export class MemberController {
         isCreator: classroom?.creatorId === m.userId,
       }));
 
-      sendSuccess(res, { members: result, classroomType: classroom?.type }, "Members retrieved");
+      const payload = { members: result, classroomType: classroom?.type };
+      await cacheSet(cacheKey, payload, 180);
+
+      sendSuccess(res, payload, "Members retrieved");
     } catch (error) {
       console.error("Error getting members:", error);
       sendError(res, "Failed to get members", 500);
@@ -78,6 +88,8 @@ export class MemberController {
         where: { id: memberId },
         data: { role: role as Role },
       });
+
+      await cacheDel(`members:${classId}`);
 
       const classroomInfo = await prisma.classroom.findUnique({
         where: { id: classId },
@@ -127,6 +139,8 @@ export class MemberController {
       }
 
       await prisma.member.delete({ where: { id: memberId } });
+
+      await cacheDel(`members:${classId}`, `classroom:${classId}`);
 
       const classroomInfo = await prisma.classroom.findUnique({
         where: { id: classId },

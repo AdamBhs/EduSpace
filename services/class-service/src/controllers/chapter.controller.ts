@@ -2,6 +2,7 @@ import { Request, Response } from "express";
 import { prisma } from "../db/prisma";
 import { sendSuccess, sendError } from "../../../../shared/src/utils/response";
 import { publishEvent, Events } from "../../../../shared/src";
+import { cacheDel } from "../../../../shared/src/utils/redis";
 import { Role } from "../generated/prisma/enums";
 
 export class ChapterController {
@@ -55,6 +56,8 @@ export class ChapterController {
         },
       });
 
+      await cacheDel(`classroom:${classId}`);
+
       sendSuccess(res, chapter, "Chapter created", 201);
     } catch (error) {
       console.error("Error creating chapter:", error);
@@ -91,6 +94,8 @@ export class ChapterController {
         where: { id: chapterId },
         data: { name },
       });
+
+      await cacheDel(`classroom:${classId}`);
 
       sendSuccess(res, updated, "Chapter updated");
     } catch (error) {
@@ -129,6 +134,8 @@ export class ChapterController {
       });
 
       await prisma.chapter.delete({ where: { id: chapterId } });
+
+      await cacheDel(`classroom:${classId}`);
 
       await publishEvent(Events.CHAPTER_DELETED, {
         chapterId,
@@ -169,6 +176,8 @@ export class ChapterController {
         where: { classId },
         orderBy: { position: "asc" },
       });
+
+      await cacheDel(`classroom:${classId}`);
 
       sendSuccess(res, chapters, "Chapters reordered");
     } catch (error) {

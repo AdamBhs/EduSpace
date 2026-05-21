@@ -2,6 +2,7 @@ import { Request, Response } from "express";
 import { prisma } from "../db/prisma";
 import { sendSuccess, sendError } from "../../../../shared/src/utils/response";
 import { publishEvent, Events } from "../../../../shared/src";
+import { cacheGet, cacheSet, cacheDel, cacheDelPattern } from "../../../../shared/src/utils/redis";
 import { checkMembership } from "../utils/classService";
 
 export class PostController {
@@ -57,6 +58,8 @@ export class PostController {
         include: { attachments: true },
       });
 
+      await cacheDelPattern(`posts:${classId}:*`);
+
       await publishEvent(Events.POST_CREATED, {
         postId: post.id,
         classId,
@@ -89,6 +92,12 @@ export class PostController {
         return sendError(res, "Not a member of this classroom", 403);
       }
 
+      const cacheKey = `posts:${classId}:${type || ""}:${studyMaterialType || ""}:${chapterId || ""}:${sort || ""}`;
+      const cached = await cacheGet<any>(cacheKey);
+      if (cached) {
+        return sendSuccess(res, cached, "Posts retrieved");
+      }
+
       const where: any = { classId };
       if (type) where.type = type as string;
       if (studyMaterialType) where.studyMaterialType = studyMaterialType as string;
@@ -106,6 +115,8 @@ export class PostController {
         },
         orderBy,
       });
+
+      await cacheSet(cacheKey, posts, 120);
 
       sendSuccess(res, posts, "Posts retrieved");
     } catch (error) {
@@ -172,6 +183,8 @@ export class PostController {
         include: { attachments: true },
       });
 
+      await cacheDelPattern(`posts:${post.classId}:*`);
+
       await publishEvent(Events.POST_UPDATED, {
         postId: updated.id,
         classId: updated.classId,
@@ -207,6 +220,8 @@ export class PostController {
       }
 
       await prisma.post.delete({ where: { id: postId } });
+
+      await cacheDelPattern(`posts:${post.classId}:*`);
 
       await publishEvent(Events.POST_DELETED, {
         postId: post.id,

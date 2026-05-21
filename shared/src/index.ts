@@ -9,5 +9,6 @@ export * from "./middleware/errorHandler";
 export * from "./middleware/validate";
 
 export * from "./utils/rabbitmq";
+export * from "./utils/redis";
 
 export * from "./types";
