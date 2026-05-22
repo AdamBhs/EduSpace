@@ -195,7 +195,7 @@ const Class = () => {
                             </div>
                             {post._count?.comments !== undefined && (
                               <span className="text-xs text-[#94A3B8]">
-                                {post._count.comments} comments
+                                {post._count.comments} {post._count.comments === 1 ? "comment" : "comments"}
                               </span>
                             )}
                           </div>
