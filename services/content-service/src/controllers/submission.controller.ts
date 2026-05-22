@@ -173,7 +173,10 @@ export class SubmissionController {
         return sendError(res, "Grading is not available in friendly classrooms", 400);
       }
 
-      if (submission.post.maxPoints !== null && points > submission.post.maxPoints) {
+      if (submission.post.maxPoints === null || submission.post.maxPoints === undefined) {
+        return sendError(res, "Cannot grade: assignment has no max points configured", 400);
+      }
+      if (points > submission.post.maxPoints) {
         return sendError(res, `Points cannot exceed max (${submission.post.maxPoints})`, 400);
       }
 

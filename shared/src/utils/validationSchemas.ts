@@ -121,7 +121,7 @@ export const createPostSchema = z.object({
   type: z.enum(["STUDY_MATERIAL", "QUIZ", "QUESTION", "ASSIGNMENT", "ANNOUNCEMENT"]),
   studyMaterialType: z.enum(["COURS", "TD", "TP", "RESUME"]).optional(),
   dueDate: z.string().datetime().optional(),
-  maxPoints: z.number().min(0).optional(),
+  maxPoints: z.number().min(1, "Max points must be at least 1").optional(),
   attachments: z
     .array(
       z.object({
@@ -132,7 +132,10 @@ export const createPostSchema = z.object({
       })
     )
     .optional(),
-});
+}).refine(
+  (data) => data.type !== "ASSIGNMENT" || (data.maxPoints !== undefined && data.maxPoints !== null),
+  { message: "Max points is required for assignments", path: ["maxPoints"] },
+);
 
 export const updatePostSchema = z.object({
   title: z.string().min(1).optional(),

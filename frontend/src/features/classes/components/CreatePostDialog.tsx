@@ -127,7 +127,10 @@ const CreatePostDialog = ({
     onOpenChange(false);
   };
 
-  const isValid = title.trim().length > 0 && chapterId;
+  const isValid =
+    title.trim().length > 0 &&
+    chapterId &&
+    (postType !== "ASSIGNMENT" || (maxPoints !== "" && Number(maxPoints) >= 1));
 
   const availableTypes = isTeaching
     ? POST_TYPES
@@ -252,10 +255,11 @@ const CreatePostDialog = ({
                 />
               </div>
               <div className="w-32">
-                <label className="text-sm font-medium text-muted-foreground">Max Points</label>
+                <label className="text-sm font-medium text-muted-foreground">Max Points *</label>
                 <input
                   type="number"
-                  min="0"
+                  min="1"
+                  required
                   value={maxPoints}
                   onChange={(e) => setMaxPoints(e.target.value)}
                   placeholder="100"
