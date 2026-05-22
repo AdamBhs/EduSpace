@@ -1,0 +1,17 @@
+% =============================================================================
+% Abstract and Keywords
+% =============================================================================
+\chapter*{Abstract}
+\addcontentsline{toc}{chapter}{Abstract}
+
+This report presents \eduspace{}, a web-based classroom management platform designed and developed as an end-of-year project for the 4\textsuperscript{th}-year Software Engineering program.
+Built on a microservices architecture, \eduspace{} addresses the organizational and communication shortcomings of existing platforms such as Google Classroom by providing structured content management through typed posts and chapters, integrated real-time group chat, full-text search, an assignment and grading workflow, and a real-time notification system.
+
+The system comprises seven independent backend services (User, Class, Content, File, Communication, Notification, and Search), an API Gateway, and a React single-page application.
+Each service owns its dedicated PostgreSQL database and communicates asynchronously via RabbitMQ or synchronously through REST calls.
+The infrastructure is containerized using Docker Compose and includes Redis for caching and rate limiting, MinIO for S3-compatible file storage, Elasticsearch for full-text search, and NGINX as a reverse proxy.
+
+The report covers the full software development lifecycle: requirements analysis, UML modeling, system design, and implementation details including the technology stack, security measures, and DevOps practices.
+
+\medskip
+\noindent\textbf{Keywords:} microservices, classroom management, React, Node.js, Docker, WebSocket, REST API

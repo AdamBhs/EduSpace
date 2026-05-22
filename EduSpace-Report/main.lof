@@ -1,0 +1,67 @@
+\xpginauxfiletrue 
+\addvspace {10\p@ }
+\setforeignlanguage {english}
+\addvspace {10\p@ }
+\setforeignlanguage {english}
+\contentsline {figure}{\numberline {2.1}{\ignorespaces Figma mockup of the login page.}}{9}{figure.caption.6}%
+\setforeignlanguage {english}
+\contentsline {figure}{\numberline {2.2}{\ignorespaces Figma mockup of the dashboard with classroom cards.}}{10}{figure.caption.8}%
+\setforeignlanguage {english}
+\contentsline {figure}{\numberline {2.3}{\ignorespaces Figma mockup of the Stream tab with post feed and filter toolbar.}}{12}{figure.caption.12}%
+\setforeignlanguage {english}
+\contentsline {figure}{\numberline {2.4}{\ignorespaces Figma mockup of the real-time group chat interface.}}{13}{figure.caption.15}%
+\setforeignlanguage {english}
+\contentsline {figure}{\numberline {2.5}{\ignorespaces Global use case diagram of the \textsc {EduSpace}{} platform.}}{16}{figure.caption.17}%
+\setforeignlanguage {english}
+\contentsline {figure}{\numberline {2.6}{\ignorespaces System sequence diagram --- Authentication (Registration + Login).}}{20}{figure.caption.23}%
+\setforeignlanguage {english}
+\contentsline {figure}{\numberline {2.7}{\ignorespaces System sequence diagram --- Classroom Creation.}}{21}{figure.caption.24}%
+\setforeignlanguage {english}
+\contentsline {figure}{\numberline {2.8}{\ignorespaces System sequence diagram --- Post Creation.}}{22}{figure.caption.25}%
+\setforeignlanguage {english}
+\addvspace {10\p@ }
+\setforeignlanguage {english}
+\setforeignlanguage {english}
+\setforeignlanguage {english}
+\contentsline {figure}{\numberline {3.1}{\ignorespaces Site map of the \textsc {EduSpace}{} platform.}}{26}{figure.caption.29}%
+\setforeignlanguage {english}
+\contentsline {figure}{\numberline {3.2}{\ignorespaces Design class diagram of \textsc {EduSpace}{}, organized by microservice.}}{28}{figure.caption.30}%
+\setforeignlanguage {english}
+\contentsline {figure}{\numberline {3.3}{\ignorespaces Persistence class diagram showing all entities across the five databases.}}{30}{figure.caption.31}%
+\setforeignlanguage {english}
+\contentsline {figure}{\numberline {3.4}{\ignorespaces Design sequence diagram --- Grading a Submission.}}{34}{figure.caption.32}%
+\setforeignlanguage {english}
+\contentsline {figure}{\numberline {3.5}{\ignorespaces System sequence diagram --- Real-Time Chat (WebSocket).}}{35}{figure.caption.33}%
+\setforeignlanguage {english}
+\contentsline {figure}{\numberline {3.6}{\ignorespaces System sequence diagram --- Classroom Search.}}{36}{figure.caption.34}%
+\addvspace {10\p@ }
+\setforeignlanguage {english}
+\setforeignlanguage {english}
+\setforeignlanguage {english}
+\setforeignlanguage {english}
+\contentsline {figure}{\numberline {4.1}{\ignorespaces Security measures organized by architecture layer.}}{43}{figure.caption.50}%
+\setforeignlanguage {english}
+\contentsline {figure}{\numberline {4.2}{\ignorespaces Login page with email/password form and branding panel.}}{44}{figure.caption.51}%
+\setforeignlanguage {english}
+\contentsline {figure}{\numberline {4.3}{\ignorespaces Registration page with form fields for creating a new account.}}{44}{figure.caption.52}%
+\setforeignlanguage {english}
+\contentsline {figure}{\numberline {4.4}{\ignorespaces Dashboard showing classroom cards with type badges, member count, and quick actions.}}{45}{figure.caption.53}%
+\setforeignlanguage {english}
+\contentsline {figure}{\numberline {4.5}{\ignorespaces Create classroom dialog with name, type selection, and optional fields.}}{45}{figure.caption.54}%
+\setforeignlanguage {english}
+\contentsline {figure}{\numberline {4.6}{\ignorespaces Join classroom dialog where users enter a 6-character class code.}}{45}{figure.caption.55}%
+\setforeignlanguage {english}
+\contentsline {figure}{\numberline {4.7}{\ignorespaces Materials tab displaying posts organized by chapter in an accordion layout.}}{46}{figure.caption.56}%
+\setforeignlanguage {english}
+\contentsline {figure}{\numberline {4.8}{\ignorespaces Post creation form with type selector, chapter assignment, and file attachments.}}{46}{figure.caption.57}%
+\setforeignlanguage {english}
+\contentsline {figure}{\numberline {4.9}{\ignorespaces People tab listing classroom members grouped by role (Teachers and Students).}}{47}{figure.caption.58}%
+\setforeignlanguage {english}
+\contentsline {figure}{\numberline {4.10}{\ignorespaces Grades tab with the grade table showing assignments, scores, and averages.}}{47}{figure.caption.59}%
+\setforeignlanguage {english}
+\contentsline {figure}{\numberline {4.11}{\ignorespaces Real-time group chat interface with message history and online indicators.}}{48}{figure.caption.60}%
+\setforeignlanguage {english}
+\contentsline {figure}{\numberline {4.12}{\ignorespaces Account settings page for updating profile information.}}{48}{figure.caption.61}%
+\setforeignlanguage {english}
+\contentsline {figure}{\numberline {4.13}{\ignorespaces Security settings page for changing password.}}{49}{figure.caption.62}%
+\xpginauxfilefalse 

@@ -1,0 +1,62 @@
+% =============================================================================
+% General Conclusion and Perspectives
+% =============================================================================
+\chapter*{General Conclusion and Perspectives}
+\addcontentsline{toc}{chapter}{General Conclusion and Perspectives}
+\markboth{General Conclusion and Perspectives}{}
+
+\section*{Results Achieved}
+
+This project set out to design and implement \eduspace{}, a web-based classroom management platform that addresses the organizational and communicational shortcomings of existing solutions such as Google Classroom, Moodle, and Microsoft Teams for Education.
+
+The platform was delivered as a fully functional system comprising:
+
+\begin{itemize}[nosep]
+  \item A \textbf{microservices backend} with seven independent services (User, Class, Content, File, Communication, Notification, Search) and an API Gateway, each owning its own data store and communicating through REST and RabbitMQ.
+  \item A \textbf{React single-page application} providing a modern, responsive interface for authentication, classroom management, content browsing with filtering and sorting, real-time group chat, assignment submission and grading, a notification center, and full-text search.
+  \item A \textbf{containerized infrastructure} orchestrated by Docker Compose, integrating PostgreSQL (five databases), Redis, RabbitMQ, MinIO, Elasticsearch, and NGINX.
+\end{itemize}
+
+\section*{Challenges Encountered}
+
+Several technical challenges arose during development:
+
+\begin{itemize}[nosep]
+  \item \textbf{WebSocket authentication.}
+        Integrating JWT-based authentication with Socket.IO connections required handling the token during the handshake phase rather than through standard HTTP headers, which differed from the REST authentication flow.
+  \item \textbf{Elasticsearch indexing synchronization.}
+        Keeping the search index consistent with the content database required reliable event publishing and idempotent consumers to handle message redelivery scenarios.
+  \item \textbf{Monorepo dependency management.}
+        Managing shared code across nine workspace packages while keeping dependency versions aligned demanded disciplined use of pnpm workspaces and a well-structured shared package.
+\end{itemize}
+
+\section*{Personal Contributions}
+
+This project provided valuable hands-on experience in:
+
+\begin{itemize}[nosep]
+  \item Designing and implementing a distributed microservices architecture from scratch.
+  \item Working with message brokers (RabbitMQ) for asynchronous inter-service communication.
+  \item Integrating multiple infrastructure components (PostgreSQL, Redis, Elasticsearch, MinIO) within a containerized environment.
+  \item Building a complete full-stack application with React, TypeScript, and modern frontend libraries (TanStack Query, Socket.IO, FullCalendar).
+  \item Applying software engineering principles---requirements analysis, UML modeling, design patterns, and iterative development---to a real-world project.
+\end{itemize}
+
+\section*{Future Perspectives}
+
+Several enhancements could extend \eduspace{} beyond its current scope:
+
+\begin{itemize}[nosep]
+  \item \textbf{Video conferencing.}
+        Integrating WebRTC-based video calls directly within classrooms would eliminate the need for external tools for synchronous lectures.
+  \item \textbf{Mobile application.}
+        A native mobile client (React Native or Flutter) would improve accessibility for students who primarily use smartphones.
+  \item \textbf{AI-powered features.}
+        Automatic quiz generation from study materials, plagiarism detection on submissions, and intelligent content recommendations could enhance the learning experience.
+  \item \textbf{Analytics dashboard.}
+        Providing instructors with engagement metrics (post views, submission rates, chat activity) would enable data-driven teaching adjustments.
+  \item \textbf{Kubernetes deployment.}
+        Migrating from Docker Compose to Kubernetes would enable horizontal scaling, self-healing, and production-grade orchestration for larger deployments.
+  \item \textbf{OAuth and SSO.}
+        Supporting third-party authentication providers (Google, Microsoft) would simplify onboarding for institutions already using these ecosystems.
+\end{itemize}

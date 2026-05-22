@@ -1,0 +1,200 @@
+% =============================================================================
+% EduSpace — PFA Report (4ème année Génie Logiciel)
+% Compiles with: xelatex + biber
+% =============================================================================
+\documentclass[a4paper,12pt,oneside]{report}
+
+% ── Encoding & Font ──────────────────────────────────────────────────────────
+\usepackage{fontspec}
+\setmainfont{Liberation Sans}  % Fallback for Calibri; swap to Calibri if available
+% To use Calibri (if installed): \setmainfont{Calibri}
+
+% ── Page geometry ────────────────────────────────────────────────────────────
+\usepackage[
+  a4paper,
+  top=2.5cm,
+  bottom=2.5cm,
+  left=2.5cm,
+  right=2.5cm
+]{geometry}
+
+% ── Spacing ──────────────────────────────────────────────────────────────────
+\usepackage{setspace}
+\onehalfspacing
+\usepackage{parskip}
+
+% ── Language ─────────────────────────────────────────────────────────────────
+\usepackage{polyglossia}
+\setdefaultlanguage{english}
+
+% ── PDF Inclusion (for page de garde) ────────────────────────────────────────
+\usepackage{pdfpages}
+
+% ── Graphics & Colors ────────────────────────────────────────────────────────
+\usepackage{graphicx}
+\graphicspath{{images/}}
+\usepackage[table,dvipsnames]{xcolor}
+
+% ── Tables ───────────────────────────────────────────────────────────────────
+\usepackage{booktabs}
+\usepackage{tabularx}
+\usepackage{longtable}
+\usepackage{multirow}
+
+% ── Figures & Floats ─────────────────────────────────────────────────────────
+\usepackage{float}
+\usepackage{caption}
+\usepackage{subcaption}
+
+% ── Lists ────────────────────────────────────────────────────────────────────
+\usepackage{enumitem}
+
+% ── TikZ & Gantt ─────────────────────────────────────────────────────────────
+\usepackage{tikz}
+\usetikzlibrary{shapes.geometric, arrows.meta, positioning, calc, fit, backgrounds}
+\usepackage{pgfgantt}
+
+% ── Code Listings ────────────────────────────────────────────────────────────
+\usepackage{listings}
+\definecolor{codebg}{RGB}{248,248,248}
+\definecolor{codeframe}{RGB}{200,200,200}
+\definecolor{codekw}{RGB}{0,0,180}
+\definecolor{codecomment}{RGB}{0,128,0}
+\definecolor{codestring}{RGB}{163,21,21}
+\lstdefinestyle{educode}{
+  backgroundcolor=\color{codebg},
+  frame=single,
+  rulecolor=\color{codeframe},
+  basicstyle=\ttfamily\small,
+  keywordstyle=\color{codekw}\bfseries,
+  commentstyle=\color{codecomment}\itshape,
+  stringstyle=\color{codestring},
+  numbers=left,
+  numberstyle=\tiny\color{gray},
+  numbersep=8pt,
+  breaklines=true,
+  captionpos=b,
+  tabsize=2,
+  showstringspaces=false
+}
+\lstset{style=educode}
+
+% ── Headers & Footers ────────────────────────────────────────────────────────
+\usepackage{fancyhdr}
+\pagestyle{fancy}
+\fancyhf{}
+\fancyhead[L]{\leftmark}
+\fancyfoot[L]{\small PFA -- 4\textsuperscript{th} Year GL}
+\fancyfoot[R]{\thepage}
+\renewcommand{\headrulewidth}{0.4pt}
+\renewcommand{\footrulewidth}{0.4pt}
+
+% Plain style for chapter opening pages
+\fancypagestyle{plain}{
+  \fancyhf{}
+  \fancyfoot[L]{\small PFA -- 4\textsuperscript{th} Year GL}
+  \fancyfoot[R]{\thepage}
+  \renewcommand{\headrulewidth}{0pt}
+  \renewcommand{\footrulewidth}{0.4pt}
+}
+
+% ── Section Formatting ───────────────────────────────────────────────────────
+\usepackage{titlesec}
+
+\titleformat{\chapter}[display]
+  {\normalfont\LARGE\bfseries}
+  {\chaptertitlename\ \thechapter}{16pt}{\Huge}
+\titlespacing*{\chapter}{0pt}{-20pt}{30pt}
+
+% ── Table of Contents Formatting ─────────────────────────────────────────────
+\usepackage{tocloft}
+\renewcommand{\cftchapleader}{\cftdotfill{\cftdotsep}}
+
+% ── Bibliography ─────────────────────────────────────────────────────────────
+\usepackage[
+  backend=biber,
+  style=numeric,
+  sorting=nyt,
+  urldate=long
+]{biblatex}
+\addbibresource{references.bib}
+
+% ── Hyperlinks ───────────────────────────────────────────────────────────────
+\usepackage{hyperref}
+\hypersetup{
+  colorlinks=true,
+  linkcolor=RoyalBlue,
+  citecolor=OliveGreen,
+  urlcolor=BrickRed,
+  pdfauthor={BEN HASSINE Adam, CHEBIL Adam Taieb},
+  pdftitle={EduSpace: A Microservices-Based Classroom Management Platform},
+  pdfsubject={PFA Report -- 4th Year Software Engineering},
+  pdfkeywords={microservices, classroom management, React, Node.js, Docker}
+}
+
+% ── Custom Commands ──────────────────────────────────────────────────────────
+\newcommand{\eduspace}{\textsc{EduSpace}}
+\newcommand{\figref}[1]{Figure~\ref{#1}}
+\newcommand{\tabref}[1]{Table~\ref{#1}}
+\newcommand{\secref}[1]{Section~\ref{#1}}
+\newcommand{\chapref}[1]{Chapter~\ref{#1}}
+
+% =============================================================================
+% DOCUMENT START
+% =============================================================================
+\begin{document}
+
+% ── Page de Garde ────────────────────────────────────────────────────────────
+\input{pagePFA}
+
+% ── Front Matter (Roman numerals) ────────────────────────────────────────────
+\pagenumbering{roman}
+\pagestyle{plain}
+
+% Abstract
+\input{Abstract}
+\newpage
+
+% Table of Contents
+\tableofcontents
+\newpage
+
+% List of Figures
+\listoffigures
+\newpage
+
+% List of Tables
+\listoftables
+\newpage
+
+% Acronyms
+\input{Acronyms}
+\newpage
+
+% ── Main Matter (Arabic numerals from 1) ─────────────────────────────────────
+\cleardoublepage
+\pagenumbering{arabic}
+\pagestyle{fancy}
+
+% General Introduction
+\input{Introduction}
+
+% Chapter 1: General Project Presentation
+\input{Chapters/Chapter1}
+
+% Chapter 2: Requirements Analysis
+\input{Chapters/Chapter2}
+
+% Chapter 3: System Design
+\input{Chapters/Chapter3}
+
+% Chapter 4: Implementation and Deployment
+\input{Chapters/Chapter4}
+
+% General Conclusion and Perspectives
+\input{Conclusion}
+
+% ── References ───────────────────────────────────────────────────────────────
+\printbibliography[heading=bibintoc, title={References}]
+
+\end{document}

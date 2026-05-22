@@ -1,0 +1,505 @@
+% =============================================================================
+% Chapter 2: Requirements Analysis  (10–14 pages target)
+% =============================================================================
+\chapter{Requirements Analysis}
+\label{chap:requirements}
+
+\section*{Introduction}
+
+This chapter presents a thorough analysis of the requirements that guided the design and implementation of \eduspace{}.
+It begins by identifying the actors who interact with the system and defining the functional and non-functional requirements.
+It then presents the UML modeling artifacts---use case diagrams, use case descriptions, and system sequence diagrams---that formalize the system's expected behavior.
+The chapter concludes with the task distribution and project planning.
+
+% =============================================================================
+\section{Identification of Actors and Requirements}
+\label{sec:actors-requirements}
+
+% ─────────────────────────────────────────────────────────────────────────────
+\subsection{Persona Sheets (System Actors)}
+\label{sec:personas}
+
+The \eduspace{} platform defines four actors, distinguished by their authentication state and their role within a given classroom.
+
+\begin{enumerate}[label=\textbf{A\arabic*.}]
+  \item \textbf{Visitor.}
+        An unauthenticated user who can access public pages (landing page, login, registration, password reset).
+        A visitor becomes a \emph{User} after registering and verifying their email address.
+
+  \item \textbf{User (Authenticated).}
+        A registered and verified individual who can access the dashboard, create or join classrooms, manage their profile, and view notifications and the calendar.
+        Upon entering a classroom, the user assumes one of the two classroom-level roles below.
+
+  \item \textbf{Member.}
+        A user who has joined a classroom with the \texttt{MEMBER} role.
+        Members can view the stream, filter and search posts, comment, submit assignments (in Teaching classrooms), view their own grades, and participate in the group chat.
+
+  \item \textbf{Admin.}
+        A user who holds the \texttt{ADMIN} role in a classroom (the creator is automatically an Admin; other members can be promoted).
+        In addition to all Member capabilities, Admins can create, edit, and delete posts, manage chapters, manage members (promote or remove), grade submissions, configure classroom settings, and enable or disable the chat.
+\end{enumerate}
+
+% ─────────────────────────────────────────────────────────────────────────────
+\subsection{Functional Requirements}
+\label{sec:functional-requirements}
+
+The functional requirements of \eduspace{} are organized below by domain.
+Each requirement is derived from the project specification and describes a concrete capability that the system provides to its users.
+
+% ── Authentication & User Management ────────────────────────────────────────
+\subsubsection{Authentication and User Management}
+
+\begin{enumerate}[label=\textbf{FR-\arabic*.}, leftmargin=2.5cm]
+  \item \textbf{Registration.}
+        A visitor can create an account by providing an email address, a password, a first name, and a last name.
+        The password is hashed using bcrypt before storage.
+
+  \item \textbf{Email verification.}
+        Upon registration, the system sends a six-digit verification code to the provided email address.
+        The user must enter this code to activate the account.
+
+  \item \textbf{Login.}
+        A registered and verified user can log in with email and password.
+
+  \item \textbf{Password reset.}
+        A user who has forgotten their password can request a reset link via email.
+
+  \item \textbf{Profile management.}
+        An authenticated user can view and update their profile information.
+
+  \item \textbf{Account deletion.}
+        An authenticated user can permanently delete their account.
+\end{enumerate}
+
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=0.85\textwidth]{figma/01 login.png}
+  \caption{Figma mockup of the login page.}
+  \label{fig:figma-login}
+\end{figure}
+
+% ── Classroom Management ────────────────────────────────────────────────────
+\subsubsection{Classroom Management}
+
+\begin{enumerate}[label=\textbf{FR-\arabic*.}, leftmargin=2.5cm, resume]
+  \item \textbf{Classroom creation.}
+        An authenticated user can create a classroom (\emph{Teaching} or \emph{Friendly}).
+        The system generates a unique six-character alphanumeric class code.
+
+  \item \textbf{Dual classroom model.}
+        The platform supports two classroom types:
+        \begin{itemize}[nosep]
+          \item \emph{Teaching} --- the creator and promoted users are displayed as ``Teachers,'' joiners as ``Students.'' Grading features are fully enabled.
+          \item \emph{Friendly} --- the creator and promoted users are displayed as ``Admins,'' joiners as ``Members.'' Grading features are hidden entirely; the API rejects any grading-related requests.
+        \end{itemize}
+        Both types use the same two internal roles: \texttt{ADMIN} and \texttt{MEMBER}.
+
+  \item \textbf{Joining a classroom.}
+        Any authenticated user can join a classroom by entering its six-character class code.
+
+  \item \textbf{Leaving a classroom.}
+        Any member (except the creator) can leave a classroom voluntarily.
+
+  \item \textbf{Classroom settings.}
+        Administrators can update the classroom name, description, section, subject, cover image, and the chat toggle (enable or disable group chat).
+
+  \item \textbf{Classroom deletion.}
+        Only the original creator of a classroom can delete it.
+
+  \item \textbf{Listing classrooms.}
+        An authenticated user can view a dashboard showing all classrooms they belong to.
+\end{enumerate}
+
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=0.85\textwidth]{figma/05 dashboard-with-classrooms.png}
+  \caption{Figma mockup of the dashboard with classroom cards.}
+  \label{fig:figma-dashboard}
+\end{figure}
+
+% ── Member Management ───────────────────────────────────────────────────────
+\subsubsection{Member Management}
+
+\begin{enumerate}[label=\textbf{FR-\arabic*.}, leftmargin=2.5cm, resume]
+  \item \textbf{Member listing.}
+        All classroom members can view the list of members, grouped by role.
+        The header labels adapt to the classroom type (``Teachers \& Students'' vs.\ ``Admins \& Members'').
+
+  \item \textbf{Role promotion.}
+        An administrator can promote a \texttt{MEMBER} to \texttt{ADMIN}.
+
+  \item \textbf{Member removal.}
+        An administrator can remove any member from the classroom, except the classroom creator.
+\end{enumerate}
+
+
+% ── Chapter Management ──────────────────────────────────────────────────────
+\subsubsection{Chapter Management}
+
+\begin{enumerate}[label=\textbf{FR-\arabic*.}, leftmargin=2.5cm, resume]
+  \item \textbf{Chapter creation.}
+        Administrators can create new chapters within a classroom to organize content thematically.
+
+  \item \textbf{Chapter reordering.}
+        Administrators can reorder chapters by drag-and-drop.
+
+  \item \textbf{Chapter editing and deletion.}
+        Administrators can rename or delete chapters.
+        The ``General'' chapter, which is auto-created with each classroom, cannot be renamed or deleted.
+\end{enumerate}
+
+% ── Post Management ─────────────────────────────────────────────────────────
+\subsubsection{Post Management}
+
+\begin{enumerate}[label=\textbf{FR-\arabic*.}, leftmargin=2.5cm, resume]
+  \item \textbf{Post creation.}
+        Administrators can create posts within a classroom.
+        Each post requires a title, a type, and a chapter assignment.
+        The five post types are:
+        \begin{itemize}[nosep]
+          \item \textbf{Study Material} --- further categorized into sub-types: Cours (lecture material), TD (tutorial exercises), TP (lab work), and Summary.
+          \item \textbf{Quiz} --- a quiz or test for the class.
+          \item \textbf{Question} --- a question posted to the class.
+          \item \textbf{Assignment} --- includes a due date and maximum points (Teaching classrooms only).
+          \item \textbf{Announcement} --- a general announcement.
+        \end{itemize}
+        All post types support optional text content and file attachments.
+
+  \item \textbf{Post viewing.}
+        All members can view posts.
+        The \emph{Stream} tab displays posts in reverse chronological order.
+
+  \item \textbf{Stream filtering and sorting.}
+        The stream provides a toolbar with:
+        \begin{itemize}[nosep]
+          \item A type filter (all types, or a specific type; selecting Study Material reveals a secondary sub-type filter).
+          \item A chapter filter (all chapters, or a specific chapter).
+          \item Sort controls (newest first, oldest first, title A--Z, title Z--A).
+          \item A search bar connected to the full-text search engine.
+        \end{itemize}
+
+  \item \textbf{Post editing and deletion.}
+        Any administrator can update or delete any post in the classroom.
+
+  \item \textbf{Commenting.}
+        All members can post comments on any post.
+        Comment authors can edit or delete their own comments.
+        Administrators can delete any comment.
+\end{enumerate}
+
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=0.85\textwidth]{figma/13 stream-tab.png}
+  \caption{Figma mockup of the Stream tab with post feed and filter toolbar.}
+  \label{fig:figma-stream}
+\end{figure}
+
+% ── Assignment and Grading Workflow ─────────────────────────────────────────
+\subsubsection{Assignment and Grading Workflow}
+
+These features are available exclusively in \emph{Teaching} classrooms.
+
+\begin{enumerate}[label=\textbf{FR-\arabic*.}, leftmargin=2.5cm, resume]
+  \item \textbf{Assignment submission.}
+        Members can submit work for an assignment by providing optional text content and file attachments.
+
+  \item \textbf{Submission grading.}
+        Administrators can view all submissions for an assignment.
+
+  \item \textbf{Assignments calendar.}
+        A calendar view (month and week modes) displays assignment due dates for the classroom, providing a visual overview of upcoming deadlines.
+\end{enumerate}
+
+
+% ── Communication ───────────────────────────────────────────────────────────
+\subsubsection{Real-Time Group Chat}
+
+\begin{enumerate}[label=\textbf{FR-\arabic*.}, leftmargin=2.5cm, resume]
+  \item \textbf{Automatic chat room creation.}
+        When a classroom is created with chat enabled, a dedicated chat room is automatically provisioned.
+        Each classroom has exactly one chat room.
+
+  \item \textbf{Chat toggle.}
+        Administrators can enable or disable the group chat via classroom settings.
+        Disabling the chat hides the Chat tab from the interface but does not delete the chat history.
+
+  \item \textbf{Real-time messaging.}
+        Members can send text messages and share files in real time using WebSocket connections (Socket.IO).
+
+  \item \textbf{Typing indicators.}
+        The system broadcasts typing and stop-typing events to all connected members in the same chat room.
+\end{enumerate}
+
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=0.85\textwidth]{figma/12 chat-page.png}
+  \caption{Figma mockup of the real-time group chat interface.}
+  \label{fig:figma-chat}
+\end{figure}
+
+% ── Notifications ───────────────────────────────────────────────────────────
+\subsubsection{Notification System}
+
+\begin{enumerate}[label=\textbf{FR-\arabic*.}, leftmargin=2.5cm, resume]
+  \item \textbf{Event-driven notifications.}
+        The system generates notifications for key events:
+        \begin{itemize}[nosep]
+          \item A new post is created in a classroom.
+          \item An assignment is due within 24 hours.
+          \item A submission has been graded.
+          \item A new chat message is received (when the user is not active in the chat).
+        \end{itemize}
+
+  \item \textbf{Real-time delivery.}
+        Notifications are pushed to connected clients in real time via Redis Pub/Sub.
+        An unread count badge is displayed in the navigation bar.
+
+  \item \textbf{Notification management.}
+        Users can view their notifications, mark them as read (individually or all at once), and delete them (individually or all at once).
+\end{enumerate}
+
+\medskip
+
+In total, 34 functional requirements were identified across various domains: authentication and user management, classroom management, member management, chapter management, post management, assignment and grading, file management, group chat, notifications, and search.
+
+% ─────────────────────────────────────────────────────────────────────────────
+\subsection{Non-Functional Requirements}
+\label{sec:non-functional}
+
+Beyond the functional capabilities, \eduspace{} must satisfy the following non-functional requirements to ensure a robust, secure, and maintainable system.
+
+\begin{enumerate}[label=\textbf{NFR-\arabic*.}, leftmargin=2.8cm]
+  \item \textbf{Performance.}
+        \begin{itemize}[nosep]
+          \item API response times must remain under 500\,ms for standard CRUD operations.
+          \item Real-time chat messages must be delivered to all connected participants within 200\,ms under normal load.
+          \item The search service must return results within 300\,ms for typical queries.
+        \end{itemize}
+
+  \item \textbf{Security.}
+        \begin{itemize}[nosep]
+          \item All passwords must be hashed using bcrypt before storage.
+          \item Authentication is enforced via JWT tokens.
+          \item WebSocket connections require a valid JWT token upon handshake.
+        \end{itemize}
+
+  \item \textbf{Scalability.}
+        \begin{itemize}[nosep]
+          \item The microservices architecture allows individual services to be scaled independently based on load.
+          \item Each service owns its dedicated database.
+        \end{itemize}
+
+  \item \textbf{Availability and reliability.}
+        \begin{itemize}[nosep]
+          \item The system is containerized with Docker Compose, enabling reproducible deployments and rapid recovery.
+          \item Service failures are isolated: if one microservice goes down, the rest continue to operate independently.
+        \end{itemize}
+
+  \item \textbf{Usability.}
+        \begin{itemize}[nosep]
+          \item The frontend provides a responsive, modern interface.
+          \item Navigation is consistent across pages with a persistent sidebar and top navigation bar.
+        \end{itemize}
+\end{enumerate}
+
+% =============================================================================
+\section{Requirements Modeling}
+\label{sec:modeling}
+
+% ─────────────────────────────────────────────────────────────────────────────
+\subsection{Use Case Diagrams}
+\label{sec:use-case-diagrams}
+
+\figref{fig:use-case-global} presents the global use case diagram of \eduspace{}, organized into seven functional packages: Authentication, Profile \& Account, Dashboard, Classroom Administration, Classroom Content, Assignments \& Grades, Chat, and Files.
+The four actors---Visitor, User, Member, and Admin---interact with the system according to their privilege level.
+
+\begin{figure}[H]
+  \centering
+  \rotatebox{90}{\includegraphics[width=0.85\textheight,height=\textwidth,keepaspectratio]{diagrams/use-case.pdf}}
+  \caption{Global use case diagram of the \eduspace{} platform.}
+  \label{fig:use-case-global}
+\end{figure}
+
+% ─────────────────────────────────────────────────────────────────────────────
+\subsection{Use Case Descriptions}
+\label{sec:use-case-descriptions}
+
+This section describes the major use cases through nominal and alternative scenarios.
+
+\subsubsection{UC-1: Register and Verify Email}
+
+\begin{tabularx}{\textwidth}{@{} l X @{}}
+  \toprule
+  \textbf{Actor}          & Visitor \\
+  \textbf{Precondition}   & The visitor has no existing account. \\
+  \textbf{Postcondition}  & A verified user account exists; the user can log in. \\
+  \midrule
+  \multicolumn{2}{@{}l}{\textbf{Nominal scenario}} \\
+  \midrule
+  1 & The visitor opens the registration page. \\
+  2 & The visitor fills in email, password, first name, and last name, then submits. \\
+  3 & The system creates the account, hashes the password, generates a 6-digit code, and sends it by email. \\
+  4 & The visitor enters the verification code. \\
+  5 & The system marks the account as verified and redirects to the login page. \\
+  \midrule
+  \multicolumn{2}{@{}l}{\textbf{Alternative scenarios}} \\
+  \midrule
+  3a & Email already exists: the system returns an error. \\
+  4a & Invalid code: the system displays an error; the user may request a new code. \\
+  \bottomrule
+\end{tabularx}
+
+\subsubsection{UC-2: Login}
+
+\begin{tabularx}{\textwidth}{@{} l X @{}}
+  \toprule
+  \textbf{Actor}          & Visitor \\
+  \textbf{Precondition}   & The user has a verified account. \\
+  \textbf{Postcondition}  & The user is authenticated and redirected to the dashboard. \\
+  \midrule
+  \multicolumn{2}{@{}l}{\textbf{Nominal scenario}} \\
+  \midrule
+  1 & The visitor opens the login page. \\
+  2 & The visitor enters email and password, then submits. \\
+  3 & The system validates credentials, generates a JWT token, and returns it with user profile data. \\
+  4 & The frontend stores the token and redirects to the dashboard. \\
+  \midrule
+  \multicolumn{2}{@{}l}{\textbf{Alternative scenarios}} \\
+  \midrule
+  3a & Invalid credentials: the system returns a 401 error. \\
+  3b & Email not verified: the system returns a 403 error and redirects to verification. \\
+  \bottomrule
+\end{tabularx}
+
+\subsubsection{UC-3: Create a Classroom}
+
+\begin{tabularx}{\textwidth}{@{} l X @{}}
+  \toprule
+  \textbf{Actor}          & User \\
+  \textbf{Precondition}   & The user is authenticated. \\
+  \textbf{Postcondition}  & A new classroom exists; the user is its creator (Admin). \\
+  \midrule
+  \multicolumn{2}{@{}l}{\textbf{Nominal scenario}} \\
+  \midrule
+  1 & The user clicks the create button on the dashboard. \\
+  2 & The user fills in name, type (Teaching/Friendly), and optional fields (subject, section, description), then submits. \\
+  3 & The system generates a unique 6-character class code, creates the classroom, adds the user as Admin, creates a ``General'' chapter, and publishes a \texttt{classroom.created} event. \\
+  4 & The user is redirected to the new classroom. \\
+  \bottomrule
+\end{tabularx}
+
+\subsubsection{UC-4: Create a Post}
+
+\begin{tabularx}{\textwidth}{@{} l X @{}}
+  \toprule
+  \textbf{Actor}          & Admin \\
+  \textbf{Precondition}   & The admin is in a classroom. \\
+  \textbf{Postcondition}  & A new post appears in the stream; members are notified. \\
+  \midrule
+  \multicolumn{2}{@{}l}{\textbf{Nominal scenario}} \\
+  \midrule
+  1 & The admin opens the post creation form. \\
+  2 & The admin selects a type, chapter, and fills in the title, content, and optional attachments. \\
+  3 & If files are attached, they are uploaded to MinIO via the File Service. \\
+  4 & The system verifies the admin's role, creates the post in a transaction, and publishes a \texttt{post.created} event. \\
+  5 & The post appears in the stream; the Search Service indexes it; the Notification Service notifies members. \\
+  \midrule
+  \multicolumn{2}{@{}l}{\textbf{Alternative scenarios}} \\
+  \midrule
+  2a & Type is Assignment in a Friendly classroom: the API rejects the request with a 400 error. \\
+  4a & User is not an Admin: the API returns a 403 error. \\
+  \bottomrule
+\end{tabularx}
+
+\subsubsection{UC-5: Submit and Grade an Assignment}
+
+\begin{tabularx}{\textwidth}{@{} l X @{}}
+  \toprule
+  \textbf{Actors}         & Member (submit), Admin (grade) \\
+  \textbf{Precondition}   & An Assignment post exists in a Teaching classroom. \\
+  \textbf{Postcondition}  & The submission is recorded and graded; the student is notified. \\
+  \midrule
+  \multicolumn{2}{@{}l}{\textbf{Nominal scenario}} \\
+  \midrule
+  1 & The member opens the assignment post and clicks submit. \\
+  2 & The member optionally writes text and attaches files, then confirms. \\
+  3 & The system uploads files, creates the submission, and displays a confirmation. \\
+  4 & The admin views the list of submissions and selects one. \\
+  5 & The admin enters points and optional feedback, then saves. \\
+  6 & The system updates the submission, publishes \texttt{submission.graded}, and the student receives a notification. \\
+  \midrule
+  \multicolumn{2}{@{}l}{\textbf{Alternative scenarios}} \\
+  \midrule
+  5a & Points exceed the maximum: the API returns a 400 error. \\
+  \bottomrule
+\end{tabularx}
+
+% ─────────────────────────────────────────────────────────────────────────────
+\subsection{System Sequence Diagrams}
+\label{sec:sequence-diagrams}
+
+The following system sequence diagrams illustrate the interactions between the actors and the system for the major use cases.
+
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=\textwidth,height=0.85\textheight,keepaspectratio]{diagrams/seq-auth-login.png}
+  \caption{System sequence diagram --- Authentication (Registration + Login).}
+  \label{fig:seq-auth}
+\end{figure}
+
+\begin{figure}[H]
+  \centering
+  \rotatebox{90}{\includegraphics[width=0.85\textheight,height=\textwidth,keepaspectratio]{diagrams/seq-create-classroom.png}}
+  \caption{System sequence diagram --- Classroom Creation.}
+  \label{fig:seq-create-classroom}
+\end{figure}
+
+\begin{figure}[H]
+  \centering
+  \rotatebox{90}{\includegraphics[width=0.85\textheight,height=\textwidth,keepaspectratio]{diagrams/seq-create-post.png}}
+  \caption{System sequence diagram --- Post Creation.}
+  \label{fig:seq-create-post}
+\end{figure}
+
+% Note: Section 2.2.4 "Contraintes techniques" is facultatif — omitted per instructions.
+
+% ─────────────────────────────────────────────────────────────────────────────
+\subsection{Task Distribution and Planning}
+\label{sec:planning}
+
+As described in \secref{sec:organization}, the team adopted a feature-based collaboration model.
+Rather than dividing responsibilities along technical layers (frontend vs.\ backend), each team member took full ownership of specific features end-to-end---from database schema and backend API to the corresponding frontend interface.
+Shared concerns such as UML diagrams, the shared utility package, infrastructure configuration, and architectural decisions were handled collaboratively.
+
+The project was organized into six major phases, spanning approximately four months from February to May 2026.
+\tabref{tab:phases} summarizes the phases and their scope.
+
+\begin{table}[H]
+  \centering
+  \caption{Project phases and scope.}
+  \label{tab:phases}
+  \small
+  \begin{tabularx}{\textwidth}{@{} c l X @{}}
+    \toprule
+    \textbf{Phase} & \textbf{Period} & \textbf{Scope} \\
+    \midrule
+    1 & Feb 1--14   & Requirements analysis, UML modeling, technology selection \\
+    2 & Feb 15--28  & Infrastructure setup (Docker Compose, databases, Redis, RabbitMQ, MinIO, NGINX, Elasticsearch), shared package, API Gateway \\
+    3 & Mar 1--Mar 15 & Core backend services: User, Class, Content, File \\
+    4 & Mar 16--Mar 31   & Communication, Notification, and Search services; inter-service event wiring (RabbitMQ) \\
+    5 & Apr 1--Apr 30 & Frontend development: authentication, dashboard, classroom pages, chat, grades, calendar, settings \\
+    6 & May 1--May 19  & Integration testing, bug fixes, report writing \\
+    \bottomrule
+  \end{tabularx}
+\end{table}
+
+
+% =============================================================================
+\section*{Conclusion}
+
+This chapter defined the scope of \eduspace{} through a systematic requirements analysis.
+A total of 34 functional requirements were identified across varoious domains, complemented by five non-functional requirements covering performance, security, scalability, availability, maintainability, and usability.
+The UML modeling artifacts formalize the system's expected behavior and interactions.
+The task distribution demonstrate how the two-person team organized the work across a five-month timeline.
+
+The next chapter presents the system design, beginning with the architectural paradigm and proceeding to the object-oriented design artifacts.

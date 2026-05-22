@@ -1,0 +1,356 @@
+% =============================================================================
+% Chapter 4: Implementation and Deployment  (14–18 pages target)
+% =============================================================================
+\chapter{Implementation and Deployment}
+\label{chap:implementation}
+
+\section*{Introduction}
+
+This chapter details the concrete realization of the \eduspace{} platform.
+It begins by describing the technological framework and development environment, covering both the hardware and software tools employed as well as the supporting configuration.
+It then presents the DevOps and security practices adopted during development, including source code management, application security measures, and the design patterns leveraged throughout the codebase.
+The chapter concludes with a presentation of the main user interfaces and their corresponding functionalities.
+
+% =============================================================================
+\section{Technological Framework and Development Environment}
+\label{sec:tech-framework}
+
+% ─────────────────────────────────────────────────────────────────────────────
+\subsection{Hardware and Software Environment}
+\label{sec:environment}
+
+Development was carried out on personal machines running Linux (Ubuntu).
+The following software tools and technologies were used across the project.
+
+\subsubsection{Frontend Technologies}
+
+\tabref{tab:frontend-stack} lists the frontend technology stack.
+
+\begin{table}[H]
+  \centering
+  \caption{Frontend technology stack.}
+  \label{tab:frontend-stack}
+  \small
+  \begin{tabularx}{\textwidth}{@{} l l X @{}}
+    \toprule
+    \textbf{Technology} & \textbf{Version} & \textbf{Purpose} \\
+    \midrule
+    React                & 19        & UI library for building the single-page application \\
+    TypeScript           & 5         & Static type safety across the entire frontend codebase \\
+    Vite                 & 6         & Build tool and development server with hot module replacement \\
+    Tailwind CSS         & 4         & Utility-first CSS framework for responsive styling \\
+    shadcn/ui + Radix UI & ---       & Accessible, composable component library \\
+    React Router         & 7         & Client-side routing and navigation \\
+    TanStack React Query & 5         & Server state management, caching, and data fetching \\
+    TanStack React Table & 8         & Headless table library for the grades table \\
+    FullCalendar         & 6         & Calendar component for assignment due date views \\
+    Axios                & 1         & HTTP client for API communication \\
+    Socket.IO Client     & 4         & WebSocket client for real-time group chat \\
+    Lucide React         & ---       & Icon library \\
+    \bottomrule
+  \end{tabularx}
+\end{table}
+
+\subsubsection{Backend Technologies}
+
+\tabref{tab:backend-stack} lists the backend technology stack, shared across all seven services and the API Gateway.
+
+\begin{table}[H]
+  \centering
+  \caption{Backend technology stack.}
+  \label{tab:backend-stack}
+  \small
+  \begin{tabularx}{\textwidth}{@{} l l X @{}}
+    \toprule
+    \textbf{Technology} & \textbf{Version} & \textbf{Purpose} \\
+    \midrule
+    Node.js          & 20 LTS    & JavaScript runtime for all backend services \\
+    Express          & 5         & HTTP framework for REST API routing and middleware \\
+    TypeScript       & 5         & Static type safety across all backend services \\
+    Prisma ORM       & 6         & Type-safe database access, schema declaration, and migrations \\
+    jsonwebtoken     & 9         & JWT creation and verification for authentication \\
+    Multer           & 2         & Middleware for handling multipart file uploads \\
+    Nodemailer       & 6         & Email sending for password reset and notification emails \\
+    Morgan           & 1         & HTTP request logging middleware \\
+    Socket.IO        & 4         & WebSocket server for real-time chat (Communication Service) \\
+    amqplib          & 0.10      & RabbitMQ client for publishing and consuming events \\
+    ioredis          & 5         & Redis client for caching, rate limiting, and Pub/Sub \\
+    \bottomrule
+  \end{tabularx}
+\end{table}
+
+\subsubsection{Infrastructure Technologies}
+
+\tabref{tab:infra-stack} lists the infrastructure components, all orchestrated via Docker Compose.
+
+\begin{table}[H]
+  \centering
+  \caption{Infrastructure technology stack.}
+  \label{tab:infra-stack}
+  \small
+  \begin{tabularx}{\textwidth}{@{} l l X @{}}
+    \toprule
+    \textbf{Technology} & \textbf{Version} & \textbf{Purpose} \\
+    \midrule
+    PostgreSQL      & 16       & Relational database (five isolated databases) \\
+    Redis           & 7        & Caching, rate limiting, presence tracking, Pub/Sub \\
+    RabbitMQ        & 3.13     & Message broker for asynchronous inter-service events \\
+    MinIO           & latest   & S3-compatible object storage for all binary files \\
+    Elasticsearch   & 8        & Full-text search engine for post indexing and querying \\
+    NGINX           & 1.25     & Reverse proxy unifying all services behind port 5000 \\
+    pgAdmin         & 4        & Web-based PostgreSQL administration interface \\
+    Docker          & 27       & Containerization of all infrastructure components \\
+    Docker Compose  & 2        & Multi-container orchestration and configuration \\
+    \bottomrule
+  \end{tabularx}
+\end{table}
+
+% ─────────────────────────────────────────────────────────────────────────────
+\subsection{Configuration and Support Tools}
+\label{sec:tools}
+
+\subsubsection{Integrated Development Environment}
+
+Development was performed using \textbf{Visual Studio Code} with the following extensions: ESLint, Prettier, Prisma, Tailwind CSS IntelliSense.
+
+\subsubsection{Version Control}
+
+Source code was managed with \textbf{Git}~\cite{devops2024mslearn} and hosted on a private \textbf{GitHub} repository.
+The team adopted a feature-branch workflow:
+\begin{itemize}[nosep]
+  \item The \texttt{master} branch contained the stable, working version of the project.
+  \item Feature branches were created for each service or feature.
+  \item Changes were integrated into \texttt{master} through pull requests, enabling code review before merging.
+\end{itemize}
+
+\subsubsection{Package Management}
+
+The monorepo was managed using \textbf{pnpm} with \textbf{pnpm workspaces}.
+
+\subsubsection{Database Management}
+
+Database schemas were managed declaratively through \textbf{Prisma} schema files.
+
+
+% =============================================================================
+\section{DevOps Practices and Security}
+\label{sec:devops}
+
+% ─────────────────────────────────────────────────────────────────────────────
+\subsection{Source Code Management and Git Workflow}
+\label{sec:git-workflow}
+
+The project followed a \textbf{feature-branch workflow} with the following conventions:
+
+\begin{enumerate}[nosep]
+  \item \textbf{Branch creation.}
+        For each new service or feature, a dedicated branch was created from \texttt{master} using a descriptive naming convention (e.g., \texttt{feature/user-service}, \texttt{fix/avatar-upload-url}).
+
+  \item \textbf{Development and commits.}
+        Development proceeded on the feature branch with commit messages.
+
+  \item \textbf{Pull request and review.}
+        Upon completion, the developer opened a pull request on GitHub describing the changes.
+        The other team member reviewed the code, suggested improvements, and approved the merge.
+
+  \item \textbf{Merge and cleanup.}
+        Approved pull requests were merged into \texttt{master} using a merge commit.
+        The feature branch was deleted after merging to keep the repository clean.
+\end{enumerate}
+
+
+% Note: Section 4.2.2 "Pipeline CI/CD" is facultatif — omitted per instructions.
+% Note: Section 4.2.3 "Tests automatisés" is facultatif — omitted per instructions.
+
+% ─────────────────────────────────────────────────────────────────────────────
+\subsection{Application Security}
+\label{sec:security}
+
+Security was a cross-cutting concern addressed at multiple layers of the architecture.
+
+\subsubsection{Authentication and Token Management}
+
+User authentication is based on \textbf{JSON Web Tokens} (JWT)~\cite{jwt2024rfc}.
+Upon successful login, the User Service issues a signed JWT with a seven-day expiry containing the user's ID and email.
+The token is stored client-side and sent in the \texttt{Authorization} header of every subsequent request.
+
+The \textbf{API Gateway} intercepts all incoming requests, verifies the JWT signature and expiry, and extracts the authenticated user's identity.
+If the token is invalid or expired, the request is rejected with a 401 status before it reaches any downstream service.
+The verified user ID and email are forwarded as HTTP headers (\texttt{x-user-id}, \texttt{x-user-email}) to the downstream service, which trusts this information as pre-authenticated.
+
+For WebSocket connections, the JWT is provided during the Socket.IO handshake.
+The Communication Service validates the token before accepting the connection.
+
+\subsubsection{Password Security}
+
+User passwords are hashed using \textbf{bcrypt} before storage.
+
+Password reset tokens are generated as cryptographically random strings, hashed (SHA-256) before storage, and expire after a configurable time window.
+
+\subsubsection{Authorization and Access Control}
+
+Authorization is enforced at the service level through role-based checks:
+
+\begin{itemize}[nosep]
+  \item \textbf{Classroom membership verification.}
+        Before any operation on a classroom's content, the Content Service and Communication Service verify with the Class Service that the requesting user is an active member of the target classroom.
+  \item \textbf{Role-based permissions.}
+        Operations such as creating posts, managing chapters, grading submissions, and modifying classroom settings are restricted to users with the \texttt{ADMIN} role in the target classroom.
+  \item \textbf{Creator-only operations.}
+        Classroom deletion is restricted to the original creator, not all administrators.
+  \item \textbf{Classroom type enforcement.}
+        The API rejects grading-related requests (submission creation, grading, grade table access) for \emph{Friendly} classrooms, regardless of the user's role.
+\end{itemize}
+
+\subsubsection{File Access Control}
+
+Files stored in MinIO are not publicly accessible.
+Access is controlled through \textbf{presigned URLs} generated by the File Service on demand.
+Each presigned URL is time-limited (expires after a configured duration), ensuring that file access requires a valid, non-expired link obtained through an authenticated API call.
+
+\subsubsection{Internal Service Communication}
+
+Certain API endpoints are designated as \textbf{internal} and are not exposed through the API Gateway's routing configuration.
+These include endpoints for creating notifications in bulk, managing chat rooms, and indexing search content.
+They are accessible only through direct service-to-service calls within the Docker network.
+
+\figref{fig:security-layers} summarizes the security measures across the architecture layers.
+
+\begin{figure}[H]
+  \centering
+  \begin{tikzpicture}[
+    node distance=0.6cm,
+    every node/.style={font=\small},
+    layer/.style={draw, rounded corners, minimum width=13cm, minimum height=1cm, align=center},
+    arrow/.style={-{Stealth[length=2.5mm]}, thick}
+  ]
+    \node[layer, fill=red!10]    (l1) {\textbf{NGINX} --- TLS termination, reverse proxy};
+    \node[layer, fill=orange!10, below=of l1] (l2) {\textbf{API Gateway} --- JWT verification, rate limiting (Redis)};
+    \node[layer, fill=yellow!10, below=of l2] (l3) {\textbf{Services} --- Role-based authorization, membership checks, type enforcement};
+    \node[layer, fill=green!10,  below=of l3] (l4) {\textbf{Data Layer} --- Bcrypt passwords, hashed reset tokens, presigned file URLs};
+
+    \draw[arrow] (l1) -- (l2);
+    \draw[arrow] (l2) -- (l3);
+    \draw[arrow] (l3) -- (l4);
+
+  \end{tikzpicture}
+  \caption{Security measures organized by architecture layer.}
+  \label{fig:security-layers}
+\end{figure}
+
+% ─────────────────────────────────────────────────────────────────────────────
+\subsection{Design Patterns}
+\label{sec:design-patterns}
+
+Several well-established design patterns were applied throughout the \eduspace{} codebase.
+
+\begin{enumerate}[label=\textbf{DP-\arabic*.}]
+  \item \textbf{Middleware Chain.}
+        Express middleware functions are composed in a pipeline: authentication $\rightarrow$ validation $\rightarrow$ controller.
+        Shared middleware (\texttt{authenticate}, \texttt{validate}, \texttt{errorHandler}) is centralized in the \texttt{@repo/shared} package.
+
+  \item \textbf{Singleton.}
+        Infrastructure clients (Prisma, Redis, RabbitMQ connections) are instantiated once and reused across the service lifetime, avoiding connection overhead.
+
+  \item \textbf{Observer (Real-Time).}
+        The Communication Service uses Socket.IO to implement the observer pattern: when a user sends a message, all connected clients in the same room are notified in real time via event broadcasting.
+\end{enumerate}
+
+% =============================================================================
+\section{User Interfaces and Main Functionalities}
+\label{sec:interfaces}
+
+This section presents the main user interfaces of \eduspace{} as implemented in the React frontend.
+
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=\textwidth]{screenshots/login-page.png}
+  \caption{Login page with email/password form and branding panel.}
+  \label{fig:ui-login}
+\end{figure}
+
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=\textwidth]{screenshots/register-page.png}
+  \caption{Registration page with form fields for creating a new account.}
+  \label{fig:ui-register}
+\end{figure}
+
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=\textwidth]{screenshots/dashboard.png}
+  \caption{Dashboard showing classroom cards with type badges, member count, and quick actions.}
+  \label{fig:ui-dashboard}
+\end{figure}
+
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=0.55\textwidth]{screenshots/create-classroom.png}
+  \caption{Create classroom dialog with name, type selection, and optional fields.}
+  \label{fig:ui-create-class}
+\end{figure}
+
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=0.55\textwidth]{screenshots/join-classroom.png}
+  \caption{Join classroom dialog where users enter a 6-character class code.}
+  \label{fig:ui-join-class}
+\end{figure}
+
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=\textwidth]{screenshots/assignments-tab.png}
+  \caption{Materials tab displaying posts organized by chapter in an accordion layout.}
+  \label{fig:ui-materials}
+\end{figure}
+
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=0.6\textwidth]{screenshots/create-post.png}
+  \caption{Post creation form with type selector, chapter assignment, and file attachments.}
+  \label{fig:ui-create-post}
+\end{figure}
+
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=\textwidth]{screenshots/people-tab.png}
+  \caption{People tab listing classroom members grouped by role (Teachers and Students).}
+  \label{fig:ui-people}
+\end{figure}
+
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=\textwidth]{screenshots/grades-tab.png}
+  \caption{Grades tab with the grade table showing assignments, scores, and averages.}
+  \label{fig:ui-grades}
+\end{figure}
+
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=\textwidth]{screenshots/chat-tab.png}
+  \caption{Real-time group chat interface with message history and online indicators.}
+  \label{fig:ui-chat}
+\end{figure}
+
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=\textwidth]{screenshots/account-settings.png}
+  \caption{Account settings page for updating profile information.}
+  \label{fig:ui-settings}
+\end{figure}
+
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=\textwidth]{screenshots/security-settings.png}
+  \caption{Security settings page for changing password.}
+  \label{fig:ui-security}
+\end{figure}
+
+% =============================================================================
+\section*{Conclusion}
+
+This chapter detailed the implementation and deployment of \eduspace{}.
+The technological framework was presented comprehensively, covering the frontend stack (React~19, TypeScript, Tailwind~CSS, TanStack libraries, FullCalendar, Socket.IO), the backend stack (Node.js, Express~5, Prisma, JWT, RabbitMQ, Redis), and the containerized infrastructure (PostgreSQL, Redis, RabbitMQ, MinIO, Elasticsearch, NGINX).
+The development workflow, anchored by Git and GitHub with a feature-branch strategy, was described alongside the pnpm-based monorepo management and Prisma migrations.
+
+Security was addressed as a layered concern---from NGINX and API Gateway-level protections through service-level authorization (role checks, membership verification, classroom type enforcement) to data-level safeguards (bcrypt hashing, presigned URLs, hashed reset tokens).
