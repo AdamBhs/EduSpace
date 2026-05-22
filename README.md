@@ -1,107 +1,111 @@
 # EduSpace
 
-A web-based classroom management platform built as a microservices monorepo. Supports two classroom types (Teaching and Friendly), organized content with chapters and post types, real-time group chat, full-text search and grading.
+A classroom management platform built as a microservices monorepo. Create teaching or study-group classrooms, organize content into chapters, assign and grade work, chat in real time, and get notified — all in one place.
+
+## Features
+
+- **Two classroom types** — Teaching (with grading) and Friendly (study groups)
+- **Organized content** — Posts grouped into chapters: announcements, study materials (Cours, TD, TP, Resume), assignments, quizzes
+- **Assignments & grading** — Submit work, grade with feedback, full grade table with class averages and export to CSV
+- **Real-time chat** — Group chat per classroom with typing indicators and online presence
+- **Notifications** — In-app notifications for new posts, grades, member activity, and due date reminders
+- **Full-text search** — Search posts across classrooms powered by Elasticsearch
+- **Calendar & To-Do** — View assignment due dates on a calendar, track upcoming work
+- **File sharing** — Upload and download attachments on posts and submissions
+
+## Screenshots
+
+<p>
+  <img src="mystuff/report-resources/user-interfaces-screenshots/dashboard.png" width="400" alt="Dashboard" />
+  <img src="mystuff/report-resources/user-interfaces-screenshots/grades-tab.png" width="400" alt="Grades" />
+</p>
+<p>
+  <img src="mystuff/report-resources/user-interfaces-screenshots/chat-tab.png" width="400" alt="Chat" />
+  <img src="mystuff/report-resources/user-interfaces-screenshots/people-tab.png" width="400" alt="People" />
+</p>
 
 ## Architecture
 
 ```
-Frontend (React 19)
-    ↓
-NGINX (port 5000)
-    ├── /socket.io/ → Communication Service (port 3005)
-    └── everything else → API Gateway (port 3001)
-                              ├── /users         → User Service (3002)
-                              ├── /classroom     → Class Service (3003)
-                              ├── /content       → Content Service (3004)
-                              ├── /chat          → Communication Service (3005)
-                              ├── /notifications → Notification Service (3006)
-                              ├── /search        → Search Service (3007)
-                              └── /files         → File Service (3010)
+Browser → NGINX (port 5000) → API Gateway (port 3001) → Services
+                  ↓
+          /socket.io/ → Communication Service (direct WebSocket)
 ```
 
-## Services
-
-| Service | Port | Database | Purpose |
-|---------|------|----------|---------|
-| API Gateway | 3001 | — | JWT verification, rate limiting (Redis), request routing |
-| User Service | 3002 | users_db | Auth, profiles, password reset |
-| Class Service | 3003 | classes_db | Classrooms, members, roles, chapters |
-| Content Service | 3004 | content_db | Posts, assignments, submissions, grading |
-| Communication Service | 3005 | communication_db | Group chat (REST + WebSocket) |
-| Notification Service | 3006 | notifications_db | Notifications (real-time + email) |
-| Search Service | 3007 | — | Full-text search (Elasticsearch) |
-| File Service | 3010 | — | File upload/download (MinIO) |
-| Frontend | 5173 | — | React 19 SPA |
+| Service | Port | Purpose |
+|---------|------|---------|
+| API Gateway | 3001 | JWT verification, rate limiting, request routing |
+| User Service | 3002 | Auth, profiles, password reset |
+| Class Service | 3003 | Classrooms, members, roles, chapters |
+| Content Service | 3004 | Posts, assignments, submissions, grading |
+| Communication Service | 3005 | Group chat (REST + WebSocket) |
+| Notification Service | 3006 | Notifications and email reminders |
+| Search Service | 3007 | Full-text search (Elasticsearch) |
+| File Service | 3010 | File upload/download (MinIO) |
 
 ## Tech Stack
 
-**Frontend:** React 19, TypeScript, Vite, Tailwind CSS v4, shadcn/ui, React Router v7, TanStack React Query, TanStack React Table, FullCalendar, Axios, Socket.IO client
+**Frontend:** React 19, TypeScript, Vite, Tailwind CSS v4, shadcn/ui, React Router v7, TanStack React Query, TanStack React Table, FullCalendar, Socket.IO client
 
-**Backend:** Node.js, Express v5, TypeScript, Prisma ORM, PostgreSQL, JWT, Multer, AWS S3 SDK (MinIO), Nodemailer, Morgan, Socket.IO
+**Backend:** Node.js, Express v5, TypeScript, Prisma ORM, PostgreSQL, JWT, Nodemailer, Socket.IO
 
-**Infrastructure:** PostgreSQL (5 databases), Redis, RabbitMQ, MinIO, NGINX, Elasticsearch, pgAdmin — all via Docker Compose
-
-**Tooling:** pnpm workspaces, Docker Compose
+**Infrastructure:** PostgreSQL (5 databases), Redis, RabbitMQ, MinIO, NGINX, Elasticsearch — all via Docker Compose
 
 ## Prerequisites
 
-- Node.js v20+
-- pnpm (`npm install -g pnpm`)
-- Docker and Docker Compose
+- [Node.js](https://nodejs.org/) v20+
+- [pnpm](https://pnpm.io/) (`npm install -g pnpm`)
+- [Docker](https://docs.docker.com/get-docker/) and Docker Compose
 
 ## Getting Started
 
-### 1. Start infrastructure
+### 1. Clone and install
+
+```bash
+git clone <repository-url>
+cd EduSpace
+pnpm install
+```
+
+### 2. Start infrastructure
 
 ```bash
 cd docker
 docker compose up -d
+cd ..
 ```
 
-This starts PostgreSQL (5 databases), Redis, RabbitMQ, MinIO, NGINX, Elasticsearch, and pgAdmin.
+Wait ~30 seconds for all containers to become healthy.
 
-### 2. Install dependencies
+### 3. Set up databases
 
 ```bash
-pnpm install
+pnpm prisma:generate
+pnpm prisma:migrate
 ```
 
-### 3. Push database schemas (fresh setup only)
-
-If this is a first-time setup or you wiped Docker volumes, push the Prisma schemas to create tables:
-
-```bash
-pnpm --filter user-service exec prisma db push
-pnpm --filter class-service exec prisma db push
-pnpm --filter content-service exec prisma db push
-pnpm --filter communication-service exec prisma db push
-pnpm --filter notification-service exec prisma db push
-```
-
-Skip this if the databases already have tables.
-
-### 4. Start all services
+### 4. Start the app
 
 ```bash
 pnpm dev
 ```
 
-Or start individually:
+### 5. Open in browser
 
-```bash
-pnpm --filter user-service dev
-pnpm --filter frontend dev
-```
+Go to **http://localhost:5173**
 
-### 5. Access the app
+### 6. Create an account
 
-- **Frontend:** http://localhost:5173
-- **Through NGINX:** http://localhost:5000
-- **pgAdmin:** http://localhost:5050
-- **RabbitMQ Management:** http://localhost:15672
-- **MinIO Console:** http://localhost:9001
+1. Click **Create Account** and register
+2. Since email is not configured, grab the verification code from the database:
+   ```bash
+   docker exec EduSpace-postgres psql -U admin -d users_db -c \
+     "SELECT email, \"verificationCode\" FROM \"User\" WHERE \"isVerified\" = false;"
+   ```
+3. Enter the code to verify your account, then log in
+4. Create a classroom and explore the app
 
-## Monorepo Structure
+## Project Structure
 
 ```
 EduSpace/
@@ -110,50 +114,42 @@ EduSpace/
 │   ├── user-service/             # Auth, profiles
 │   ├── class-service/            # Classrooms, members, chapters
 │   ├── content-service/          # Posts, assignments, grading
-│   ├── file-service/             # File upload (MinIO)
 │   ├── communication-service/    # Group chat (WebSocket)
-│   ├── notification-service/     # Notifications
-│   └── search-service/           # Full-text search (Elasticsearch)
-├── shared/                       # @repo/shared — types, utils, middleware
+│   ├── notification-service/     # Notifications, email
+│   ├── search-service/           # Full-text search (Elasticsearch)
+│   └── file-service/             # File upload (MinIO)
+├── shared/                       # Shared types, utils, middleware
 ├── frontend/                     # React 19 SPA
-└── docker/                       # docker-compose.yml, nginx/, init-databases.sql
+└── docker/                       # Docker Compose, NGINX config, DB init
 ```
 
-## Environment Variables
-
-Each service has its own `.env` file. Key variables:
-
-**User Service (`services/user-service/.env`):**
-```
-DATABASE_URL=postgresql://admin:admin@localhost:5432/users_db
-JWT_SECRET=your-secret
-EMAIL_USER=your-email@gmail.com
-EMAIL_PASS=your-app-password
-```
-
-**API Gateway (`api-gateway/.env`):**
-```
-PORT=3001
-JWT_SECRET=your-secret
-REDIS_URL=redis://localhost:6379
-```
-
-**Frontend (`frontend/.env`):**
-```
-VITE_API_URL=http://localhost:5000
-```
-
-## Verification
-
-After starting everything, verify the stack:
+## Useful Commands
 
 ```bash
-# Check Docker containers
-docker compose -f docker/docker-compose.yml ps
+# Stop all services
+# Press Ctrl+C in the terminal running pnpm dev
 
-# Check API Gateway health
-curl http://localhost:5000/health
+# Stop infrastructure
+cd docker && docker compose down
 
-# Check a service directly
-curl http://localhost:3002/health
+# Fresh start (wipe all data)
+cd docker && docker compose down -v
+
+# Start a single service
+pnpm --filter user-service dev
+
+# Start only the frontend
+pnpm --filter frontend dev
 ```
+
+## Troubleshooting
+
+**Services won't start?** Make sure Docker containers are running first (`docker compose -f docker/docker-compose.yml ps`). Services depend on PostgreSQL, Redis, and RabbitMQ.
+
+**Port already in use?** Find the process with `lsof -i :PORT` and kill it, or stop other running instances.
+
+**Blank page in browser?** Check the browser console for errors. Ensure all backend services and NGINX (port 5000) are up.
+
+## Authors
+
+Built as a university project.
