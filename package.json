@@ -4,7 +4,9 @@
   "packageManager": "pnpm@9.0.0",
   "scripts": {
     "dev": "pnpm -r dev",
-    "build": "pnpm -r build"
+    "build": "pnpm -r build",
+    "prisma:generate": "pnpm --filter ./services/user-service --filter ./services/class-service --filter ./services/content-service --filter ./services/communication-service --filter ./services/notification-service exec npx prisma generate",
+    "prisma:migrate": "pnpm --filter ./services/user-service --filter ./services/class-service --filter ./services/content-service --filter ./services/communication-service --filter ./services/notification-service exec npx prisma migrate deploy"
   },
   "devDependencies": {
     "prettier": "^3.8.1",
