@@ -2,16 +2,28 @@ import { RiGraduationCapFill } from "react-icons/ri";
 import { LoginForm } from "./components/login-form";
 import { login } from "@/services/user-service";
 import { useNavigate } from "react-router-dom";
+import { useState } from "react";
 
 export default function Login() {
   const navigate = useNavigate();
+  const [error, setError] = useState("");
 
   const handleLogin = async (data: { email: string; password: string }) => {
-    const res = await login(data);
-    if (res.token) {
-      navigate("/");
+    try {
+      setError("");
+      const res = await login(data);
+      if (res.token) {
+        navigate("/");
+      }
+      return res;
+    } catch (err: any) {
+      const msg = err?.response?.data?.error;
+      if (msg === "Account is not active") {
+        setError("Your account is not verified. Please check your email.");
+      } else {
+        setError(msg || "Login failed. Please try again.");
+      }
     }
-    return res;
   };
 
   return (
@@ -52,7 +64,7 @@ export default function Login() {
       <div className="flex flex-col gap-4 p-6 md:p-10 bg-[#101922]">
         <div className="flex flex-1 items-center justify-center">
           <div className="w-full max-w-xl">
-            <LoginForm onSubmit={handleLogin} />
+            <LoginForm onSubmit={handleLogin} error={error} />
           </div>
         </div>
       </div>
