@@ -43,6 +43,7 @@ import {
   deleteNotification,
 } from "@/services/notification-service";
 import { searchAllClassrooms } from "@/services/search-service";
+import { getNotificationPreferences } from "@/features/settings/components/NotificationSettings";
 import type { EnrolledClassroom, Notification, SearchHit } from "@/shared/types";
 import {
   Breadcrumb,
@@ -144,7 +145,10 @@ export default function Navbar() {
     queryFn: () => getNotifications({ limit: 8 }),
     refetchInterval: 30_000,
   });
-  const notifList = Array.isArray(notifListRaw) ? notifListRaw : [];
+  const notifPrefs = getNotificationPreferences();
+  const notifList = (Array.isArray(notifListRaw) ? notifListRaw : []).filter(
+    (n) => notifPrefs[n.type] !== false,
+  );
 
   const readMutation = useMutation({
     mutationFn: markAsRead,
