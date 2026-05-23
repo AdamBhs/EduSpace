@@ -154,6 +154,21 @@ export type SubmissionAttachment = {
   url?: string;
 };
 
+// ─── Search ────────────────────────────────────────────────
+
+export type SearchHit = {
+  postId: string;
+  classId: string;
+  chapterId: string;
+  authorId: string;
+  title: string;
+  content?: string;
+  type: PostType;
+  studyMaterialType?: StudyMaterialType;
+  score: number;
+  highlights?: Record<string, string[]>;
+};
+
 // ─── Notification ───────────────────────────────────────────
 
 export type Notification = {
