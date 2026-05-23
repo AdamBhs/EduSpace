@@ -5,8 +5,7 @@ let client: Redis | null = null;
 export function getRedis(): Redis | null {
   if (client) return client;
 
-  const url = process.env.REDIS_URL;
-  if (!url) return null;
+  const url = process.env.REDIS_URL || "redis://localhost:6379";
 
   client = new Redis(url, { maxRetriesPerRequest: 1, lazyConnect: true });
 

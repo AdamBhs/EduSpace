@@ -10,8 +10,7 @@ let redis: Redis | null = null;
 function getRedis(): Redis | null {
   if (redis) return redis;
 
-  const url = process.env.REDIS_URL;
-  if (!url) return null;
+  const url = process.env.REDIS_URL || "redis://localhost:6379";
 
   redis = new Redis(url, { maxRetriesPerRequest: 1, lazyConnect: true });
 
