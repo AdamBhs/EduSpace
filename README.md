@@ -75,6 +75,8 @@ docker compose up -d
 cd ..
 ```
 
+> If you get "permission denied", run `sudo docker compose up -d` or log out and back in after adding your user to the docker group (`sudo usermod -aG docker $USER`).
+
 Wait ~30 seconds for all containers to become healthy.
 
 ### 3. Set up databases
