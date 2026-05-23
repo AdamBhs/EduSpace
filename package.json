@@ -5,8 +5,8 @@
   "scripts": {
     "dev": "pnpm -r dev",
     "build": "pnpm -r build",
-    "prisma:generate": "pnpm --filter ./services/user-service --filter ./services/class-service --filter ./services/content-service --filter ./services/communication-service --filter ./services/notification-service exec npx prisma generate",
-    "prisma:migrate": "pnpm --filter ./services/user-service --filter ./services/class-service --filter ./services/content-service --filter ./services/communication-service --filter ./services/notification-service exec npx prisma migrate deploy"
+    "prisma:generate": "pnpm --filter user-service exec prisma generate && pnpm --filter class-service exec prisma generate && pnpm --filter content-service exec prisma generate && pnpm --filter communication-service exec prisma generate && pnpm --filter notification-service exec prisma generate",
+    "prisma:push": "pnpm --filter user-service exec prisma db push && pnpm --filter class-service exec prisma db push && pnpm --filter content-service exec prisma db push && pnpm --filter communication-service exec prisma db push && pnpm --filter notification-service exec prisma db push"
   },
   "devDependencies": {
     "prettier": "^3.8.1",

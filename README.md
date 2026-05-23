@@ -81,7 +81,7 @@ Wait ~30 seconds for all containers to become healthy.
 
 ```bash
 pnpm prisma:generate
-pnpm prisma:migrate
+pnpm prisma:push
 ```
 
 ### 4. Start the app
