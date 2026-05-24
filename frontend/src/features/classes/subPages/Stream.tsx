@@ -63,9 +63,6 @@ const Stream = () => {
     enabled: !!classId,
   });
 
-  if (classLoading || postsLoading) return <StreamSkeleton />;
-  if (classError || postsError) return <p>Error loading data</p>;
-
   const isAdmin = classroom?.userRole === "ADMIN";
   const isTeaching = classroom?.type === "TEACHING";
 
@@ -98,6 +95,9 @@ const Stream = () => {
   const userInitials = user?.profile
     ? `${user.profile.firstName?.[0] ?? ""}${user.profile.lastName?.[0] ?? ""}`.toUpperCase()
     : "?";
+
+  if (classLoading || postsLoading) return <StreamSkeleton />;
+  if (classError || postsError) return <p>Error loading data</p>;
 
   const POST_TYPE_OPTIONS: { value: string; label: string }[] = [
     { value: "all", label: "All Types" },
