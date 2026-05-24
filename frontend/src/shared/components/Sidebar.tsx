@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { FileText, CalendarDays, Users, Settings } from "lucide-react";
+import { CalendarDays, Settings } from "lucide-react";
 import { GoHomeFill } from "react-icons/go";
 import { Badge } from "@/shared/components/ui/badge";
 import { Separator } from "@/shared/components/ui/separator";
@@ -32,18 +32,6 @@ const navSections = [
         path: "/todo",
         badge: null,
       },
-    ],
-  },
-  {
-    label: "Workspace",
-    items: [
-      {
-        icon: FileText,
-        label: "Documents",
-        path: "/documents",
-        badge: null,
-      },
-      { icon: Users, label: "Users", path: "/users", badge: null },
     ],
   },
 ];

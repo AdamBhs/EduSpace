@@ -1,11 +1,9 @@
 {
   "extends": "../../tsconfig.base.json",
   "compilerOptions": {
-    "ignoreDeprecations": "6.0",
     "outDir": "dist",
     "rootDir": "../../",
-    "types": ["node"],
-    "typeRoots": ["./node_modules/@types", "./src/types"]
+    "types": ["node"]
   },
   "include": ["src/**/*", "../../shared/src/**/*"]
 }

@@ -1,7 +1,8 @@
 import { useEffect, useRef, useState } from "react";
 import { useAuth } from "@/context/AuthContext";
 import { Button } from "@/shared/components/ui/button";
-import { uploadProfilePicture } from "@/services/user-service";
+import { uploadProfilePicture, updateProfile } from "@/services/user-service";
+import { useMutation } from "@tanstack/react-query";
 
 const ProfileSettings = () => {
   const { user, token, setAuth } = useAuth();
@@ -12,22 +13,36 @@ const ProfileSettings = () => {
   );
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [form, setForm] = useState({
-    fullName: user?.profile
-      ? `${user.profile.firstName ?? ""} ${user.profile.lastName ?? ""}`.trim()
-      : "",
-    username: user?.username ?? "",
+    firstName: user?.profile?.firstName ?? "",
+    lastName: user?.profile?.lastName ?? "",
     email: user?.email ?? "",
-    bio: "",
+    phoneNumber: user?.profile?.phoneNumber ?? "",
   });
+  const [saved, setSaved] = useState(false);
 
   useEffect(() => {
     return () => {
-      if (profileImageUrl) URL.revokeObjectURL(profileImageUrl);
+      if (profileImageUrl && profileImageUrl.startsWith("blob:"))
+        URL.revokeObjectURL(profileImageUrl);
     };
   }, [profileImageUrl]);
 
   const handleChange = (field: string, value: string) => {
     setForm((prev) => ({ ...prev, [field]: value }));
+    setSaved(false);
+  };
+
+  const handleCancel = () => {
+    setForm({
+      firstName: user?.profile?.firstName ?? "",
+      lastName: user?.profile?.lastName ?? "",
+      email: user?.email ?? "",
+      phoneNumber: user?.profile?.phoneNumber ?? "",
+    });
+    setProfileImageUrl(user?.profile?.avatarUrl ?? null);
+    setSelectedFile(null);
+    if (fileInputRef.current) fileInputRef.current.value = "";
+    setSaved(false);
   };
 
   const handleUploadClick = () => {
@@ -39,44 +54,57 @@ const ProfileSettings = () => {
     if (!file) return;
     setSelectedFile(file);
     setProfileImageUrl((prev) => {
-      if (prev) URL.revokeObjectURL(prev);
+      if (prev && prev.startsWith("blob:")) URL.revokeObjectURL(prev);
       return URL.createObjectURL(file);
     });
   };
 
   const handleRemoveImage = () => {
     setProfileImageUrl((prev) => {
-      if (prev) URL.revokeObjectURL(prev);
+      if (prev && prev.startsWith("blob:")) URL.revokeObjectURL(prev);
       return null;
     });
+    setSelectedFile(null);
     if (fileInputRef.current) fileInputRef.current.value = "";
   };
 
-  const handleUpdatedChanges = async () => {
-    if (!selectedFile) return;
-    const resolvedUserId = user?.userId;
-    const response = await uploadProfilePicture(
-      selectedFile,
-      resolvedUserId ? String(resolvedUserId) : undefined,
-    );
-    const newAvatarUrl =
-      response?.data?.avatarUrl ??
-      response?.data?.key ??
-      response?.avatarUrl ??
-      response?.key ??
-      null;
-    if (newAvatarUrl && user && token) {
-      const updatedUser = {
-        ...user,
-        profile: {
-          ...(user.profile ?? {}),
-          avatarUrl: newAvatarUrl,
-        },
-      };
-      setAuth(token, updatedUser);
-    }
-    setSelectedFile(null);
-  };
+  const saveMutation = useMutation({
+    mutationFn: async () => {
+      let newAvatarUrl = user?.profile?.avatarUrl ?? null;
+
+      if (selectedFile) {
+        const response = await uploadProfilePicture(selectedFile);
+        newAvatarUrl =
+          response?.avatarUrl ?? response?.data?.avatarUrl ?? response?.key ?? newAvatarUrl;
+      }
+
+      const profileRes = await updateProfile({
+        firstName: form.firstName,
+        lastName: form.lastName,
+        phoneNumber: form.phoneNumber || undefined,
+      });
+
+      return { profileRes, newAvatarUrl };
+    },
+    onSuccess: ({ profileRes, newAvatarUrl }) => {
+      if (user && token) {
+        const updatedUser = {
+          ...user,
+          profile: {
+            ...(user.profile ?? {}),
+            firstName: profileRes?.profile?.firstName ?? form.firstName,
+            lastName: profileRes?.profile?.lastName ?? form.lastName,
+            phoneNumber: profileRes?.profile?.phoneNumber ?? form.phoneNumber,
+            avatarUrl: newAvatarUrl,
+          },
+        };
+        setAuth(token, updatedUser);
+      }
+      setSelectedFile(null);
+      setSaved(true);
+      setTimeout(() => setSaved(false), 3000);
+    },
+  });
 
   return (
     <div className="flex flex-col gap-8">
@@ -131,59 +159,57 @@ const ProfileSettings = () => {
         </div>
       </div>
 
-      {/* Full Name & Username */}
+      {/* First Name & Last Name */}
       <div className="grid grid-cols-2 gap-6">
         <SettingsField
-          label="Full Name"
-          value={form.fullName}
-          onChange={(v) => handleChange("fullName", v)}
+          label="First Name"
+          value={form.firstName}
+          onChange={(v) => handleChange("firstName", v)}
         />
         <SettingsField
-          label="Username"
-          value={form.username}
-          onChange={(v) => handleChange("username", v)}
-          prefix="@"
+          label="Last Name"
+          value={form.lastName}
+          onChange={(v) => handleChange("lastName", v)}
         />
       </div>
 
-      {/* Email Address */}
+      {/* Email Address (read-only) */}
       <SettingsField
         label="Email Address"
         value={form.email}
-        onChange={(v) => handleChange("email", v)}
         type="email"
+        readOnly
       />
 
-      {/* Bio */}
-      <div>
-        <div className="flex items-center justify-between mb-1.5">
-          <label className="text-sm font-medium text-gray-700">Bio</label>
-          <span className="text-xs text-gray-400">
-            {form.bio.length} / 200 CHARACTERS
-          </span>
-        </div>
-        <textarea
-          value={form.bio}
-          onChange={(e) => {
-            if (e.target.value.length <= 200)
-              handleChange("bio", e.target.value);
-          }}
-          rows={3}
-          className="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm text-gray-900 outline-none focus:border-blue-500 transition-colors resize-none"
-          placeholder="Tell us about yourself..."
-        />
-      </div>
+      {/* Phone Number */}
+      <SettingsField
+        label="Phone Number"
+        value={form.phoneNumber}
+        onChange={(v) => handleChange("phoneNumber", v)}
+        placeholder="Optional"
+      />
 
       {/* Action Buttons */}
-      <div className="flex justify-end gap-3 pt-4">
-        <Button variant="ghost" className="text-gray-600">
+      <div className="flex justify-end items-center gap-3 pt-4">
+        {saved && (
+          <span className="text-sm text-green-600 font-medium">Saved!</span>
+        )}
+        {saveMutation.isError && (
+          <span className="text-sm text-red-500">Failed to save</span>
+        )}
+        <Button
+          variant="ghost"
+          className="text-gray-600 cursor-pointer"
+          onClick={handleCancel}
+        >
           Cancel Changes
         </Button>
         <Button
-          onClick={handleUpdatedChanges}
-          className="bg-blue-500 hover:bg-blue-600 text-white px-6"
+          onClick={() => saveMutation.mutate()}
+          disabled={saveMutation.isPending}
+          className="bg-blue-500 hover:bg-blue-600 text-white px-6 cursor-pointer"
         >
-          Save Changes
+          {saveMutation.isPending ? "Saving..." : "Save Changes"}
         </Button>
       </div>
     </div>
@@ -196,12 +222,16 @@ function SettingsField({
   onChange,
   type = "text",
   prefix,
+  placeholder,
+  readOnly,
 }: {
   label: string;
   value: string;
-  onChange: (value: string) => void;
+  onChange?: (value: string) => void;
   type?: string;
   prefix?: string;
+  placeholder?: string;
+  readOnly?: boolean;
 }) {
   return (
     <div>
@@ -217,10 +247,12 @@ function SettingsField({
         <input
           type={type}
           value={value}
-          onChange={(e) => onChange(e.target.value)}
+          onChange={(e) => onChange?.(e.target.value)}
+          placeholder={placeholder}
+          readOnly={readOnly}
           className={`w-full border border-gray-300 rounded-lg py-2.5 text-sm text-gray-900 outline-none focus:border-blue-500 transition-colors ${
             prefix ? "pl-7 pr-3" : "px-3"
-          }`}
+          } ${readOnly ? "bg-gray-50 text-gray-500 cursor-not-allowed" : ""}`}
         />
       </div>
     </div>

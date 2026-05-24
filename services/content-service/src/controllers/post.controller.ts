@@ -1,247 +1,261 @@
-// src/controllers/post.controller.ts
 import { Request, Response } from "express";
 import { prisma } from "../db/prisma";
 import { sendSuccess, sendError } from "../../../../shared/src/utils/response";
-import axios from "axios";
+import { publishEvent, Events } from "../../../../shared/src";
+import { cacheGet, cacheSet, cacheDel, cacheDelPattern } from "../../../../shared/src/utils/redis";
+import { checkMembership } from "../utils/classService";
 
 export class PostController {
-  /**
-   * Create a new post (announcement or assignment)
-   * POST /api/posts/createPost
-   */
-  static async createPost(req: Request, res: Response): Promise<void> {
+  static async create(req: Request, res: Response) {
     try {
-      const authorId = req.user?.userId;
-      const { classId, title, content, attachments, type } = req.body;
+      const userId = req.user!.userId;
+      const {
+        classId,
+        chapterId,
+        title,
+        content,
+        type,
+        studyMaterialType,
+        dueDate,
+        maxPoints,
+        attachments,
+      } = req.body;
 
-      if (!authorId) {
-        sendError(res, "User not authenticated", 401);
-        return;
+      const membership = await checkMembership(classId, userId, req.headers.authorization);
+      if (!membership) {
+        return sendError(res, "Not a member of this classroom", 403);
+      }
+      if (membership.role !== "ADMIN") {
+        return sendError(res, "Only admins can create posts", 403);
       }
 
-      const user = await axios.get(
-        `http://localhost:3002/api/users/${authorId}`,
-        {
-          headers: {
-            Authorization: req.headers.authorization,
-          },
-        },
-      );
+      if (type === "ASSIGNMENT" && membership.classroomType === "FRIENDLY") {
+        return sendError(res, "Assignments are not available in friendly classrooms", 400);
+      }
+
       const post = await prisma.post.create({
         data: {
-          class_id: classId,
-          author_id: authorId,
+          classId,
+          chapterId,
+          authorId: userId,
           title,
           content,
-          attachments,
-          type: type || "ANNOUNCEMENT",
+          type,
+          studyMaterialType: type === "STUDY_MATERIAL" ? studyMaterialType : null,
+          dueDate: dueDate ? new Date(dueDate) : null,
+          maxPoints: type === "ASSIGNMENT" ? maxPoints : null,
+          attachments: attachments?.length
+            ? {
+                create: attachments.map((a: any) => ({
+                  fileKey: a.fileKey,
+                  fileName: a.fileName,
+                  fileType: a.fileType,
+                  fileSize: a.fileSize,
+                })),
+              }
+            : undefined,
         },
-        include: {
-          attachments: true,
-        },
+        include: { attachments: true },
       });
 
-      sendSuccess(
-        res,
-        {
-          postId: post.postId,
-          classId: post.class_id,
-          authorId: post.author_id,
-          title: post.title,
-          content: post.content,
-          type: post.type,
-          attachments: post.attachments,
-          createdAt: post.created_at,
-        },
-        "Post created successfully",
-        201,
-      );
+      await cacheDelPattern(`posts:${classId}:*`);
+
+      await publishEvent(Events.POST_CREATED, {
+        postId: post.id,
+        classId,
+        chapterId,
+        authorId: userId,
+        title: post.title,
+        content: post.content,
+        type: post.type,
+        studyMaterialType: post.studyMaterialType,
+        attachmentNames: post.attachments.map((a: any) => a.fileName),
+        createdAt: post.createdAt,
+        updatedAt: post.updatedAt,
+      });
+
+      sendSuccess(res, post, "Post created", 201);
     } catch (error) {
-      console.error("Create post error:", error);
+      console.error("Error creating post:", error);
       sendError(res, "Failed to create post", 500);
     }
   }
 
-  /**
-   * Get all posts for a classroom
-   * GET /api/posts/class/:classId
-   */
-  static async getPostsByClass(req: Request, res: Response): Promise<void> {
+  static async getByClass(req: Request, res: Response) {
     try {
-      const authorId = req.user?.userId;
-      const { classId } = req.params as { classId: string };
+      const userId = req.user!.userId;
+      const classId = req.params.classId as string;
+      const { type, studyMaterialType, chapterId, sort } = req.query;
 
-      if (!authorId) {
-        sendError(res, "User not authenticated", 401);
-        return;
+      const membership = await checkMembership(classId, userId, req.headers.authorization);
+      if (!membership) {
+        return sendError(res, "Not a member of this classroom", 403);
       }
 
+      const cacheKey = `posts:${classId}:${type || ""}:${studyMaterialType || ""}:${chapterId || ""}:${sort || ""}`;
+      const cached = await cacheGet<any>(cacheKey);
+      if (cached) {
+        return sendSuccess(res, cached, "Posts retrieved");
+      }
+
+      const where: any = { classId };
+      if (type) where.type = type as string;
+      if (studyMaterialType) where.studyMaterialType = studyMaterialType as string;
+      if (chapterId) where.chapterId = chapterId as string;
+
+      let orderBy: any = { createdAt: "desc" };
+      if (sort === "title") orderBy = { title: "asc" };
+      if (sort === "dueDate") orderBy = { dueDate: "asc" };
+
       const posts = await prisma.post.findMany({
-        where: { class_id: classId },
+        where,
         include: {
           attachments: true,
-          comments: true,
+          _count: { select: { comments: true, submissions: true } },
         },
-        orderBy: { created_at: "desc" },
+        orderBy,
       });
 
-      const formattedPosts = posts.map((post: any) => ({
-        postId: post.postId,
-        classId: post.class_id,
-        authorId: post.author_id,
-        title: post.title,
-        content: post.content,
-        type: post.type,
-        attachments: post.attachments,
-        commentCount: post.comments.length,
-        createdAt: post.created_at,
-        updatedAt: post.updated_at,
-      }));
+      await cacheSet(cacheKey, posts, 120);
 
-      sendSuccess(res, formattedPosts, "Posts retrieved successfully");
+      sendSuccess(res, posts, "Posts retrieved");
     } catch (error) {
-      console.error("Get posts error:", error);
+      console.error("Error getting posts:", error);
       sendError(res, "Failed to get posts", 500);
     }
   }
 
-  /**
-   * Get a single post by ID
-   * GET /api/posts/:postId
-   */
-  static async getPostById(req: Request, res: Response): Promise<void> {
+  static async getById(req: Request, res: Response) {
     try {
-      const { postId } = req.params as { postId: string };
+      const userId = req.user!.userId;
+      const postId = req.params.postId as string;
 
       const post = await prisma.post.findUnique({
-        where: { postId },
+        where: { id: postId },
         include: {
           attachments: true,
-          comments: {
-            orderBy: { created_at: "asc" },
-          },
+          comments: { orderBy: { createdAt: "asc" } },
+          _count: { select: { submissions: true } },
         },
       });
 
       if (!post) {
-        sendError(res, "Post not found", 404);
-        return;
+        return sendError(res, "Post not found", 404);
       }
 
-      sendSuccess(res, {
-        postId: post.postId,
-        classId: post.class_id,
-        authorId: post.author_id,
-        title: post.title,
-        content: post.content,
-        type: post.type,
-        attachments: post.attachments,
-        comments: post.comments.map((c: any) => ({
-          commentId: c.commentId,
-          authorId: c.author_id,
-          content: c.content,
-          createdAt: c.created_at,
-        })),
-        createdAt: post.created_at,
-        updatedAt: post.updated_at,
-      });
+      const membership = await checkMembership(post.classId, userId, req.headers.authorization);
+      if (!membership) {
+        return sendError(res, "Not a member of this classroom", 403);
+      }
+
+      sendSuccess(res, post, "Post retrieved");
     } catch (error) {
-      console.error("Get post error:", error);
+      console.error("Error getting post:", error);
       sendError(res, "Failed to get post", 500);
     }
   }
 
-  /**
-   * Update a post
-   * PUT /api/posts/:postId
-   */
-  static async updatePost(req: Request, res: Response): Promise<void> {
+  static async update(req: Request, res: Response) {
     try {
-      const authorId = req.user?.userId;
-      const { postId } = req.params as { postId: string };
-      const { title, content, type } = req.body;
+      const userId = req.user!.userId;
+      const postId = req.params.postId as string;
+      const { title, content, chapterId, dueDate, maxPoints } = req.body;
 
-      if (!authorId) {
-        sendError(res, "User not authenticated", 401);
-        return;
+      const post = await prisma.post.findUnique({ where: { id: postId } });
+      if (!post) {
+        return sendError(res, "Post not found", 404);
       }
 
-      const existingPost = await prisma.post.findUnique({
-        where: { postId },
-      });
-
-      if (!existingPost) {
-        sendError(res, "Post not found", 404);
-        return;
+      const membership = await checkMembership(post.classId, userId, req.headers.authorization);
+      if (!membership || membership.role !== "ADMIN") {
+        return sendError(res, "Only admins can update posts", 403);
       }
 
-      if (existingPost.author_id !== authorId) {
-        sendError(res, "Not authorized to update this post", 403);
-        return;
-      }
-
-      const updateData: any = {};
-      if (title !== undefined) updateData.title = title;
-      if (content !== undefined) updateData.content = content;
-      if (type !== undefined) updateData.type = type;
-
-      const updatedPost = await prisma.post.update({
-        where: { postId },
-        data: updateData,
+      const updated = await prisma.post.update({
+        where: { id: postId },
+        data: {
+          ...(title !== undefined && { title }),
+          ...(content !== undefined && { content }),
+          ...(chapterId !== undefined && { chapterId }),
+          ...(dueDate !== undefined && { dueDate: dueDate ? new Date(dueDate) : null }),
+          ...(maxPoints !== undefined && { maxPoints }),
+        },
         include: { attachments: true },
       });
 
-      sendSuccess(
-        res,
-        {
-          postId: updatedPost.postId,
-          title: updatedPost.title,
-          content: updatedPost.content,
-          type: updatedPost.type,
-          attachments: updatedPost.attachments,
-          updatedAt: updatedPost.updated_at,
-        },
-        "Post updated successfully",
-      );
+      await cacheDelPattern(`posts:${post.classId}:*`);
+
+      await publishEvent(Events.POST_UPDATED, {
+        postId: updated.id,
+        classId: updated.classId,
+        chapterId: updated.chapterId,
+        title: updated.title,
+        content: updated.content,
+        type: updated.type,
+        studyMaterialType: updated.studyMaterialType,
+        attachmentNames: updated.attachments.map((a: any) => a.fileName),
+        updatedAt: updated.updatedAt,
+      });
+
+      sendSuccess(res, updated, "Post updated");
     } catch (error) {
-      console.error("Update post error:", error);
+      console.error("Error updating post:", error);
       sendError(res, "Failed to update post", 500);
     }
   }
 
-  /**
-   * Delete a post
-   * DELETE /api/posts/:postId
-   */
-  static async deletePost(req: Request, res: Response): Promise<void> {
+  static async getUpcomingDue(req: Request, res: Response) {
     try {
-      const authorId = req.user?.userId;
-      const { postId } = req.params as { postId: string };
+      const now = new Date();
+      const in24h = new Date(now.getTime() + 24 * 60 * 60 * 1000);
 
-      if (!authorId) {
-        sendError(res, "User not authenticated", 401);
-        return;
-      }
-
-      const existingPost = await prisma.post.findUnique({
-        where: { postId },
+      const posts = await prisma.post.findMany({
+        where: {
+          type: "ASSIGNMENT",
+          dueDate: { gte: now, lte: in24h },
+        },
+        select: {
+          id: true,
+          classId: true,
+          title: true,
+          dueDate: true,
+        },
       });
 
-      if (!existingPost) {
-        sendError(res, "Post not found", 404);
-        return;
-      }
-
-      if (existingPost.author_id !== authorId) {
-        sendError(res, "Not authorized to delete this post", 403);
-        return;
-      }
-
-      await prisma.post.delete({ where: { postId } });
-
-      sendSuccess(res, { message: "Post deleted successfully" });
+      sendSuccess(res, posts, "Upcoming assignments retrieved");
     } catch (error) {
-      console.error("Delete post error:", error);
+      console.error("Error getting upcoming assignments:", error);
+      sendError(res, "Failed to get upcoming assignments", 500);
+    }
+  }
+
+  static async delete(req: Request, res: Response) {
+    try {
+      const userId = req.user!.userId;
+      const postId = req.params.postId as string;
+
+      const post = await prisma.post.findUnique({ where: { id: postId } });
+      if (!post) {
+        return sendError(res, "Post not found", 404);
+      }
+
+      const membership = await checkMembership(post.classId, userId, req.headers.authorization);
+      if (!membership || membership.role !== "ADMIN") {
+        return sendError(res, "Only admins can delete posts", 403);
+      }
+
+      await prisma.post.delete({ where: { id: postId } });
+
+      await cacheDelPattern(`posts:${post.classId}:*`);
+
+      await publishEvent(Events.POST_DELETED, {
+        postId: post.id,
+        classId: post.classId,
+      });
+
+      sendSuccess(res, null, "Post deleted");
+    } catch (error) {
+      console.error("Error deleting post:", error);
       sendError(res, "Failed to delete post", 500);
     }
   }

@@ -1,76 +1,66 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { Settings } from "lucide-react";
+import type { ClassroomType, Role } from "@/shared/types";
 
 const NavLinksClass = ({
-  isTeacher,
   classId,
   activeTab,
+  classroomType,
+  userRole,
+  chatEnabled,
 }: {
-  isTeacher: boolean;
   classId: string;
   activeTab: string;
+  classroomType: ClassroomType;
+  userRole: Role;
+  chatEnabled: boolean;
 }) => {
   const navigate = useNavigate();
   const [selectTab, setSelectTab] = useState(activeTab);
 
-  let tabs;
-  if (isTeacher) {
-    tabs = [
-      "Classwork",
-      "Work and homework",
-      "Stream",
-      "People",
-      "Chat",
-      "Grades",
-    ];
-  } else {
-    tabs = ["Classwork", "Work and homework", "Stream", "People", "Chat"];
-  }
+  const isTeaching = classroomType === "TEACHING";
+  const isAdmin = userRole === "ADMIN";
 
-  const peoplePath = classId ? `/c/${classId}/people` : "";
-  const classWorkPath = classId ? `/c/${classId}` : "";
+  const tabs: string[] = ["Stream", "Materials", "People"];
 
-  //   const handleNavSections = (tab: any) => {
-  //     if (selectTab === "People" && peoplePath) {
-  //       navigate(peoplePath);
-  //       return;
-  //     }
-  //   };
+  if (isTeaching) tabs.push("Assignments");
+  if (chatEnabled) tabs.push("Chat");
+  if (isTeaching) tabs.push("Grades");
+
   const handleNavSections = (tab: string) => {
     setSelectTab(tab);
 
     switch (tab) {
-      case "People":
-        navigate(`/c/${classId}/people`);
-        break;
-      case "Classwork":
-        navigate(`/c/${classId}`);
-        break;
       case "Stream":
         navigate(`/c/${classId}/stream`);
         break;
-      case "Work and homework":
-        navigate(`/c/${classId}/work`);
+      case "Materials":
+        navigate(`/c/${classId}`);
+        break;
+      case "People":
+        navigate(`/c/${classId}/people`);
+        break;
+      case "Assignments":
+        navigate(`/c/${classId}/assignments`);
         break;
       case "Chat":
         navigate(`/c/${classId}/chat`);
         break;
       case "Grades":
-        navigate(`/c/${classId}/Grades`);
-        break;
-      default:
+        navigate(`/c/${classId}/grades`);
         break;
     }
   };
 
   return (
-    <header className="-mx-6 border-b border-[#E2E8F0] px-8 ">
+    <header className="-mx-6 border-b border-[#E2E8F0] px-8 flex items-center justify-between">
       <ul className="flex text-sm text-[#64748B] w-max gap-1">
-        {tabs.map((tab: string, index: any) => {
+        {tabs.map((tab) => {
           const isActive = activeTab === tab;
           return (
             <li
-              key={index}
+              key={tab}
               onClick={() => handleNavSections(tab)}
               className={`cursor-pointer select-none transition delay-20 px-5 py-3 border-b-2 ${
                 isActive
@@ -83,6 +73,15 @@ const NavLinksClass = ({
           );
         })}
       </ul>
+      {isAdmin && (
+        <button
+          onClick={() => navigate(`/c/${classId}/settings`)}
+          className="p-2 rounded-full hover:bg-[#F1F5F9] text-[#94A3B8] hover:text-[#64748B] transition-colors cursor-pointer"
+          title="Classroom Settings"
+        >
+          <Settings className="w-4.5 h-4.5" />
+        </button>
+      )}
     </header>
   );
 };

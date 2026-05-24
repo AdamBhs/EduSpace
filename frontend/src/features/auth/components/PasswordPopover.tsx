@@ -10,7 +10,6 @@ export const PasswordPopover = ({
     uppercase: /[A-Z]/.test(password),
     lowercase: /[a-z]/.test(password),
     number: /[0-9]/.test(password),
-    symbol: /[^A-Za-z0-9]/.test(password),
   };
 
   const allValid = Object.values(passwordRules).every(Boolean);
@@ -22,7 +21,6 @@ export const PasswordPopover = ({
     { key: "uppercase", label: "One uppercase letter" },
     { key: "lowercase", label: "One lowercase letter" },
     { key: "number", label: "One number" },
-    { key: "symbol", label: "One special character" },
   ];
 
   return (

@@ -7,7 +7,6 @@ import VerificationRoute from "./VerificationRoute";
 import DashboardLayout from "@/layout/DashboardLayout";
 import AlreadyLoginRoute from "./AlreadyLogin";
 import { AuthProvider } from "@/context/AuthContext";
-import User from "@/features/dashboard/User";
 import Calendar from "@/features/calendar/Calendar";
 import Class from "@/features/classes/Class";
 import People from "@/features/classes/subPages/People";
@@ -16,11 +15,21 @@ import Settings from "@/features/settings/Settings";
 import Stream from "@/features/classes/subPages/Stream";
 import Grades from "@/features/classes/subPages/Grades";
 import Chat from "@/features/classes/subPages/Chat";
+import PostDetail from "@/features/classes/subPages/PostDetail";
+import Assignments from "@/features/classes/subPages/Assignments";
+import ForgotPassword from "@/features/auth/ForgotPassword";
+import ResetPassword from "@/features/auth/ResetPassword";
+import ClassSettings from "@/features/classes/subPages/ClassSettings";
+import Landing from "@/features/landing/Landing";
 
 export const router = createBrowserRouter([
   {
-    path: "/",
-    element: <Navigate to="/login" replace />,
+    path: "/welcome",
+    element: (
+      <AlreadyLoginRoute>
+        <Landing />
+      </AlreadyLoginRoute>
+    ),
   },
   {
     path: "/verification",
@@ -47,6 +56,22 @@ export const router = createBrowserRouter([
     ),
   },
   {
+    path: "/forgot-password",
+    element: (
+      <AlreadyLoginRoute>
+        <ForgotPassword />
+      </AlreadyLoginRoute>
+    ),
+  },
+  {
+    path: "/reset-password",
+    element: (
+      <AlreadyLoginRoute>
+        <ResetPassword />
+      </AlreadyLoginRoute>
+    ),
+  },
+  {
     path: "/",
     element: (
       <AuthProvider>
@@ -57,41 +82,29 @@ export const router = createBrowserRouter([
     ),
     children: [
       { index: true, element: <Home /> },
-      { path: "users", element: <User /> },
       { path: "calendar", element: <Calendar /> },
-      { path: "ToDo", element: <Todo /> },
-    ],
-  },
-  {
-    path: "/c",
-    element: (
-      <AuthProvider>
-        <ProtectedRoute>
-          <DashboardLayout />
-        </ProtectedRoute>
-      </AuthProvider>
-    ),
-    children: [
-      { path: ":classId", element: <Class /> },
-      { path: ":classId/people", element: <People /> },
-      { path: ":classId/stream", element: <Stream /> },
-      { path: ":classId/grades", element: <Grades /> },
-      { path: ":classId/chat", element: <Chat /> },
-    ],
-  },
-  {
-    path: "settings",
-    element: (
-      <AuthProvider>
-        <ProtectedRoute>
-          <DashboardLayout />
-        </ProtectedRoute>
-      </AuthProvider>
-    ),
-    children: [
-      { index: true, element: <Settings /> },
-      { path: "notifications", element: <Settings /> },
-      { path: "security", element: <Settings /> },
+      { path: "todo", element: <Todo /> },
+      {
+        path: "c/:classId",
+        children: [
+          { index: true, element: <Class /> },
+          { path: "people", element: <People /> },
+          { path: "stream", element: <Stream /> },
+          { path: "assignments", element: <Assignments /> },
+          { path: "grades", element: <Grades /> },
+          { path: "chat", element: <Chat /> },
+          { path: "post/:postId", element: <PostDetail /> },
+          { path: "settings", element: <ClassSettings /> },
+        ],
+      },
+      {
+        path: "settings",
+        children: [
+          { index: true, element: <Settings /> },
+          { path: "notifications", element: <Settings /> },
+          { path: "security", element: <Settings /> },
+        ],
+      },
     ],
   },
 ]);

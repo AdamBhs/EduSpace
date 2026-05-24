@@ -7,35 +7,61 @@ datasource db {
   provider = "postgresql"
 }
 
-model Classroom {
-  classId              String   @id @default(uuid()) @db.Uuid
-  name                 String
-  teacher_id           String   @db.Uuid
-  class_code           String   @unique
-  description          String?
-  subject              String?
-  section              String?
-  chapter              String?
-  material_categories  String[] @default([])
-  is_archived          Boolean  @default(false)
-  created_at           DateTime @default(now())
-  updated_at           DateTime @updatedAt
-
-  enrollement Enrollement[]
-
-  @@index([teacher_id])
+enum ClassroomType {
+  TEACHING
+  FRIENDLY
 }
 
-model Enrollement {
-  enrollId String @id @default(uuid()) @db.Uuid
-  class_id String @db.Uuid
-  user_id  String @db.Uuid
-  role     String @default("student")
+enum Role {
+  ADMIN
+  MEMBER
+}
 
-  joined_at DateTime @default(now())
+model Classroom {
+  id          String        @id @default(uuid()) @db.Uuid
+  name        String
+  type        ClassroomType
+  classCode   String        @unique @map("class_code") @db.VarChar(6)
+  description String?
+  subject     String?
+  section     String?
+  coverImage  String?       @map("cover_image")
+  chatEnabled Boolean       @default(true) @map("chat_enabled")
+  creatorId   String        @map("creator_id") @db.Uuid
+  createdAt   DateTime      @default(now()) @map("created_at")
+  updatedAt   DateTime      @updatedAt @map("updated_at")
 
-  classroom Classroom @relation(fields: [class_id], references: [classId], onDelete: Cascade)
+  members  Member[]
+  chapters Chapter[]
 
-  @@index([class_id])
-  @@index([user_id])
+  @@index([creatorId])
+  @@map("classrooms")
+}
+
+model Member {
+  id        String   @id @default(uuid()) @db.Uuid
+  classId   String   @map("class_id") @db.Uuid
+  userId    String   @map("user_id") @db.Uuid
+  role      Role     @default(MEMBER)
+  joinedAt  DateTime @default(now()) @map("joined_at")
+
+  classroom Classroom @relation(fields: [classId], references: [id], onDelete: Cascade)
+
+  @@unique([classId, userId])
+  @@index([classId])
+  @@index([userId])
+  @@map("members")
+}
+
+model Chapter {
+  id        String   @id @default(uuid()) @db.Uuid
+  classId   String   @map("class_id") @db.Uuid
+  name      String
+  position  Int      @default(0)
+  createdAt DateTime @default(now()) @map("created_at")
+
+  classroom Classroom @relation(fields: [classId], references: [id], onDelete: Cascade)
+
+  @@index([classId])
+  @@map("chapters")
 }

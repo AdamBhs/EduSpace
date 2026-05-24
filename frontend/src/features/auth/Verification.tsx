@@ -16,13 +16,23 @@ const Verification = () => {
   const [timer, setTimer] = useState(60);
   const [canResend, setCanResend] = useState(true);
   const [resending, setResending] = useState(false);
+  const [error, setError] = useState("");
+  const [verifying, setVerifying] = useState(false);
 
-  const handleSubmit = async (data: { email: String; code: any }) => {
-    const res = await verifyCode(data);
-    if (res) {
+  const handleSubmit = async () => {
+    if (!email || code.length !== 6) return;
+    try {
+      setError("");
+      setVerifying(true);
+      await verifyCode({ email, code });
       navigate("/login");
+    } catch (err: any) {
+      setError(
+        err?.response?.data?.error || "Verification failed. Please try again.",
+      );
+    } finally {
+      setVerifying(false);
     }
-    return res;
   };
 
   useEffect(() => {
@@ -77,11 +87,16 @@ const Verification = () => {
 
         <OtpVerification onChange={setCode} />
 
+        {error && (
+          <p className="text-red-400 text-sm text-center">{error}</p>
+        )}
+
         <Button
-          className="bg-[#1D76E8] cursor-pointer w-full font-semibold py-5 text-md"
-          onClick={() => handleSubmit({ email, code })}
+          className="bg-[#1D76E8] cursor-pointer w-full font-semibold py-5 text-md disabled:opacity-50"
+          onClick={handleSubmit}
+          disabled={code.length !== 6 || verifying}
         >
-          Verify & Proceed
+          {verifying ? "Verifying..." : "Verify & Proceed"}
         </Button>
 
         <div className="flex flex-col items-center gap-1">

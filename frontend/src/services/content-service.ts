@@ -1,31 +1,116 @@
 import { api } from "./axios";
+import type { PostType, StudyMaterialType } from "@/shared/types";
 
-// Content API
-export const healthContent = async () => {
-  const response = await api.get("/content/"); // NGINX -> /api/content -> 3004
-  return response.data;
-};
+// ─── Posts ──────────────────────────────────────────────────
 
-export const createPostByClass = async (data: {
+export const createPost = async (data: {
   classId: string;
-  authorId: string;
+  chapterId: string;
   title: string;
-  content: string;
-  attachments?: string[];
-  type?: string;
+  content?: string;
+  type: PostType;
+  studyMaterialType?: StudyMaterialType;
+  dueDate?: string;
+  maxPoints?: number;
+  attachments?: { fileKey: string; fileName: string; fileSize: number; fileType: string }[];
 }) => {
-  const response = await api.post("/content/api/posts", {
-    class_id: data.classId,
-    author_id: data.authorId,
-    title: data.title,
-    content: data.content,
-    attachments: data.attachments || [],
-    type: data.type || "ANNOUNCEMENT",
+  const response = await api.post("/content/api/posts", data);
+  return response.data.data;
+};
+
+export const getPostsByClass = async (
+  classId: string,
+  params?: {
+    type?: PostType;
+    studyMaterialType?: StudyMaterialType;
+    chapterId?: string;
+    sort?: string;
+  },
+) => {
+  const response = await api.get(`/content/api/posts/class/${classId}`, {
+    params,
   });
+  return response.data.data;
+};
+
+export const getPostById = async (postId: string) => {
+  const response = await api.get(`/content/api/posts/${postId}`);
+  return response.data.data;
+};
+
+export const updatePost = async (
+  postId: string,
+  data: {
+    title?: string;
+    content?: string;
+    chapterId?: string;
+    dueDate?: string;
+    maxPoints?: number;
+  },
+) => {
+  const response = await api.put(`/content/api/posts/${postId}`, data);
+  return response.data.data;
+};
+
+export const deletePost = async (postId: string) => {
+  const response = await api.delete(`/content/api/posts/${postId}`);
   return response.data;
 };
 
-export const getAllPostByClass = async (classId: string) => {
-  const response = await api.get(`/content/api/posts/class/${classId}`);
+// ─── Comments ───────────────────────────────────────────────
+
+export const getComments = async (postId: string) => {
+  const response = await api.get(`/content/api/comments/post/${postId}`);
+  return response.data.data;
+};
+
+export const createComment = async (postId: string, content: string) => {
+  const response = await api.post("/content/api/comments", { postId, content });
+  return response.data.data;
+};
+
+export const deleteComment = async (commentId: string) => {
+  const response = await api.delete(`/content/api/comments/${commentId}`);
   return response.data;
+};
+
+// ─── Submissions ────────────────────────────────────────────
+
+export const submitAssignment = async (data: {
+  postId: string;
+  content?: string;
+  attachments?: { fileKey: string; fileName: string; fileSize: number; fileType: string }[];
+}) => {
+  const response = await api.post("/content/api/submissions", data);
+  return response.data.data;
+};
+
+export const getSubmissions = async (postId: string) => {
+  const response = await api.get(`/content/api/submissions/post/${postId}`);
+  return response.data.data;
+};
+
+export const getMySubmissions = async (): Promise<
+  { postId: string; gradedAt: string | null; points: number | null }[]
+> => {
+  const response = await api.get("/content/api/submissions/my");
+  return response.data.data;
+};
+
+export const gradeSubmission = async (
+  submissionId: string,
+  data: { points: number; feedback?: string },
+) => {
+  const response = await api.put(
+    `/content/api/submissions/${submissionId}/grade`,
+    data,
+  );
+  return response.data.data;
+};
+
+// ─── Grades ─────────────────────────────────────────────────
+
+export const getGradeTable = async (classId: string) => {
+  const response = await api.get(`/content/api/grades/${classId}/table`);
+  return response.data.data;
 };

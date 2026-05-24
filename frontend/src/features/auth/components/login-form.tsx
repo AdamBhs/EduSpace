@@ -14,14 +14,20 @@ import { Link } from "react-router-dom";
 
 
 
-export function LoginForm({ className, onSubmit, ...props }: any) {
+export function LoginForm({ className, onSubmit, error, ...props }: any) {
   const [showPassword, setShowPassword] = useState(false);
   const [password, setPassword] = useState("");
   const [email, setEmail] = useState("");
+  const [loading, setLoading] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    await onSubmit({ email, password });
+    setLoading(true);
+    try {
+      await onSubmit({ email, password });
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -73,9 +79,9 @@ export function LoginForm({ className, onSubmit, ...props }: any) {
           <FieldLabel htmlFor="password" className="text-white text-md">
             <div className="flex justify-between w-full">
               <p>Password</p>
-              <p className="text-[#137FEC] cursor-pointer hover:underline">
+              <Link to="/forgot-password" className="text-[#137FEC] cursor-pointer hover:underline">
                 Forget password?
-              </p>
+              </Link>
             </div>
           </FieldLabel>
 
@@ -114,12 +120,17 @@ export function LoginForm({ className, onSubmit, ...props }: any) {
           <p className="text-[#94A3B8] mt-[1.5px]">Keep me signed in</p>
         </div>
 
+        {error && (
+          <p className="text-red-400 text-sm text-center">{error}</p>
+        )}
+
         <Field>
           <Button
             type="submit"
-            className="flex items-center justify-center bg-[#137FEC] border-none w-full py-6 cursor-pointer text-[18px] text-white hover:bg-[#137FEC]/90 font-semibold"
+            disabled={loading}
+            className="flex items-center justify-center bg-[#137FEC] border-none w-full py-6 cursor-pointer text-[18px] text-white hover:bg-[#137FEC]/90 font-semibold disabled:opacity-50"
           >
-            Sign In
+            {loading ? "Signing in..." : "Sign In"}
           </Button>
         </Field>
 

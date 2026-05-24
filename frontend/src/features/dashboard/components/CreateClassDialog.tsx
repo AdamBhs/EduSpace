@@ -11,8 +11,7 @@ import {
 import { Button } from "@/shared/components/ui/button";
 import { createClassroom } from "@/services/classroom-service";
 import { GraduationCap, Smile } from "lucide-react";
-
-type ClassroomType = "teaching" | "friendly";
+import type { ClassroomType } from "@/shared/types";
 
 interface CreateClassDialogProps {
   open: boolean;
@@ -21,7 +20,7 @@ interface CreateClassDialogProps {
 
 const CreateClassDialog = ({ open, onOpenChange }: CreateClassDialogProps) => {
   const queryClient = useQueryClient();
-  const [classroomType, setClassroomType] = useState<ClassroomType>("teaching");
+  const [classroomType, setClassroomType] = useState<ClassroomType>("TEACHING");
   const [form, setForm] = useState({
     name: "",
     section: "",
@@ -30,7 +29,14 @@ const CreateClassDialog = ({ open, onOpenChange }: CreateClassDialogProps) => {
   });
 
   const createMutation = useMutation({
-    mutationFn: () => createClassroom({ ...form, chapter: classroomType }),
+    mutationFn: () =>
+      createClassroom({
+        name: form.name.trim(),
+        type: classroomType,
+        section: form.section.trim() || undefined,
+        subject: form.subject.trim() || undefined,
+        description: form.description.trim() || undefined,
+      }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["classrooms"] });
       handleClose();
@@ -42,7 +48,7 @@ const CreateClassDialog = ({ open, onOpenChange }: CreateClassDialogProps) => {
 
   const handleClose = () => {
     setForm({ name: "", section: "", subject: "", description: "" });
-    setClassroomType("teaching");
+    setClassroomType("TEACHING");
     onOpenChange(false);
   };
 
@@ -50,11 +56,7 @@ const CreateClassDialog = ({ open, onOpenChange }: CreateClassDialogProps) => {
     setForm((prev) => ({ ...prev, [field]: value }));
   };
 
-  const isFormValid =
-    form.name.trim() &&
-    form.section.trim() &&
-    form.subject.trim() &&
-    form.description.trim();
+  const isFormValid = form.name.trim().length > 0;
 
   const handleCreate = () => {
     if (!isFormValid) return;
@@ -81,9 +83,9 @@ const CreateClassDialog = ({ open, onOpenChange }: CreateClassDialogProps) => {
             <div className="flex gap-3 justify-center">
               <button
                 type="button"
-                onClick={() => setClassroomType("teaching")}
+                onClick={() => setClassroomType("TEACHING")}
                 className={`flex items-center gap-2 rounded-lg border-2 px-6 py-2.5 text-sm font-medium transition-colors cursor-pointer ${
-                  classroomType === "teaching"
+                  classroomType === "TEACHING"
                     ? "border-blue-500 text-blue-500 bg-white"
                     : "border-gray-200 text-gray-500 bg-white hover:border-gray-300"
                 }`}
@@ -93,9 +95,9 @@ const CreateClassDialog = ({ open, onOpenChange }: CreateClassDialogProps) => {
               </button>
               <button
                 type="button"
-                onClick={() => setClassroomType("friendly")}
+                onClick={() => setClassroomType("FRIENDLY")}
                 className={`flex items-center gap-2 rounded-lg border-2 px-6 py-2.5 text-sm font-medium transition-colors cursor-pointer ${
-                  classroomType === "friendly"
+                  classroomType === "FRIENDLY"
                     ? "border-blue-500 text-blue-500 bg-white"
                     : "border-gray-200 text-gray-500 bg-white hover:border-gray-300"
                 }`}
@@ -112,17 +114,17 @@ const CreateClassDialog = ({ open, onOpenChange }: CreateClassDialogProps) => {
             onChange={(v) => handleChange("name", v)}
           />
           <FloatingInput
-            label="Section (required)"
+            label="Section"
             value={form.section}
             onChange={(v) => handleChange("section", v)}
           />
           <FloatingInput
-            label="Subject (required)"
+            label="Subject"
             value={form.subject}
             onChange={(v) => handleChange("subject", v)}
           />
           <FloatingInput
-            label="Description (required)"
+            label="Description"
             value={form.description}
             onChange={(v) => handleChange("description", v)}
           />

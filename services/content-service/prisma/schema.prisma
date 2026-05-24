@@ -7,70 +7,115 @@ datasource db {
   provider = "postgresql"
 }
 
+enum PostType {
+  STUDY_MATERIAL
+  QUIZ
+  QUESTION
+  ASSIGNMENT
+  ANNOUNCEMENT
+}
+
+enum StudyMaterialType {
+  COURS
+  TD
+  TP
+  RESUME
+}
+
 model Post {
-  postId     String   @id @default(uuid()) @db.Uuid
-  class_id   String   @db.Uuid
-  author_id  String   @db.Uuid
-  title      String
-  content    String?
-  type       PostType @default(ANNOUNCEMENT)
-  created_at DateTime @default(now())
-  updated_at DateTime @updatedAt
+  id                String             @id @default(uuid()) @db.Uuid
+  classId           String             @map("class_id") @db.Uuid
+  chapterId         String             @map("chapter_id") @db.Uuid
+  authorId          String             @map("author_id") @db.Uuid
+  title             String
+  content           String?
+  type              PostType
+  studyMaterialType StudyMaterialType? @map("study_material_type")
+  dueDate           DateTime?          @map("due_date")
+  maxPoints         Int?               @map("max_points")
+  createdAt         DateTime           @default(now()) @map("created_at")
+  updatedAt         DateTime           @updatedAt @map("updated_at")
 
   attachments Attachment[]
   comments    Comment[]
+  submissions Submission[]
 
-  @@index([class_id])
-  @@index([author_id])
-}
-
-model Material {
-  materialId  String   @id @default(uuid()) @db.Uuid
-  class_id    String   @db.Uuid
-  author_id   String   @db.Uuid
-  title       String
-  description String?
-  category    String?
-  created_at  DateTime @default(now())
-  updated_at  DateTime @updatedAt
-
-  attachments Attachment[]
-
-  @@index([class_id])
-  @@index([category])
+  @@index([classId])
+  @@index([chapterId])
+  @@index([authorId])
+  @@map("posts")
 }
 
 model Attachment {
-  attachmentId String  @id @default(uuid()) @db.Uuid
-  file_key     String
-  file_name    String
-  file_type    String?
-  file_size    Int?
-  post_id      String? @db.Uuid
-  material_id  String? @db.Uuid
+  id       String  @id @default(uuid()) @db.Uuid
+  postId   String  @map("post_id") @db.Uuid
+  fileKey  String  @map("file_key")
+  fileName String  @map("file_name")
+  fileType String? @map("file_type")
+  fileSize Int?    @map("file_size")
 
-  post     Post?     @relation(fields: [post_id], references: [postId], onDelete: Cascade)
-  material Material? @relation(fields: [material_id], references: [materialId], onDelete: Cascade)
+  post Post @relation(fields: [postId], references: [id], onDelete: Cascade)
 
-  @@index([post_id])
-  @@index([material_id])
+  @@index([postId])
+  @@map("attachments")
 }
 
 model Comment {
-  commentId  String   @id @default(uuid()) @db.Uuid
-  post_id    String   @db.Uuid
-  author_id  String   @db.Uuid
-  content    String
-  created_at DateTime @default(now())
-  updated_at DateTime @updatedAt
+  id        String   @id @default(uuid()) @db.Uuid
+  postId    String   @map("post_id") @db.Uuid
+  authorId  String   @map("author_id") @db.Uuid
+  content   String
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
 
-  post Post @relation(fields: [post_id], references: [postId], onDelete: Cascade)
+  post Post @relation(fields: [postId], references: [id], onDelete: Cascade)
 
-  @@index([post_id])
-  @@index([author_id])
+  @@index([postId])
+  @@index([authorId])
+  @@map("comments")
 }
 
-enum PostType {
-  ANNOUNCEMENT
-  ASSIGNMENT
+model Submission {
+  id        String   @id @default(uuid()) @db.Uuid
+  postId    String   @map("post_id") @db.Uuid
+  studentId String   @map("student_id") @db.Uuid
+  content   String?
+  points    Int?
+  feedback  String?
+  gradedAt  DateTime? @map("graded_at")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  post        Post                     @relation(fields: [postId], references: [id], onDelete: Cascade)
+  attachments SubmissionAttachment[]
+
+  @@unique([postId, studentId])
+  @@index([postId])
+  @@index([studentId])
+  @@map("submissions")
+}
+
+model SubmissionAttachment {
+  id           String  @id @default(uuid()) @db.Uuid
+  submissionId String  @map("submission_id") @db.Uuid
+  fileKey      String  @map("file_key")
+  fileName     String  @map("file_name")
+  fileType     String? @map("file_type")
+  fileSize     Int?    @map("file_size")
+
+  submission Submission @relation(fields: [submissionId], references: [id], onDelete: Cascade)
+
+  @@index([submissionId])
+  @@map("submission_attachments")
+}
+
+model GradeCategory {
+  id       String @id @default(uuid()) @db.Uuid
+  classId  String @map("class_id") @db.Uuid
+  name     String
+  weight   Int
+  position Int    @default(0)
+
+  @@index([classId])
+  @@map("grade_categories")
 }

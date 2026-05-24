@@ -14,9 +14,7 @@ const Home = () => {
   if (isLoading) {
     return <p>Loading...</p>;
   }
-  if (error) return <p>Error...</p>;
-
-  console.log("Classrooms data:", data);
+  if (error) return <p>Error loading classrooms</p>;
 
   return (
     <>
@@ -24,12 +22,11 @@ const Home = () => {
         <NoClassroomFound />
       ) : (
         <div className="flex flex-wrap gap-4">
-          {data?.map((c: EnrolledClassroom, index) => (
-            <Card key={index} data={c} />
+          {data?.map((c) => (
+            <Card key={c.classroom.id} data={c} />
           ))}
         </div>
       )}
-      {/* Adding classroom or join classroom */}
       <ClassActionButton />
     </>
   );

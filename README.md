@@ -1,104 +1,157 @@
-# 🚀 Setup Guide
+# EduSpace
 
-## 📋 Prerequisites
+A classroom management platform built as a microservices monorepo. Create teaching or study-group classrooms, organize content into chapters, assign and grade work, chat in real time, and get notified — all in one place.
 
-First, verify that you have the following software installed:
+## Features
 
-### 1. Node.js
+- **Two classroom types** — Teaching (with grading) and Friendly (study groups)
+- **Organized content** — Posts grouped into chapters: announcements, study materials (Cours, TD, TP, Resume), assignments, quizzes
+- **Assignments & grading** — Submit work, grade with feedback, full grade table with class averages and export to CSV
+- **Real-time chat** — Group chat per classroom with typing indicators and online presence
+- **Notifications** — In-app notifications for new posts, grades, member activity, and due date reminders
+- **Full-text search** — Search posts across classrooms powered by Elasticsearch
+- **Calendar & To-Do** — View assignment due dates on a calendar, track upcoming work
+- **File sharing** — Upload and download attachments on posts and submissions
 
-```bash
-node --version  # Should show v20 or higher
-npm --version
+## Screenshots
+
+<p>
+  <img src="mystuff/report-resources/user-interfaces-screenshots/dashboard.png" width="400" alt="Dashboard" />
+  <img src="mystuff/report-resources/user-interfaces-screenshots/grades-tab.png" width="400" alt="Grades" />
+</p>
+<p>
+  <img src="mystuff/report-resources/user-interfaces-screenshots/chat-tab.png" width="400" alt="Chat" />
+  <img src="mystuff/report-resources/user-interfaces-screenshots/people-tab.png" width="400" alt="People" />
+</p>
+
+## Architecture
+
+```
+Browser → NGINX (port 5000) → API Gateway (port 3001) → Services
+                  ↓
+          /socket.io/ → Communication Service (direct WebSocket)
 ```
 
-### 2. Docker Desktop
+| Service | Port | Purpose |
+|---------|------|---------|
+| API Gateway | 3001 | JWT verification, rate limiting, request routing |
+| User Service | 3002 | Auth, profiles, password reset |
+| Class Service | 3003 | Classrooms, members, roles, chapters |
+| Content Service | 3004 | Posts, assignments, submissions, grading |
+| Communication Service | 3005 | Group chat (REST + WebSocket) |
+| Notification Service | 3006 | Notifications and email reminders |
+| Search Service | 3007 | Full-text search (Elasticsearch) |
+| File Service | 3010 | File upload/download (MinIO) |
+
+## Tech Stack
+
+**Frontend:** React 19, TypeScript, Vite, Tailwind CSS v4, shadcn/ui, React Router v7, TanStack React Query, TanStack React Table, FullCalendar, Socket.IO client
+
+**Backend:** Node.js, Express v5, TypeScript, Prisma ORM, PostgreSQL, JWT, Nodemailer, Socket.IO
+
+**Infrastructure:** PostgreSQL (5 databases), Redis, RabbitMQ, MinIO, NGINX, Elasticsearch — all via Docker Compose
+
+## Prerequisites
+
+- [Node.js](https://nodejs.org/) v20+
+- [pnpm](https://pnpm.io/) (`npm install -g pnpm`)
+- [Docker](https://docs.docker.com/get-docker/) and Docker Compose
+
+## Getting Started
+
+### 1. Clone and install
 
 ```bash
-docker --version
-docker compose --version  # Should have the v5.0.0
+git clone <repository-url>
+cd EduSpace
+pnpm install
 ```
 
-### 3. Git
+### 2. Start infrastructure
 
 ```bash
-git --version
+cd docker
+docker compose up -d
+cd ..
 ```
 
-### 4. Code Editor
+> If you get "permission denied", run `sudo docker compose up -d`.
 
-VS Code recommended with these extensions:
+Wait ~30 seconds for all containers to become healthy.
 
-- ESLint
-- Prettier
-- Docker
+### 3. Set up databases
 
----
+```bash
+pnpm prisma:generate
+pnpm prisma:push
+```
 
-## 🐳 Docker Setup
+### 4. Start the app
 
-Navigate to the docker folder and run:
+```bash
+pnpm dev
+```
 
-1. **Start the containers:**
+### 5. Open in browser
 
+Go to **http://localhost:5173**
+
+### 6. Create an account
+
+1. Click **Create Account** and register
+2. Since email is not configured, grab the verification code from the database:
    ```bash
-   docker compose up -d
+   docker exec EduSpace-postgres psql -U admin -d users_db -c \
+     "SELECT email, \"verificationCode\" FROM \"User\" WHERE \"isVerified\" = false;"
    ```
+3. Enter the code to verify your account, then log in
+4. Create a classroom and explore the app
 
-2. **Verify containers are running:**
-   ```bash
-   docker compose ps  # for checking that everything work fine
-   ```
+## Project Structure
 
-> ⚠️ **Note:** If you have anything running on port 5432, stop it before proceeding.
-
----
-
-## ✅ Verification Checklist
-
-### 1. Docker is running
-
-```bash
-docker ps
-# Should show: postgres, redis, rabbitmq, minio
+```
+EduSpace/
+├── api-gateway/                  # JWT verify, rate limit, proxy
+├── services/
+│   ├── user-service/             # Auth, profiles
+│   ├── class-service/            # Classrooms, members, chapters
+│   ├── content-service/          # Posts, assignments, grading
+│   ├── communication-service/    # Group chat (WebSocket)
+│   ├── notification-service/     # Notifications, email
+│   ├── search-service/           # Full-text search (Elasticsearch)
+│   └── file-service/             # File upload (MinIO)
+├── shared/                       # Shared types, utils, middleware
+├── frontend/                     # React 19 SPA
+└── docker/                       # Docker Compose, NGINX config, DB init
 ```
 
-### 2. PostgreSQL databases exist
+## Useful Commands
 
 ```bash
-docker exec -it EduSpace-postgres psql -U admin -d postgres -c "\l"
-# Should list all 10 databases
+# Stop all services
+# Press Ctrl+C in the terminal running pnpm dev
+
+# Stop infrastructure
+cd docker && docker compose down
+
+# Fresh start (wipe all data)
+cd docker && docker compose down -v
+
+# Start a single service
+pnpm --filter user-service dev
+
+# Start only the frontend
+pnpm --filter frontend dev
 ```
 
-### 3. RabbitMQ is accessible
+## Troubleshooting
 
-```bash
-curl http://localhost:15672
-# Should return RabbitMQ management UI
-```
+**Services won't start?** Make sure Docker containers are running first (`docker compose -f docker/docker-compose.yml ps`). Services depend on PostgreSQL, Redis, and RabbitMQ.
 
-### 4. MinIO is accessible
+**Port already in use?** Find the process with `lsof -i :PORT` and kill it, or stop other running instances.
 
-```bash
-curl http://localhost:9000/minio/health/live
-# Should return success
-# If you don't get nothing that's fine just make sure the dashbord on http://localhost:9000 is running
-```
+**Blank page in browser?** Check the browser console for errors. Ensure all backend services and NGINX (port 5000) are up.
 
-### 5. Redis is running
+## Authors
 
-```bash
-docker exec -it EduSpace-redis redis-cli ping
-# Should return: PONG
-```
-
-### 6. Run setup.sh
-
-```bash
-chmod +x setup.sh
-./setup.sh
-# To install the shared library bettwen all services
-```
-
----
-
-✨ **Setup Complete!** You're ready to go.
+Built as a university project.

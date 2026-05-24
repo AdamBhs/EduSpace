@@ -9,6 +9,7 @@ import {
   requestPasswordResetSchema,
   resetPasswordSchema,
   validationCodeSchema,
+  changePasswordSchema,
 } from "../../../../shared/src/utils/validationSchemas";
 
 const router = Router();
@@ -36,7 +37,7 @@ router.post(
  * @desc    Resend a verification code
  * @access  Public
  */
-router.post("/resendCode", AuthController.verifyCode);
+router.post("/resendCode", AuthController.resendCode);
 
 /**
  * @route   POST /api/auth/login
@@ -72,6 +73,18 @@ router.post(
   "/reset-password",
   validate(resetPasswordSchema),
   AuthController.resetPassword,
+);
+
+/**
+ * @route   POST /api/auth/change-password
+ * @desc    Change password (authenticated)
+ * @access  Protected
+ */
+router.post(
+  "/change-password",
+  authenticate,
+  validate(changePasswordSchema),
+  AuthController.changePassword,
 );
 
 /**

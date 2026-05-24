@@ -1,36 +1,30 @@
-// src/routes/comment.routes.ts
 import { Router } from "express";
-import { CommentController } from "../controllers/comment.controller";
 import { authenticate } from "../../../../shared/src/middleware/auth";
+import { validate } from "../../../../shared/src/middleware/validate";
+import {
+  createCommentSchema,
+  updateCommentSchema,
+} from "../../../../shared/src/utils/validationSchemas";
+import { CommentController } from "../controllers/comment.controller";
 
 const router = Router();
 
-/**
- * @route   POST /api/comments
- * @desc    Add a comment to a post
- * @access  Protected
- */
-router.post("/", authenticate, CommentController.createComment);
+router.post(
+  "/",
+  authenticate,
+  validate(createCommentSchema),
+  CommentController.create,
+);
 
-/**
- * @route   GET /api/comments/post/:postId
- * @desc    Get all comments for a post
- * @access  Protected
- */
-router.get("/post/:postId", authenticate, CommentController.getCommentsByPost);
+router.get("/post/:postId", authenticate, CommentController.getByPost);
 
-/**
- * @route   PUT /api/comments/:commentId
- * @desc    Update a comment
- * @access  Protected
- */
-router.put("/:commentId", authenticate, CommentController.updateComment);
+router.put(
+  "/:commentId",
+  authenticate,
+  validate(updateCommentSchema),
+  CommentController.update,
+);
 
-/**
- * @route   DELETE /api/comments/:commentId
- * @desc    Delete a comment
- * @access  Protected
- */
-router.delete("/:commentId", authenticate, CommentController.deleteComment);
+router.delete("/:commentId", authenticate, CommentController.delete);
 
 export default router;

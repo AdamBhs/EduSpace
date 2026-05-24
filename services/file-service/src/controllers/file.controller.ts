@@ -1,94 +1,97 @@
 import { Request, Response } from "express";
-import { GetObjectCommand, PutObjectCommand } from "@aws-sdk/client-s3";
-import { s3 } from "../services/s3_service";
-import { prisma } from "../db/client";
 import { v4 as uuid } from "uuid";
 import { sendSuccess, sendError } from "../../../../shared/src/utils/response";
-import dotenv from "dotenv";
-import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
+import { uploadToS3, getPresignedUrl, deleteFromS3 } from "../services/s3";
 
-dotenv.config();
 export class FileController {
-  static async getAvatarUrl(req: Request, res: Response) {
-    try {
-      const userId = req.user?.userId; // From the JWT middleware
-
-      const file = await prisma.file.findFirst({
-        where: { entityId: userId, entityType: "avatar" },
-        orderBy: { created_at: "desc" },
-      });
-
-      if (!file) {
-        return sendError(res, "File not found", 404);
-      }
-
-      if (file.entityId !== userId) {
-        return sendError(res, "Unauthorized", 403);
-      }
-
-      const command = new GetObjectCommand({
-        Bucket: file.bucket,
-        Key: file.key,
-      });
-
-      const url = await getSignedUrl(s3, command, { expiresIn: 3600 });
-      return sendSuccess(res, { url }, "File Url generated", 200);
-    } catch (error) {
-      console.error(error);
-      sendError(res, "Failed to get the file", 500);
-    }
-  }
-  static async uploadFile(req: Request, res: Response) {
+  static async upload(req: Request, res: Response) {
     try {
       const file = req.file;
-      const { entityId, entityType } = req.body;
-
       if (!file) {
-        return sendError(res, "No File uploaded", 400);
+        return sendError(res, "No file uploaded", 400);
       }
 
       const fileId = uuid();
-      const userId = entityId;
-      const bucket = process.env.MINIO_BUCKET_PIC_PROFILE!;
-      const key = `files/${fileId}$${userId}$${entityType}$${file.originalname}`;
+      const ext = file.originalname.split(".").pop() || "";
+      const fileKey = `${fileId}${ext ? "." + ext : ""}`;
 
-      // Upload to MinIO
-      await s3.send(
-        new PutObjectCommand({
-          Bucket: bucket,
-          Key: key,
-          Body: file.buffer,
-          ContentType: file.mimetype,
-        }),
-      );
+      await uploadToS3(fileKey, file.buffer, file.mimetype);
+      const url = await getPresignedUrl(fileKey);
 
-      // Save to metaData in DB
-      const savedFile = await prisma.file.create({
-        data: {
-          id: fileId,
-          bucket,
-          key,
-          originalName: file.originalname,
-          mimeType: file.mimetype,
-          size: file.size,
-          entityType: req.body.entityType,
-          entityId: req.body.entityId,
-        },
-      });
-
-      return sendSuccess(
+      sendSuccess(
         res,
         {
-          fileId: savedFile.id,
-          key: savedFile.key,
-          
+          fileKey,
+          fileName: file.originalname,
+          fileType: file.mimetype,
+          fileSize: file.size,
+          url,
         },
-        "File Upload successfuly",
+        "File uploaded",
         201,
       );
     } catch (error) {
-      console.error(error);
-      sendError(res, "Upload faild", 500);
+      console.error("Error uploading file:", error);
+      sendError(res, "Failed to upload file", 500);
+    }
+  }
+
+  static async uploadMultiple(req: Request, res: Response) {
+    try {
+      const files = req.files as Express.Multer.File[];
+      if (!files || files.length === 0) {
+        return sendError(res, "No files uploaded", 400);
+      }
+
+      const results = await Promise.all(
+        files.map(async (file) => {
+          const fileId = uuid();
+          const ext = file.originalname.split(".").pop() || "";
+          const fileKey = `${fileId}${ext ? "." + ext : ""}`;
+
+          await uploadToS3(fileKey, file.buffer, file.mimetype);
+          const url = await getPresignedUrl(fileKey);
+
+          return {
+            fileKey,
+            fileName: file.originalname,
+            fileType: file.mimetype,
+            fileSize: file.size,
+            url,
+          };
+        }),
+      );
+
+      sendSuccess(res, results, "Files uploaded", 201);
+    } catch (error) {
+      console.error("Error uploading files:", error);
+      sendError(res, "Failed to upload files", 500);
+    }
+  }
+
+  static async getUrl(req: Request, res: Response) {
+    try {
+      const fileKey = req.params.fileKey as string;
+
+      const url = await getPresignedUrl(fileKey);
+
+      sendSuccess(res, { fileKey, url }, "Presigned URL generated");
+    } catch (error) {
+      console.error("Error generating URL:", error);
+      sendError(res, "Failed to generate download URL", 500);
+    }
+  }
+
+  static async remove(req: Request, res: Response) {
+    try {
+      const fileKey = req.params.fileKey as string;
+
+      await deleteFromS3(fileKey);
+
+      sendSuccess(res, null, "File deleted");
+    } catch (error) {
+      console.error("Error deleting file:", error);
+      sendError(res, "Failed to delete file", 500);
     }
   }
 }
