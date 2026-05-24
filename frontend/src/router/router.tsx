@@ -87,7 +87,8 @@ export const router = createBrowserRouter([
       {
         path: "c/:classId",
         children: [
-          { index: true, element: <Class /> },
+          { index: true, element: <Stream /> },
+          { path: "materials", element: <Class /> },
           { path: "people", element: <People /> },
           { path: "stream", element: <Stream /> },
           { path: "assignments", element: <Assignments /> },

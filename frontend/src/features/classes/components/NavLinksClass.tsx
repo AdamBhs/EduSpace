@@ -33,10 +33,10 @@ const NavLinksClass = ({
 
     switch (tab) {
       case "Stream":
-        navigate(`/c/${classId}/stream`);
+        navigate(`/c/${classId}`);
         break;
       case "Materials":
-        navigate(`/c/${classId}`);
+        navigate(`/c/${classId}/materials`);
         break;
       case "People":
         navigate(`/c/${classId}/people`);
