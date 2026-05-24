@@ -2,7 +2,7 @@ import { useState, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { getClassrooms } from "@/services/classroom-service";
-import { getPostsByClass } from "@/services/content-service";
+import { getPostsByClass, getMySubmissions } from "@/services/content-service";
 import {
   Select,
   SelectContent,
@@ -12,13 +12,11 @@ import {
 } from "@/shared/components/ui/select";
 import { ClipboardList, Calendar, ChevronRight } from "lucide-react";
 import type { EnrolledClassroom, Post } from "@/shared/types";
-import { useAuth } from "@/context/AuthContext";
 
 type AssignmentItem = Post & { classroomName: string; submitted: boolean };
 
 const Todo = () => {
   const navigate = useNavigate();
-  const { user } = useAuth();
   const [filterClassId, setFilterClassId] = useState("all");
   const [tab, setTab] = useState<"Assigned" | "Done">("Assigned");
 
@@ -29,8 +27,15 @@ const Todo = () => {
 
   const classrooms = enrolled.map((e) => e.classroom);
 
+  const { data: mySubmissions = [] } = useQuery({
+    queryKey: ["mySubmissions"],
+    queryFn: getMySubmissions,
+  });
+
+  const submittedPostIds = new Set(mySubmissions.map((s) => s.postId));
+
   const { data: allAssignments = [], isLoading } = useQuery<AssignmentItem[]>({
-    queryKey: ["todoAssignments", classrooms.map((c) => c.id).join(",")],
+    queryKey: ["todoAssignments", classrooms.map((c) => c.id).join(","), submittedPostIds.size],
     queryFn: async () => {
       const results = await Promise.all(
         classrooms.map(async (c) => {
@@ -40,7 +45,7 @@ const Todo = () => {
             .map((p) => ({
               ...p,
               classroomName: c.name,
-              submitted: false,
+              submitted: submittedPostIds.has(p.id),
             }));
         }),
       );

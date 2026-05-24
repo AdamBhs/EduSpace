@@ -133,6 +133,17 @@ export async function startConsumers(): Promise<void> {
         }
 
         case Events.CHAT_MESSAGE: {
+          const { allIds } = await fetchMemberIds(payload.classId);
+          const recipients = allIds.filter((id: string) => id !== payload.senderId);
+          await notifyMany(
+            recipients,
+            "CHAT_MESSAGE",
+            "New chat message",
+            payload.content
+              ? `New message in the group chat: "${payload.content.slice(0, 80)}${payload.content.length > 80 ? "..." : ""}"`
+              : "A file was shared in the group chat",
+            payload.classId,
+          );
           break;
         }
       }

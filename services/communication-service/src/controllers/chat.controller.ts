@@ -1,7 +1,7 @@
 import { Request, Response } from "express";
 import { prisma } from "../db/prisma";
 import { sendSuccess, sendError } from "../../../../shared/src/utils/response";
-import { checkMembership } from "../utils/classService";
+import { checkMembership, fetchMemberIds } from "../utils/classService";
 import { getOnlineUsers } from "../utils/redis";
 
 export class ChatController {
@@ -88,9 +88,9 @@ export class ChatController {
         return sendError(res, "Not a member of this classroom", 403);
       }
 
-      // TODO: get member list from class-service and filter by online status
-      // For now return empty — the WebSocket presence-update events are the primary mechanism
-      sendSuccess(res, [], "Online members retrieved");
+      const memberIds = await fetchMemberIds(classId);
+      const onlineIds = await getOnlineUsers(memberIds);
+      sendSuccess(res, onlineIds, "Online members retrieved");
     } catch (error) {
       console.error("Error getting online members:", error);
       sendError(res, "Failed to get online members", 500);

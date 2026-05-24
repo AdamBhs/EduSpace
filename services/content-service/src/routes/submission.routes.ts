@@ -16,6 +16,8 @@ router.post(
   SubmissionController.submit,
 );
 
+router.get("/my", authenticate, SubmissionController.getMySubmissions);
+
 router.put("/:submissionId", authenticate, SubmissionController.update);
 
 router.get("/post/:postId", authenticate, SubmissionController.getByPost);

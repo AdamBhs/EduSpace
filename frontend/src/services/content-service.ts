@@ -90,6 +90,13 @@ export const getSubmissions = async (postId: string) => {
   return response.data.data;
 };
 
+export const getMySubmissions = async (): Promise<
+  { postId: string; gradedAt: string | null; points: number | null }[]
+> => {
+  const response = await api.get("/content/api/submissions/my");
+  return response.data.data;
+};
+
 export const gradeSubmission = async (
   submissionId: string,
   data: { points: number; feedback?: string },

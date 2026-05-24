@@ -112,6 +112,22 @@ export class SubmissionController {
     }
   }
 
+  static async getMySubmissions(req: Request, res: Response) {
+    try {
+      const userId = req.user!.userId;
+
+      const submissions = await prisma.submission.findMany({
+        where: { studentId: userId },
+        select: { postId: true, gradedAt: true, points: true },
+      });
+
+      sendSuccess(res, submissions, "User submissions retrieved");
+    } catch (error) {
+      console.error("Error getting user submissions:", error);
+      sendError(res, "Failed to get user submissions", 500);
+    }
+  }
+
   static async getByPost(req: Request, res: Response) {
     try {
       const userId = req.user!.userId;

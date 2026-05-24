@@ -27,3 +27,15 @@ export async function checkMembership(
     return null;
   }
 }
+
+export async function fetchMemberIds(classId: string): Promise<string[]> {
+  try {
+    const response = await axios.get(
+      `${CLASS_SERVICE_URL}/api/classroom/internal/${classId}/member-ids`,
+    );
+    return response.data?.data?.allIds ?? [];
+  } catch (error) {
+    console.error("[classService] Failed to fetch member IDs:", error instanceof Error ? error.message : error);
+    return [];
+  }
+}
