@@ -127,11 +127,11 @@ export const deleteChapter = async (classId: string, chapterId: string) => {
 
 export const reorderChapters = async (
   classId: string,
-  order: { id: string; position: number }[],
+  chapterIds: string[],
 ) => {
   const response = await api.put(
     `/classroom/api/classroom/${classId}/chapters/reorder`,
-    { order },
+    { chapterIds },
   );
   return response.data;
 };
