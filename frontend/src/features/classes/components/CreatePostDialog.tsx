@@ -27,7 +27,9 @@ import {
   FileText,
   HelpCircle,
   Megaphone,
+  Settings2,
 } from "lucide-react";
+import ChapterManager from "./ChapterManager";
 
 interface CreatePostDialogProps {
   open: boolean;
@@ -73,6 +75,7 @@ const CreatePostDialog = ({
   const [maxPoints, setMaxPoints] = useState("");
   const [attachments, setAttachments] = useState<AttachmentMeta[]>([]);
   const [uploading, setUploading] = useState(false);
+  const [showChapterMgr, setShowChapterMgr] = useState(false);
 
   useEffect(() => {
     if (!chapterId && chapters.length > 0) {
@@ -130,6 +133,7 @@ const CreatePostDialog = ({
     setDueDate("");
     setMaxPoints("");
     setAttachments([]);
+    setShowChapterMgr(false);
     onOpenChange(false);
   };
 
@@ -200,19 +204,33 @@ const CreatePostDialog = ({
 
           {/* Chapter selector */}
           <div>
-            <p className="text-sm font-medium text-muted-foreground mb-2">Chapter</p>
-            <Select value={chapterId} onValueChange={setChapterId}>
-              <SelectTrigger className="w-full">
-                <SelectValue placeholder="Select chapter" />
-              </SelectTrigger>
-              <SelectContent>
-                {chapters.map((ch) => (
-                  <SelectItem key={ch.id} value={ch.id}>
-                    {ch.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <div className="flex items-center justify-between mb-2">
+              <p className="text-sm font-medium text-muted-foreground">Chapter</p>
+              <button
+                type="button"
+                onClick={() => setShowChapterMgr((p) => !p)}
+                className="flex items-center gap-1 text-xs text-[#137FEC] hover:text-[#1171d4] cursor-pointer"
+              >
+                <Settings2 className="w-3 h-3" />
+                {showChapterMgr ? "Done" : "Manage"}
+              </button>
+            </div>
+            {showChapterMgr ? (
+              <ChapterManager classId={classId} chapters={chapters} />
+            ) : (
+              <Select value={chapterId} onValueChange={setChapterId}>
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder="Select chapter" />
+                </SelectTrigger>
+                <SelectContent>
+                  {chapters.map((ch) => (
+                    <SelectItem key={ch.id} value={ch.id}>
+                      {ch.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            )}
           </div>
 
           {/* Title */}

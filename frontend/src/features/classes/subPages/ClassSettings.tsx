@@ -14,8 +14,9 @@ import {
   DialogDescription,
   DialogFooter,
 } from "@/shared/components/ui/dialog";
-import { Settings, Upload, Trash2 } from "lucide-react";
+import { Settings, Upload, Trash2, FolderOpen } from "lucide-react";
 import type { Classroom } from "@/shared/types";
+import ChapterManager from "../components/ChapterManager";
 
 const ClassSettings = () => {
   const { classId } = useParams<{ classId: string }>();
@@ -228,6 +229,15 @@ const ClassSettings = () => {
                   </p>
                 )}
               </div>
+            </div>
+
+            {/* Chapters */}
+            <div className="mt-6 rounded-xl border border-[#E2E8F0] bg-white p-6">
+              <div className="flex items-center gap-2 mb-4">
+                <FolderOpen className="w-5 h-5 text-[#64748B]" />
+                <h3 className="text-sm font-semibold text-[#0F172A]">Chapters</h3>
+              </div>
+              <ChapterManager classId={classId!} chapters={classroom.chapters ?? []} />
             </div>
 
             {/* Danger zone */}
