@@ -97,7 +97,7 @@ const Class = () => {
               className="text-sm font-semibold rounded-lg cursor-pointer hover:opacity-90 text-white bg-[#137FEC] py-3 px-5 flex gap-1 items-center justify-center"
               style={{ boxShadow: "0 2px 10px rgba(19, 127, 236, 0.5)" }}
             >
-              <IoMdAdd size={18} /> Create Work
+              <IoMdAdd size={18} /> Create Post
             </div>
             <CreatePostDialog
               open={createOpen}
