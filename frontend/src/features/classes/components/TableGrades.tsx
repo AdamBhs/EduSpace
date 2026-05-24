@@ -70,9 +70,9 @@ const TableGrades = ({ classId, classroomName, userRole }: Props) => {
     enabled: isAdmin,
   });
 
-  const assignments = gradeData?.assignments ?? [];
-  const members: Member[] = membersData?.members ?? [];
-  const students = members.filter((m) => m.role === "MEMBER");
+  const assignments = useMemo(() => gradeData?.assignments ?? [], [gradeData]);
+  const members: Member[] = useMemo(() => membersData?.members ?? [], [membersData]);
+  const students = useMemo(() => members.filter((m) => m.role === "MEMBER"), [members]);
 
   const rows = useMemo<StudentRow[]>(() => {
     if (isAdmin) {

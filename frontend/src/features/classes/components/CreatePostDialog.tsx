@@ -1,4 +1,4 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { uploadMultipleFiles } from "@/services/file-service";
 import FileAttachments from "./FileAttachments";
@@ -73,6 +73,12 @@ const CreatePostDialog = ({
   const [maxPoints, setMaxPoints] = useState("");
   const [attachments, setAttachments] = useState<AttachmentMeta[]>([]);
   const [uploading, setUploading] = useState(false);
+
+  useEffect(() => {
+    if (!chapterId && chapters.length > 0) {
+      setChapterId(chapters.find((c) => c.name === "General")?.id ?? chapters[0]?.id ?? "");
+    }
+  }, [chapters, chapterId]);
 
   const handleAddFiles = useCallback(async (files: FileList) => {
     setUploading(true);
