@@ -1,10 +1,11 @@
 import { useState, useMemo } from "react";
 import NavLinksClass from "../components/NavLinksClass";
 import CreatePostDialog from "../components/CreatePostDialog";
+import EditPostDialog from "../components/EditPostDialog";
 import { useParams, useNavigate } from "react-router-dom";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { getClassroomById } from "@/services/classroom-service";
-import { getPostsByClass } from "@/services/content-service";
+import { getPostsByClass, deletePost } from "@/services/content-service";
 import {
   Select,
   SelectContent,
@@ -13,13 +14,28 @@ import {
   SelectValue,
 } from "@/shared/components/ui/select";
 import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from "@/shared/components/ui/dialog";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/shared/components/ui/dropdown-menu";
+import {
   Avatar,
   AvatarFallback,
 } from "@/shared/components/ui/avatar";
+import { Button } from "@/shared/components/ui/button";
 import StreamSkeleton from "../ui/StreamSkeleton";
 import { useAuth } from "@/context/AuthContext";
 import type { Classroom, Post, PostType, StudyMaterialType } from "@/shared/types";
-import { FileText, HelpCircle, ClipboardList, Megaphone, BookOpen, Calendar } from "lucide-react";
+import { FileText, HelpCircle, ClipboardList, Megaphone, BookOpen, Calendar, MoreVertical, Pencil, Trash2 } from "lucide-react";
 
 const postTypeIcon = (type: string) => {
   switch (type) {
@@ -37,11 +53,14 @@ type SortOption = "newest" | "oldest" | "title-az" | "title-za";
 const Stream = () => {
   const { classId } = useParams<{ classId: string }>();
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const { user } = useAuth();
   const [createOpen, setCreateOpen] = useState(false);
   const [typeFilter, setTypeFilter] = useState<string>("all");
   const [subTypeFilter, setSubTypeFilter] = useState<string>("all");
   const [sortBy, setSortBy] = useState<SortOption>("newest");
+  const [editingPost, setEditingPost] = useState<Post | null>(null);
+  const [deletingPost, setDeletingPost] = useState<Post | null>(null);
 
   const {
     data: classroom,
@@ -65,6 +84,14 @@ const Stream = () => {
 
   const isAdmin = classroom?.userRole === "ADMIN";
   const isTeaching = classroom?.type === "TEACHING";
+
+  const removePost = useMutation({
+    mutationFn: (postId: string) => deletePost(postId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["posts", classId] });
+      setDeletingPost(null);
+    },
+  });
 
   const allPosts = posts ?? [];
 
@@ -268,6 +295,28 @@ const Stream = () => {
                           {new Date(post.createdAt).toLocaleString()}
                         </p>
                       </div>
+                      {isAdmin && (
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <button
+                              onClick={(e) => e.stopPropagation()}
+                              className="p-1.5 rounded-full hover:bg-[#F1F5F9] transition-colors cursor-pointer"
+                            >
+                              <MoreVertical className="w-4 h-4 text-[#64748B]" />
+                            </button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end" onClick={(e) => e.stopPropagation()}>
+                            <DropdownMenuItem onClick={() => setEditingPost(post)} className="cursor-pointer">
+                              <Pencil className="w-4 h-4 mr-2" />
+                              Edit
+                            </DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => setDeletingPost(post)} className="cursor-pointer text-red-600 focus:text-red-600">
+                              <Trash2 className="w-4 h-4 mr-2" />
+                              Delete
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      )}
                     </div>
                     {post.content && (
                       <p className="mt-3 text-sm text-[#334155] line-clamp-3">
@@ -285,6 +334,46 @@ const Stream = () => {
             </div>
           </div>
         </div>
+
+        {/* Edit post dialog */}
+        {editingPost && (
+          <EditPostDialog
+            open={!!editingPost}
+            onOpenChange={(open) => { if (!open) setEditingPost(null); }}
+            post={editingPost}
+            classroomType={classroom!.type}
+            chapters={classroom!.chapters ?? []}
+          />
+        )}
+
+        {/* Delete confirmation dialog */}
+        <Dialog open={!!deletingPost} onOpenChange={(open) => { if (!open) setDeletingPost(null); }}>
+          <DialogContent className="sm:max-w-[400px]" showCloseButton={false}>
+            <DialogHeader>
+              <DialogTitle>Delete Post</DialogTitle>
+              <DialogDescription className="text-sm text-[#64748B] mt-2">
+                Are you sure you want to delete "{deletingPost?.title}"? This action cannot be undone.
+              </DialogDescription>
+            </DialogHeader>
+            <DialogFooter className="mt-4">
+              <Button variant="ghost" onClick={() => setDeletingPost(null)}>
+                Cancel
+              </Button>
+              <Button
+                onClick={() => deletingPost && removePost.mutate(deletingPost.id)}
+                disabled={removePost.isPending}
+                className="bg-red-600 hover:bg-red-700 text-white"
+              >
+                {removePost.isPending ? "Deleting..." : "Delete"}
+              </Button>
+            </DialogFooter>
+            {removePost.isError && (
+              <p className="text-sm text-red-500 text-center">
+                {(removePost.error as any)?.response?.data?.error || "Failed to delete post"}
+              </p>
+            )}
+          </DialogContent>
+        </Dialog>
       </section>
     </div>
   );

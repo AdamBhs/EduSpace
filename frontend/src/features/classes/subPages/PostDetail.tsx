@@ -1,17 +1,32 @@
 import { useState, useCallback } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { getPostById, getComments, createComment, deleteComment, getSubmissions, submitAssignment, gradeSubmission } from "@/services/content-service";
+import { getPostById, getComments, createComment, deleteComment, deletePost, getSubmissions, submitAssignment, gradeSubmission } from "@/services/content-service";
 import { getClassroomById } from "@/services/classroom-service";
 import { getUsers } from "@/services/user-service";
 import { getFileUrl } from "@/services/file-service";
 import { uploadMultipleFiles } from "@/services/file-service";
 import { useAuth } from "@/context/AuthContext";
 import NavLinksClass from "../components/NavLinksClass";
+import EditPostDialog from "../components/EditPostDialog";
 import FileAttachments from "../components/FileAttachments";
 import type { AttachmentMeta } from "../components/FileAttachments";
 import { Button } from "@/shared/components/ui/button";
 import { Avatar, AvatarFallback } from "@/shared/components/ui/avatar";
+import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from "@/shared/components/ui/dialog";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/shared/components/ui/dropdown-menu";
 import {
   BookOpen,
   ClipboardList,
@@ -24,6 +39,8 @@ import {
   Download,
   Calendar,
   Award,
+  MoreVertical,
+  Pencil,
 } from "lucide-react";
 import type { Classroom, Post, Comment, Submission, UserSummary } from "@/shared/types";
 
@@ -49,6 +66,8 @@ const PostDetail = () => {
   const [submissionFiles, setSubmissionFiles] = useState<AttachmentMeta[]>([]);
   const [subUploading, setSubUploading] = useState(false);
   const [gradeInputs, setGradeInputs] = useState<Record<string, { points: string; feedback: string }>>({});
+  const [editOpen, setEditOpen] = useState(false);
+  const [deleteOpen, setDeleteOpen] = useState(false);;
 
   const { data: classroom } = useQuery<Classroom>({
     queryKey: ["classroom", classId],
@@ -166,6 +185,14 @@ const PostDetail = () => {
     },
   });
 
+  const removePost = useMutation({
+    mutationFn: () => deletePost(postId!),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["posts", classId] });
+      navigate(`/c/${classId}/stream`);
+    },
+  });
+
   if (isLoading) return <div className="p-6 text-sm text-gray-400">Loading post...</div>;
   if (error || !post) return <div className="p-6 text-sm text-red-500">Post not found</div>;
 
@@ -224,6 +251,25 @@ const PostDetail = () => {
                 {new Date(post.createdAt).toLocaleString()}
               </p>
             </div>
+            {isAdmin && (
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <button className="p-2 rounded-full hover:bg-[#F1F5F9] transition-colors cursor-pointer">
+                    <MoreVertical className="w-5 h-5 text-[#64748B]" />
+                  </button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  <DropdownMenuItem onClick={() => setEditOpen(true)} className="cursor-pointer">
+                    <Pencil className="w-4 h-4 mr-2" />
+                    Edit Post
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => setDeleteOpen(true)} className="cursor-pointer text-red-600 focus:text-red-600">
+                    <Trash2 className="w-4 h-4 mr-2" />
+                    Delete Post
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            )}
           </div>
 
           {/* Assignment info */}
@@ -515,6 +561,46 @@ const PostDetail = () => {
             </div>
           </div>
         </div>
+
+        {/* Edit post dialog */}
+        {isAdmin && (
+          <EditPostDialog
+            open={editOpen}
+            onOpenChange={setEditOpen}
+            post={post}
+            classroomType={classroom?.type ?? "TEACHING"}
+            chapters={classroom?.chapters ?? []}
+          />
+        )}
+
+        {/* Delete confirmation dialog */}
+        <Dialog open={deleteOpen} onOpenChange={setDeleteOpen}>
+          <DialogContent className="sm:max-w-[400px]" showCloseButton={false}>
+            <DialogHeader>
+              <DialogTitle>Delete Post</DialogTitle>
+              <DialogDescription className="text-sm text-[#64748B] mt-2">
+                Are you sure you want to delete "{post.title}"? This action cannot be undone.
+              </DialogDescription>
+            </DialogHeader>
+            <DialogFooter className="mt-4">
+              <Button variant="ghost" onClick={() => setDeleteOpen(false)}>
+                Cancel
+              </Button>
+              <Button
+                onClick={() => removePost.mutate()}
+                disabled={removePost.isPending}
+                className="bg-red-600 hover:bg-red-700 text-white"
+              >
+                {removePost.isPending ? "Deleting..." : "Delete"}
+              </Button>
+            </DialogFooter>
+            {removePost.isError && (
+              <p className="text-sm text-red-500 text-center">
+                {(removePost.error as any)?.response?.data?.error || "Failed to delete post"}
+              </p>
+            )}
+          </DialogContent>
+        </Dialog>
       </section>
     </div>
   );
