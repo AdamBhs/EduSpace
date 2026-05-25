@@ -17,7 +17,9 @@ import {
   SelectValue,
 } from "@/shared/components/ui/select";
 import { updatePost } from "@/services/content-service";
-import type { Post, Chapter, ClassroomType } from "@/shared/types";
+import type { Post, Chapter, ClassroomType, QuizQuestion } from "@/shared/types";
+import QuizBuilder from "./QuizBuilder";
+import DateTimeInput from "@/shared/components/ui/date-time-input";
 
 interface EditPostDialogProps {
   open: boolean;
@@ -37,6 +39,7 @@ const EditPostDialog = ({
   const queryClient = useQueryClient();
   const isTeaching = classroomType === "TEACHING";
   const isAssignment = post.type === "ASSIGNMENT";
+  const isQuiz = post.type === "QUIZ";
 
   const [chapterId, setChapterId] = useState(post.chapterId);
   const [title, setTitle] = useState(post.title);
@@ -46,6 +49,9 @@ const EditPostDialog = ({
   );
   const [maxPoints, setMaxPoints] = useState(
     post.maxPoints !== null ? String(post.maxPoints) : "",
+  );
+  const [quizQuestions, setQuizQuestions] = useState<QuizQuestion[]>(
+    (post.quizData?.questions as QuizQuestion[]) ?? [],
   );
 
   useEffect(() => {
@@ -57,6 +63,7 @@ const EditPostDialog = ({
         post.dueDate ? new Date(post.dueDate).toISOString().slice(0, 16) : "",
       );
       setMaxPoints(post.maxPoints !== null ? String(post.maxPoints) : "");
+      setQuizQuestions((post.quizData?.questions as QuizQuestion[]) ?? []);
     }
   }, [open, post]);
 
@@ -66,7 +73,8 @@ const EditPostDialog = ({
         title: title.trim(),
         content: content.trim() || undefined,
         chapterId,
-        dueDate: isAssignment && dueDate ? dueDate : undefined,
+        quizData: isQuiz ? { questions: quizQuestions } : undefined,
+        dueDate: (isAssignment || isQuiz) && dueDate ? dueDate : undefined,
         maxPoints: isAssignment && maxPoints ? Number(maxPoints) : undefined,
       }),
     onSuccess: () => {
@@ -79,13 +87,14 @@ const EditPostDialog = ({
   const isValid =
     title.trim().length > 0 &&
     chapterId &&
-    (!isAssignment || (maxPoints !== "" && Number(maxPoints) >= 1));
+    (!isAssignment || (maxPoints !== "" && Number(maxPoints) >= 1)) &&
+    (!isQuiz || (quizQuestions.length > 0 && quizQuestions.every(q => q.text.trim() && q.options.every(o => o.trim()))));
 
   const typeLabel = post.type.replace("_", " ");
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[540px]" showCloseButton={false}>
+      <DialogContent className="sm:max-w-[540px] max-h-[85vh] overflow-y-auto" showCloseButton={false}>
         <DialogHeader>
           <DialogTitle className="text-xl font-semibold">Edit Post</DialogTitle>
           <DialogDescription className="sr-only">
@@ -142,17 +151,17 @@ const EditPostDialog = ({
             />
           </div>
 
+          {/* Quiz builder */}
+          {isQuiz && (
+            <QuizBuilder questions={quizQuestions} onChange={setQuizQuestions} />
+          )}
+
           {/* Assignment-specific fields */}
           {isAssignment && isTeaching && (
             <div className="flex gap-4">
               <div className="flex-1">
                 <label className="text-sm font-medium text-muted-foreground">Due Date</label>
-                <input
-                  type="datetime-local"
-                  value={dueDate}
-                  onChange={(e) => setDueDate(e.target.value)}
-                  className="mt-1 w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm outline-none focus:border-blue-500"
-                />
+                <DateTimeInput value={dueDate} onChange={setDueDate} className="mt-1" />
               </div>
               <div className="w-32">
                 <label className="text-sm font-medium text-muted-foreground">Max Points *</label>
@@ -166,6 +175,14 @@ const EditPostDialog = ({
                   className="mt-1 w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm outline-none focus:border-blue-500"
                 />
               </div>
+            </div>
+          )}
+
+          {/* Quiz due date */}
+          {isQuiz && isTeaching && (
+            <div>
+              <label className="text-sm font-medium text-muted-foreground">Due Date</label>
+              <DateTimeInput value={dueDate} onChange={setDueDate} className="mt-1" />
             </div>
           )}
         </div>

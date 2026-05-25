@@ -1,7 +1,7 @@
 import { useState, useCallback } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { getPostById, getComments, createComment, deleteComment, deletePost, getSubmissions, submitAssignment, gradeSubmission } from "@/services/content-service";
+import { getPostById, getComments, createComment, deleteComment, deletePost, getSubmissions, submitAssignment, submitQuiz, gradeSubmission } from "@/services/content-service";
 import { getClassroomById } from "@/services/classroom-service";
 import { getUsers } from "@/services/user-service";
 import { getFileUrl } from "@/services/file-service";
@@ -42,7 +42,8 @@ import {
   MoreVertical,
   Pencil,
 } from "lucide-react";
-import type { Classroom, Post, Comment, Submission, UserSummary } from "@/shared/types";
+import type { Classroom, Post, Comment, Submission, UserSummary, QuizFeedback } from "@/shared/types";
+import { formatDateTime } from "@/shared/lib/utils";
 
 const postTypeIcon = (type: string) => {
   switch (type) {
@@ -67,7 +68,8 @@ const PostDetail = () => {
   const [subUploading, setSubUploading] = useState(false);
   const [gradeInputs, setGradeInputs] = useState<Record<string, { points: string; feedback: string }>>({});
   const [editOpen, setEditOpen] = useState(false);
-  const [deleteOpen, setDeleteOpen] = useState(false);;
+  const [deleteOpen, setDeleteOpen] = useState(false);
+  const [quizAnswers, setQuizAnswers] = useState<Record<string, number>>({});
 
   const { data: classroom } = useQuery<Classroom>({
     queryKey: ["classroom", classId],
@@ -91,11 +93,12 @@ const PostDetail = () => {
   const isMember = classroom?.userRole === "MEMBER";
   const isTeaching = classroom?.type === "TEACHING";
   const isAssignment = post?.type === "ASSIGNMENT";
+  const isQuiz = post?.type === "QUIZ";
 
   const { data: submissions } = useQuery<Submission | Submission[]>({
     queryKey: ["submissions", postId],
     queryFn: () => getSubmissions(postId!),
-    enabled: !!postId && isAssignment && isTeaching,
+    enabled: !!postId && (isAssignment || isQuiz) && isTeaching,
   });
 
   const allComments = comments ?? post?.comments ?? [];
@@ -193,6 +196,15 @@ const PostDetail = () => {
     },
   });
 
+  const submitQuizMutation = useMutation({
+    mutationFn: () => submitQuiz(postId!, quizAnswers),
+    onSuccess: () => {
+      setQuizAnswers({});
+      queryClient.invalidateQueries({ queryKey: ["submissions", postId] });
+      queryClient.invalidateQueries({ queryKey: ["post", postId] });
+    },
+  });
+
   if (isLoading) return <div className="p-6 text-sm text-gray-400">Loading post...</div>;
   if (error || !post) return <div className="p-6 text-sm text-red-500">Post not found</div>;
 
@@ -228,7 +240,7 @@ const PostDetail = () => {
           userRole={classroom?.userRole ?? "MEMBER"}
           chatEnabled={classroom?.chatEnabled ?? true}
         />
-        <div className="flex-1 overflow-y-auto py-4 pr-6 max-w-3xl mx-auto w-full">
+        <div className="flex-1 overflow-y-auto py-4 pr-6 px-6">
           {/* Back button */}
           <button
             onClick={() => navigate(`/c/${classId}/stream`)}
@@ -237,328 +249,453 @@ const PostDetail = () => {
             <ArrowLeft className="w-4 h-4" /> Back to stream
           </button>
 
-          {/* Post header */}
-          <div className="flex items-start gap-4 mb-6">
-            <div className="w-12 h-12 rounded-full bg-[#F1F5F9] flex items-center justify-center shrink-0">
-              {postTypeIcon(post.type)}
-            </div>
+          <div className="flex gap-6">
+            {/* Left column — post content + comments */}
             <div className="flex-1 min-w-0">
-              <h1 className="text-2xl font-bold text-[#0F172A]">{post.title}</h1>
-              <p className="text-sm text-[#64748B] mt-1">
-                {post.type.replace("_", " ")}
-                {post.studyMaterialType ? ` · ${post.studyMaterialType}` : ""}
-                {" · "}
-                {new Date(post.createdAt).toLocaleString()}
-              </p>
-            </div>
-            {isAdmin && (
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <button className="p-2 rounded-full hover:bg-[#F1F5F9] transition-colors cursor-pointer">
-                    <MoreVertical className="w-5 h-5 text-[#64748B]" />
-                  </button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end">
-                  <DropdownMenuItem onClick={() => setEditOpen(true)} className="cursor-pointer">
-                    <Pencil className="w-4 h-4 mr-2" />
-                    Edit Post
-                  </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => setDeleteOpen(true)} className="cursor-pointer text-red-600 focus:text-red-600">
-                    <Trash2 className="w-4 h-4 mr-2" />
-                    Delete Post
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
-            )}
-          </div>
-
-          {/* Assignment info */}
-          {isAssignment && isTeaching && (
-            <div className="flex gap-4 mb-6">
-              {post.dueDate && (
-                <div className="flex items-center gap-2 rounded-lg border border-[#E2E8F0] px-4 py-2 text-sm">
-                  <Calendar className="w-4 h-4 text-[#64748B]" />
-                  <span className="text-[#64748B]">Due:</span>
-                  <span className="font-medium">{new Date(post.dueDate).toLocaleString()}</span>
+              {/* Post header */}
+              <div className="flex items-start gap-4 mb-6">
+                <div className="w-12 h-12 rounded-full bg-[#F1F5F9] flex items-center justify-center shrink-0">
+                  {postTypeIcon(post.type)}
                 </div>
-              )}
-              {post.maxPoints !== null && (
-                <div className="flex items-center gap-2 rounded-lg border border-[#E2E8F0] px-4 py-2 text-sm">
-                  <Award className="w-4 h-4 text-[#64748B]" />
-                  <span className="text-[#64748B]">Points:</span>
-                  <span className="font-medium">{post.maxPoints}</span>
-                </div>
-              )}
-            </div>
-          )}
-
-          {/* Post content */}
-          {post.content && (
-            <div className="prose prose-sm max-w-none mb-6 text-[#334155] whitespace-pre-wrap">
-              {post.content}
-            </div>
-          )}
-
-          {/* Attachments */}
-          {post.attachments && post.attachments.length > 0 && (
-            <div className="mb-6">
-              <h3 className="text-sm font-semibold text-[#0F172A] mb-2">Attachments</h3>
-              <div className="space-y-2">
-                {post.attachments.map((att) => (
-                  <button
-                    key={att.id}
-                    type="button"
-                    onClick={() => handleDownload(att.fileKey, att.fileName)}
-                    className="flex w-full items-center gap-3 rounded-lg border border-[#E2E8F0] p-3 text-sm hover:bg-[#F8FAFC] hover:border-[#137FEC]/40 transition-colors cursor-pointer"
-                  >
-                    <Download className="w-4 h-4 text-[#137FEC]" />
-                    <span className="flex-1 truncate text-[#334155] text-left">{att.fileName}</span>
-                    <span className="text-xs text-[#94A3B8]">
-                      {att.fileSize ? `${(att.fileSize / 1024).toFixed(1)} KB` : ""}
-                    </span>
-                  </button>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {/* Submission section for MEMBERs */}
-          {isAssignment && isTeaching && isMember && (
-            <div className="mb-6 rounded-lg border border-[#E2E8F0] p-5">
-              <h3 className="text-sm font-semibold text-[#0F172A] mb-3">Your Submission</h3>
-              {mySubmission ? (
-                <div className="space-y-2">
-                  {mySubmission.content && (
-                    <p className="text-sm text-[#334155] whitespace-pre-wrap">{mySubmission.content}</p>
-                  )}
-                  {mySubmission.attachments && mySubmission.attachments.length > 0 && (
-                    <div className="space-y-1.5 mt-2">
-                      {mySubmission.attachments.map((att: any) => (
-                        <button
-                          key={att.id ?? att.fileKey}
-                          type="button"
-                          onClick={() => handleDownload(att.fileKey, att.fileName)}
-                          className="flex w-full items-center gap-2 rounded-lg border border-[#E2E8F0] p-2.5 text-sm hover:bg-[#F8FAFC] hover:border-[#137FEC]/40 transition-colors cursor-pointer"
-                        >
-                          <Download className="w-3.5 h-3.5 text-[#137FEC]" />
-                          <span className="flex-1 truncate text-[#334155] text-left">{att.fileName}</span>
-                        </button>
-                      ))}
-                    </div>
-                  )}
-                  <p className="text-xs text-[#64748B]">
-                    Submitted {new Date(mySubmission.submittedAt).toLocaleString()}
+                <div className="flex-1 min-w-0">
+                  <h1 className="text-2xl font-bold text-[#0F172A]">{post.title}</h1>
+                  <p className="text-sm text-[#64748B] mt-1">
+                    {post.type.replace("_", " ")}
+                    {post.studyMaterialType ? ` · ${post.studyMaterialType}` : ""}
+                    {" · "}
+                    {formatDateTime(post.createdAt)}
                   </p>
-                  {mySubmission.gradedAt && (
-                    <div className="mt-2 rounded-lg bg-green-50 border border-green-200 p-3">
-                      <p className="text-sm font-medium text-green-800">
-                        Grade: {mySubmission.points}{post.maxPoints !== null ? `/${post.maxPoints}` : " points"}
-                      </p>
-                      {mySubmission.feedback && (
-                        <p className="text-sm text-green-700 mt-1">{mySubmission.feedback}</p>
-                      )}
+                </div>
+                {isAdmin && (
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <button className="p-2 rounded-full hover:bg-[#F1F5F9] transition-colors cursor-pointer">
+                        <MoreVertical className="w-5 h-5 text-[#64748B]" />
+                      </button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end">
+                      <DropdownMenuItem onClick={() => setEditOpen(true)} className="cursor-pointer">
+                        <Pencil className="w-4 h-4 mr-2" />
+                        Edit Post
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => setDeleteOpen(true)} className="cursor-pointer text-red-600 focus:text-red-600">
+                        <Trash2 className="w-4 h-4 mr-2" />
+                        Delete Post
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                )}
+              </div>
+
+              {/* Assignment info */}
+              {isAssignment && isTeaching && (
+                <div className="flex gap-4 mb-6">
+                  {post.dueDate && (
+                    <div className="flex items-center gap-2 rounded-lg border border-[#E2E8F0] px-4 py-2 text-sm">
+                      <Calendar className="w-4 h-4 text-[#64748B]" />
+                      <span className="text-[#64748B]">Due:</span>
+                      <span className="font-medium">{formatDateTime(post.dueDate)}</span>
+                    </div>
+                  )}
+                  {post.maxPoints !== null && (
+                    <div className="flex items-center gap-2 rounded-lg border border-[#E2E8F0] px-4 py-2 text-sm">
+                      <Award className="w-4 h-4 text-[#64748B]" />
+                      <span className="text-[#64748B]">Points:</span>
+                      <span className="font-medium">{post.maxPoints}</span>
                     </div>
                   )}
                 </div>
-              ) : (
-                <div className="space-y-3">
-                  <textarea
-                    value={submissionText}
-                    onChange={(e) => setSubmissionText(e.target.value)}
-                    placeholder="Write your submission..."
-                    rows={4}
-                    className="w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm outline-none focus:border-blue-500 resize-none"
-                  />
-                  <FileAttachments
-                    attachments={submissionFiles}
-                    onAdd={handleSubAddFiles}
-                    onRemove={handleSubRemoveFile}
-                    uploading={subUploading}
-                  />
+              )}
+
+              {/* Quiz info */}
+              {isQuiz && isTeaching && (
+                <div className="flex flex-wrap gap-4 mb-6">
+                  {post.dueDate && (
+                    <div className="flex items-center gap-2 rounded-lg border border-[#E2E8F0] px-4 py-2 text-sm">
+                      <Calendar className="w-4 h-4 text-[#64748B]" />
+                      <span className="text-[#64748B]">Due:</span>
+                      <span className="font-medium">{formatDateTime(post.dueDate)}</span>
+                    </div>
+                  )}
+                  {post.maxPoints !== null && (
+                    <div className="flex items-center gap-2 rounded-lg border border-[#E2E8F0] px-4 py-2 text-sm">
+                      <Award className="w-4 h-4 text-[#64748B]" />
+                      <span className="text-[#64748B]">Total Points:</span>
+                      <span className="font-medium">{post.maxPoints}</span>
+                    </div>
+                  )}
+                  <div className="flex items-center gap-2 rounded-lg border border-[#E2E8F0] px-4 py-2 text-sm">
+                    <FileText className="w-4 h-4 text-[#64748B]" />
+                    <span className="text-[#64748B]">Questions:</span>
+                    <span className="font-medium">{post.quizData?.questions?.length ?? 0}</span>
+                  </div>
+                </div>
+              )}
+
+              {/* Post content */}
+              {post.content && (
+                <div className="prose prose-sm max-w-none mb-6 text-[#334155] whitespace-pre-wrap">
+                  {post.content}
+                </div>
+              )}
+
+              {/* Attachments */}
+              {post.attachments && post.attachments.length > 0 && (
+                <div className="mb-6">
+                  <h3 className="text-sm font-semibold text-[#0F172A] mb-2">Attachments</h3>
+                  <div className="space-y-2">
+                    {post.attachments.map((att) => (
+                      <button
+                        key={att.id}
+                        type="button"
+                        onClick={() => handleDownload(att.fileKey, att.fileName)}
+                        className="flex w-full items-center gap-3 rounded-lg border border-[#E2E8F0] p-3 text-sm hover:bg-[#F8FAFC] hover:border-[#137FEC]/40 transition-colors cursor-pointer"
+                      >
+                        <Download className="w-4 h-4 text-[#137FEC]" />
+                        <span className="flex-1 truncate text-[#334155] text-left">{att.fileName}</span>
+                        <span className="text-xs text-[#94A3B8]">
+                          {att.fileSize ? `${(att.fileSize / 1024).toFixed(1)} KB` : ""}
+                        </span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Quiz-taking form for MEMBERs (inline — takes full width since it's the main interaction) */}
+              {isQuiz && isTeaching && isMember && !mySubmission && post.quizData && (
+                <div className="mb-6 rounded-lg border border-[#E2E8F0] p-5">
+                  <h3 className="text-sm font-semibold text-[#0F172A] mb-4">Take Quiz</h3>
+                  <div className="space-y-6">
+                    {post.quizData.questions.map((q, idx) => (
+                      <div key={q.id} className="space-y-2">
+                        <p className="text-sm font-medium text-[#0F172A]">
+                          {idx + 1}. {q.text}{" "}
+                          <span className="text-xs text-[#64748B] font-normal">({q.points} pts)</span>
+                        </p>
+                        <div className="space-y-1.5 ml-5">
+                          {q.options.map((opt, optIdx) => (
+                            <label key={optIdx} className="flex items-center gap-2.5 cursor-pointer py-0.5">
+                              <input
+                                type="radio"
+                                name={`quiz-q-${q.id}`}
+                                checked={quizAnswers[q.id] === optIdx}
+                                onChange={() => setQuizAnswers((prev) => ({ ...prev, [q.id]: optIdx }))}
+                                className="accent-blue-500"
+                              />
+                              <span className="text-sm text-[#334155]">{opt}</span>
+                            </label>
+                          ))}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
                   <Button
-                    onClick={() => submit.mutate()}
-                    disabled={submit.isPending || subUploading}
-                    className="bg-blue-500 hover:bg-blue-600 text-white"
+                    onClick={() => submitQuizMutation.mutate()}
+                    disabled={submitQuizMutation.isPending || Object.keys(quizAnswers).length < (post.quizData.questions?.length ?? 0)}
+                    className="mt-5 bg-blue-500 hover:bg-blue-600 text-white"
                     size="sm"
                   >
-                    {submit.isPending ? "Submitting..." : "Submit"}
+                    {submitQuizMutation.isPending ? "Submitting..." : "Submit Quiz"}
                   </Button>
-                  {submit.isError && (
-                    <p className="text-xs text-red-500">
-                      {(submit.error as any)?.response?.data?.error || "Failed to submit"}
+                  {submitQuizMutation.isError && (
+                    <p className="text-xs text-red-500 mt-2">
+                      {(submitQuizMutation.error as any)?.response?.data?.error || "Failed to submit quiz"}
                     </p>
                   )}
                 </div>
               )}
-            </div>
-          )}
 
-          {/* Submissions list for ADMINs */}
-          {isAssignment && isTeaching && isAdmin && allSubmissions.length > 0 && (
-            <div className="mb-6 rounded-lg border border-[#E2E8F0] p-5">
-              <h3 className="text-sm font-semibold text-[#0F172A] mb-3">
-                Submissions ({allSubmissions.length})
-              </h3>
-              <div className="space-y-4">
-                {allSubmissions.map((sub) => {
-                  const gi = gradeInputs[sub.id] ?? { points: sub.points?.toString() ?? "", feedback: sub.feedback ?? "" };
-                  return (
-                    <div key={sub.id} className="rounded-lg border border-[#E2E8F0] p-4">
-                      <div className="flex items-center gap-3 mb-2">
-                        <Avatar className="h-7 w-7">
-                          <AvatarFallback className="bg-blue-100 text-blue-700 text-xs font-semibold">
-                            {userInitials(sub.studentId)}
-                          </AvatarFallback>
-                        </Avatar>
-                        <span className="text-sm font-medium">{userName(sub.studentId)}</span>
-                        <span className="text-xs text-[#94A3B8] ml-auto">
-                          {new Date(sub.submittedAt).toLocaleString()}
-                        </span>
-                      </div>
-                      {sub.content && (
-                        <p className="text-sm text-[#334155] mb-3 whitespace-pre-wrap">{sub.content}</p>
-                      )}
-                      {sub.attachments && sub.attachments.length > 0 && (
-                        <div className="space-y-1.5 mb-3">
-                          {sub.attachments.map((att: any) => (
-                            <button
-                              key={att.id ?? att.fileKey}
-                              type="button"
-                              onClick={() => handleDownload(att.fileKey, att.fileName)}
-                              className="flex w-full items-center gap-2 rounded-lg border border-[#E2E8F0] p-2.5 text-sm hover:bg-[#F8FAFC] hover:border-[#137FEC]/40 transition-colors cursor-pointer"
+              {/* Submissions list for ADMINs */}
+              {(isAssignment || isQuiz) && isTeaching && isAdmin && allSubmissions.length > 0 && (
+                <div className="mb-6 rounded-lg border border-[#E2E8F0] p-5">
+                  <h3 className="text-sm font-semibold text-[#0F172A] mb-3">
+                    Submissions ({allSubmissions.length})
+                  </h3>
+                  <div className="space-y-4">
+                    {allSubmissions.map((sub) => {
+                      const gi = gradeInputs[sub.id] ?? { points: sub.points?.toString() ?? "", feedback: sub.feedback ?? "" };
+                      return (
+                        <div key={sub.id} className="rounded-lg border border-[#E2E8F0] p-4">
+                          <div className="flex items-center gap-3 mb-2">
+                            <Avatar className="h-7 w-7">
+                              <AvatarFallback className="bg-blue-100 text-blue-700 text-xs font-semibold">
+                                {userInitials(sub.studentId)}
+                              </AvatarFallback>
+                            </Avatar>
+                            <span className="text-sm font-medium">{userName(sub.studentId)}</span>
+                            <span className="text-xs text-[#94A3B8] ml-auto">
+                              {formatDateTime(sub.createdAt)}
+                            </span>
+                          </div>
+                          {sub.content && (
+                            <p className="text-sm text-[#334155] mb-3 whitespace-pre-wrap">{sub.content}</p>
+                          )}
+                          {sub.attachments && sub.attachments.length > 0 && (
+                            <div className="space-y-1.5 mb-3">
+                              {sub.attachments.map((att: any) => (
+                                <button
+                                  key={att.id ?? att.fileKey}
+                                  type="button"
+                                  onClick={() => handleDownload(att.fileKey, att.fileName)}
+                                  className="flex w-full items-center gap-2 rounded-lg border border-[#E2E8F0] p-2.5 text-sm hover:bg-[#F8FAFC] hover:border-[#137FEC]/40 transition-colors cursor-pointer"
+                                >
+                                  <Download className="w-3.5 h-3.5 text-[#137FEC]" />
+                                  <span className="flex-1 truncate text-[#334155] text-left">{att.fileName}</span>
+                                </button>
+                              ))}
+                            </div>
+                          )}
+                          <div className="flex items-end gap-3">
+                            <div className="flex-1">
+                              <label className="text-xs text-[#64748B]">Points{post.maxPoints !== null ? ` (max ${post.maxPoints})` : ""}</label>
+                              <input
+                                type="number"
+                                min="0"
+                                max={post.maxPoints ?? undefined}
+                                value={gi.points}
+                                onChange={(e) =>
+                                  setGradeInputs((prev) => ({
+                                    ...prev,
+                                    [sub.id]: { ...gi, points: e.target.value },
+                                  }))
+                                }
+                                className="mt-1 w-full rounded-lg border border-gray-200 px-3 py-1.5 text-sm outline-none focus:border-blue-500"
+                              />
+                            </div>
+                            <div className="flex-[2]">
+                              <label className="text-xs text-[#64748B]">Feedback</label>
+                              <input
+                                type="text"
+                                value={gi.feedback}
+                                onChange={(e) =>
+                                  setGradeInputs((prev) => ({
+                                    ...prev,
+                                    [sub.id]: { ...gi, feedback: e.target.value },
+                                  }))
+                                }
+                                placeholder="Optional feedback"
+                                className="mt-1 w-full rounded-lg border border-gray-200 px-3 py-1.5 text-sm outline-none focus:border-blue-500"
+                              />
+                            </div>
+                            <Button
+                              size="sm"
+                              className="bg-green-600 hover:bg-green-700 text-white"
+                              disabled={!gi.points || grade.isPending}
+                              onClick={() =>
+                                grade.mutate({
+                                  submissionId: sub.id,
+                                  points: Number(gi.points),
+                                  feedback: gi.feedback || undefined,
+                                })
+                              }
                             >
-                              <Download className="w-3.5 h-3.5 text-[#137FEC]" />
-                              <span className="flex-1 truncate text-[#334155] text-left">{att.fileName}</span>
-                            </button>
-                          ))}
+                              {sub.gradedAt ? "Re-grade" : "Grade"}
+                            </Button>
+                          </div>
+                          {sub.gradedAt && (
+                            <p className="text-xs text-green-600 mt-2">
+                              Graded: {sub.points}{post.maxPoints !== null ? `/${post.maxPoints}` : ""} points
+                            </p>
+                          )}
                         </div>
-                      )}
-                      <div className="flex items-end gap-3">
-                        <div className="flex-1">
-                          <label className="text-xs text-[#64748B]">Points{post.maxPoints !== null ? ` (max ${post.maxPoints})` : ""}</label>
-                          <input
-                            type="number"
-                            min="0"
-                            max={post.maxPoints ?? undefined}
-                            value={gi.points}
-                            onChange={(e) =>
-                              setGradeInputs((prev) => ({
-                                ...prev,
-                                [sub.id]: { ...gi, points: e.target.value },
-                              }))
-                            }
-                            className="mt-1 w-full rounded-lg border border-gray-200 px-3 py-1.5 text-sm outline-none focus:border-blue-500"
-                          />
-                        </div>
-                        <div className="flex-[2]">
-                          <label className="text-xs text-[#64748B]">Feedback</label>
-                          <input
-                            type="text"
-                            value={gi.feedback}
-                            onChange={(e) =>
-                              setGradeInputs((prev) => ({
-                                ...prev,
-                                [sub.id]: { ...gi, feedback: e.target.value },
-                              }))
-                            }
-                            placeholder="Optional feedback"
-                            className="mt-1 w-full rounded-lg border border-gray-200 px-3 py-1.5 text-sm outline-none focus:border-blue-500"
-                          />
-                        </div>
-                        <Button
-                          size="sm"
-                          className="bg-green-600 hover:bg-green-700 text-white"
-                          disabled={!gi.points || grade.isPending}
-                          onClick={() =>
-                            grade.mutate({
-                              submissionId: sub.id,
-                              points: Number(gi.points),
-                              feedback: gi.feedback || undefined,
-                            })
-                          }
-                        >
-                          {sub.gradedAt ? "Re-grade" : "Grade"}
-                        </Button>
-                      </div>
-                      {sub.gradedAt && (
-                        <p className="text-xs text-green-600 mt-2">
-                          Graded: {sub.points}{post.maxPoints !== null ? `/${post.maxPoints}` : ""} points
-                        </p>
-                      )}
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-          )}
-
-          {/* Comments */}
-          <div className="border-t border-[#E2E8F0] pt-5">
-            <h3 className="text-sm font-semibold text-[#0F172A] mb-4">
-              Comments ({allComments.length})
-            </h3>
-            <div className="space-y-4 mb-4">
-              {allComments.map((c) => (
-                <div key={c.id} className="flex gap-3">
-                  <Avatar className="h-8 w-8 shrink-0">
-                    <AvatarFallback className="bg-blue-100 text-blue-700 text-xs font-semibold">
-                      {userInitials(c.authorId)}
-                    </AvatarFallback>
-                  </Avatar>
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2">
-                      <span className="text-sm font-medium text-[#0F172A]">{userName(c.authorId)}</span>
-                      <span className="text-xs text-[#94A3B8]">
-                        {new Date(c.createdAt).toLocaleString()}
-                      </span>
-                      {(c.authorId === user?.userId || isAdmin) && (
-                        <button
-                          onClick={() => removeComment.mutate(c.id)}
-                          className="ml-auto text-[#94A3B8] hover:text-red-500 cursor-pointer"
-                        >
-                          <Trash2 className="w-3.5 h-3.5" />
-                        </button>
-                      )}
-                    </div>
-                    <p className="text-sm text-[#334155] mt-0.5">{c.content}</p>
+                      );
+                    })}
                   </div>
                 </div>
-              ))}
-              {allComments.length === 0 && (
-                <p className="text-sm text-[#94A3B8]">No comments yet</p>
               )}
-            </div>
 
-            {/* Add comment */}
-            <div className="flex gap-3 items-start">
-              <Avatar className="h-8 w-8 shrink-0">
-                <AvatarFallback className="bg-blue-100 text-blue-700 text-xs font-semibold">
-                  {user?.profile
-                    ? `${user.profile.firstName?.[0] ?? ""}${user.profile.lastName?.[0] ?? ""}`.toUpperCase()
-                    : "?"}
-                </AvatarFallback>
-              </Avatar>
-              <div className="flex-1 flex gap-2">
-                <input
-                  type="text"
-                  value={commentText}
-                  onChange={(e) => setCommentText(e.target.value)}
-                  placeholder="Add a comment..."
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter" && commentText.trim()) addComment.mutate();
-                  }}
-                  className="flex-1 rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm outline-none focus:border-blue-500"
-                />
-                <Button
-                  size="sm"
-                  onClick={() => addComment.mutate()}
-                  disabled={!commentText.trim() || addComment.isPending}
-                  className="bg-blue-500 hover:bg-blue-600 text-white"
-                >
-                  <Send className="w-4 h-4" />
-                </Button>
+              {/* Comments */}
+              <div className="border-t border-[#E2E8F0] pt-5">
+                <h3 className="text-sm font-semibold text-[#0F172A] mb-4">
+                  Comments ({allComments.length})
+                </h3>
+                <div className="space-y-4 mb-4">
+                  {allComments.map((c) => (
+                    <div key={c.id} className="flex gap-3">
+                      <Avatar className="h-8 w-8 shrink-0">
+                        <AvatarFallback className="bg-blue-100 text-blue-700 text-xs font-semibold">
+                          {userInitials(c.authorId)}
+                        </AvatarFallback>
+                      </Avatar>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2">
+                          <span className="text-sm font-medium text-[#0F172A]">{userName(c.authorId)}</span>
+                          <span className="text-xs text-[#94A3B8]">
+                            {formatDateTime(c.createdAt)}
+                          </span>
+                          {(c.authorId === user?.userId || isAdmin) && (
+                            <button
+                              onClick={() => removeComment.mutate(c.id)}
+                              className="ml-auto text-[#94A3B8] hover:text-red-500 cursor-pointer"
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </button>
+                          )}
+                        </div>
+                        <p className="text-sm text-[#334155] mt-0.5">{c.content}</p>
+                      </div>
+                    </div>
+                  ))}
+                  {allComments.length === 0 && (
+                    <p className="text-sm text-[#94A3B8]">No comments yet</p>
+                  )}
+                </div>
+
+                {/* Add comment */}
+                <div className="flex gap-3 items-start">
+                  <Avatar className="h-8 w-8 shrink-0">
+                    <AvatarFallback className="bg-blue-100 text-blue-700 text-xs font-semibold">
+                      {user?.profile
+                        ? `${user.profile.firstName?.[0] ?? ""}${user.profile.lastName?.[0] ?? ""}`.toUpperCase()
+                        : "?"}
+                    </AvatarFallback>
+                  </Avatar>
+                  <div className="flex-1 flex gap-2">
+                    <input
+                      type="text"
+                      value={commentText}
+                      onChange={(e) => setCommentText(e.target.value)}
+                      placeholder="Add a comment..."
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter" && commentText.trim()) addComment.mutate();
+                      }}
+                      className="flex-1 rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm outline-none focus:border-blue-500"
+                    />
+                    <Button
+                      size="sm"
+                      onClick={() => addComment.mutate()}
+                      disabled={!commentText.trim() || addComment.isPending}
+                      className="bg-blue-500 hover:bg-blue-600 text-white"
+                    >
+                      <Send className="w-4 h-4" />
+                    </Button>
+                  </div>
+                </div>
               </div>
             </div>
+
+            {/* Right column — submission panel (member view) */}
+            {(isAssignment || isQuiz) && isTeaching && isMember && (
+              <div className="w-72 shrink-0">
+                <div className="sticky top-0 space-y-4">
+                  {/* Assignment submission */}
+                  {isAssignment && (
+                    <div className="rounded-lg border border-[#E2E8F0] p-5">
+                      <h3 className="text-sm font-semibold text-[#0F172A] mb-3">Your Submission</h3>
+                      {mySubmission ? (
+                        <div className="space-y-2">
+                          {mySubmission.content && (
+                            <p className="text-sm text-[#334155] whitespace-pre-wrap">{mySubmission.content}</p>
+                          )}
+                          {mySubmission.attachments && mySubmission.attachments.length > 0 && (
+                            <div className="space-y-1.5 mt-2">
+                              {mySubmission.attachments.map((att: any) => (
+                                <button
+                                  key={att.id ?? att.fileKey}
+                                  type="button"
+                                  onClick={() => handleDownload(att.fileKey, att.fileName)}
+                                  className="flex w-full items-center gap-2 rounded-lg border border-[#E2E8F0] p-2.5 text-sm hover:bg-[#F8FAFC] hover:border-[#137FEC]/40 transition-colors cursor-pointer"
+                                >
+                                  <Download className="w-3.5 h-3.5 text-[#137FEC]" />
+                                  <span className="flex-1 truncate text-[#334155] text-left">{att.fileName}</span>
+                                </button>
+                              ))}
+                            </div>
+                          )}
+                          <p className="text-xs text-[#64748B]">
+                            Submitted {formatDateTime(mySubmission.createdAt)}
+                          </p>
+                          {mySubmission.gradedAt && (
+                            <div className="mt-2 rounded-lg bg-green-50 border border-green-200 p-3">
+                              <p className="text-sm font-medium text-green-800">
+                                Grade: {mySubmission.points}{post.maxPoints !== null ? `/${post.maxPoints}` : " points"}
+                              </p>
+                              {mySubmission.feedback && (
+                                <p className="text-sm text-green-700 mt-1">{mySubmission.feedback}</p>
+                              )}
+                            </div>
+                          )}
+                        </div>
+                      ) : (
+                        <div className="space-y-3">
+                          <textarea
+                            value={submissionText}
+                            onChange={(e) => setSubmissionText(e.target.value)}
+                            placeholder="Write your submission..."
+                            rows={4}
+                            className="w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm outline-none focus:border-blue-500 resize-none"
+                          />
+                          <FileAttachments
+                            attachments={submissionFiles}
+                            onAdd={handleSubAddFiles}
+                            onRemove={handleSubRemoveFile}
+                            uploading={subUploading}
+                          />
+                          <Button
+                            onClick={() => submit.mutate()}
+                            disabled={submit.isPending || subUploading}
+                            className="w-full bg-blue-500 hover:bg-blue-600 text-white"
+                            size="sm"
+                          >
+                            {submit.isPending ? "Submitting..." : "Submit"}
+                          </Button>
+                          {submit.isError && (
+                            <p className="text-xs text-red-500">
+                              {(submit.error as any)?.response?.data?.error || "Failed to submit"}
+                            </p>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                  {/* Quiz results */}
+                  {isQuiz && mySubmission && (
+                    <div className="rounded-lg border border-[#E2E8F0] p-5">
+                      <h3 className="text-sm font-semibold text-[#0F172A] mb-3">Quiz Results</h3>
+                      <div className="rounded-lg bg-green-50 border border-green-200 p-3 mb-4">
+                        <p className="text-sm font-medium text-green-800">
+                          Score: {mySubmission.points}{post.maxPoints !== null ? `/${post.maxPoints}` : ""} points
+                        </p>
+                      </div>
+                      {mySubmission.feedback && post.quizData && (() => {
+                        let fb: QuizFeedback | null = null;
+                        try { fb = JSON.parse(mySubmission.feedback) as QuizFeedback; } catch { /* ignore */ }
+                        if (!fb?.results) return null;
+                        return (
+                          <div className="space-y-2">
+                            {post.quizData.questions.map((q, idx) => {
+                              const result = fb!.results.find((r) => r.questionId === q.id);
+                              return (
+                                <div
+                                  key={q.id}
+                                  className={`rounded-lg p-3 border ${result?.correct ? "border-green-200 bg-green-50" : "border-red-200 bg-red-50"}`}
+                                >
+                                  <div className="flex items-center justify-between">
+                                    <p className="text-sm font-medium text-[#0F172A]">
+                                      {idx + 1}. {q.text}
+                                    </p>
+                                    <span className={`text-xs font-semibold ${result?.correct ? "text-green-600" : "text-red-600"}`}>
+                                      {result?.earnedPoints}/{q.points}
+                                    </span>
+                                  </div>
+                                  {q.correctIndex !== undefined && (
+                                    <p className="text-xs text-[#64748B] mt-1">
+                                      Correct answer: {q.options[q.correctIndex]}
+                                    </p>
+                                  )}
+                                </div>
+                              );
+                            })}
+                          </div>
+                        );
+                      })()}
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
           </div>
         </div>
 

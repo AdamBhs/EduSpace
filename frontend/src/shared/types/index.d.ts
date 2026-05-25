@@ -90,6 +90,33 @@ export type Chapter = {
   createdAt: string;
 };
 
+// ─── Quiz ───────────────────────────────────────────────────
+
+export type QuizQuestion = {
+  id: string;
+  text: string;
+  options: string[];
+  correctIndex?: number;
+  points: number;
+};
+
+export type QuizData = {
+  questions: QuizQuestion[];
+};
+
+export type QuizResult = {
+  questionId: string;
+  correct: boolean;
+  earnedPoints: number;
+};
+
+export type QuizFeedback = {
+  autoGraded: boolean;
+  results: QuizResult[];
+  totalEarned: number;
+  totalPossible: number;
+};
+
 // ─── Post ───────────────────────────────────────────────────
 
 export type Attachment = {
@@ -111,6 +138,7 @@ export type Post = {
   content: string | null;
   type: PostType;
   studyMaterialType: StudyMaterialType | null;
+  quizData?: QuizData | null;
   dueDate: string | null;
   maxPoints: number | null;
   createdAt: string;
@@ -139,7 +167,7 @@ export type Submission = {
   content: string | null;
   points: number | null;
   feedback: string | null;
-  submittedAt: string;
+  createdAt: string;
   gradedAt: string | null;
   attachments?: SubmissionAttachment[];
 };

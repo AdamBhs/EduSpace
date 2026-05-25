@@ -12,7 +12,6 @@ import {
 import { ScrollArea } from "@/shared/components/ui/scroll-area";
 import { cn } from "@/shared/lib/utils";
 import { LuListTodo } from "react-icons/lu";
-import { MdOutlineArchive } from "react-icons/md";
 import { useNavigate, useLocation } from "react-router-dom";
 import { IoMenu } from "react-icons/io5";
 
@@ -37,7 +36,6 @@ const navSections = [
 ];
 
 const footerItems = [
-  { icon: MdOutlineArchive, label: "Archive", path: "/archive" },
   { icon: Settings, label: "Settings", path: "/settings" },
 ];
 

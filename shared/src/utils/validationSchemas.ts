@@ -113,6 +113,18 @@ export const reorderChaptersSchema = z.object({
 
 // ─── Posts ────────────────────────────────────────────────────
 
+const quizQuestionSchema = z.object({
+  id: z.string().min(1),
+  text: z.string().min(1, "Question text is required"),
+  options: z.array(z.string().min(1)).min(2, "At least 2 options required").max(6),
+  correctIndex: z.number().int().min(0),
+  points: z.number().int().min(1, "Points must be at least 1"),
+});
+
+const quizDataSchema = z.object({
+  questions: z.array(quizQuestionSchema).min(1, "At least one question is required"),
+});
+
 export const createPostSchema = z.object({
   classId: z.string().uuid(),
   chapterId: z.string().uuid(),
@@ -120,7 +132,8 @@ export const createPostSchema = z.object({
   content: z.string().optional(),
   type: z.enum(["STUDY_MATERIAL", "QUIZ", "QUESTION", "ASSIGNMENT", "ANNOUNCEMENT"]),
   studyMaterialType: z.enum(["COURS", "TD", "TP", "RESUME"]).optional(),
-  dueDate: z.string().datetime().optional(),
+  quizData: quizDataSchema.optional(),
+  dueDate: z.string().datetime({ local: true }).optional(),
   maxPoints: z.number().min(1, "Max points must be at least 1").optional(),
   attachments: z
     .array(
@@ -135,13 +148,23 @@ export const createPostSchema = z.object({
 }).refine(
   (data) => data.type !== "ASSIGNMENT" || (data.maxPoints !== undefined && data.maxPoints !== null),
   { message: "Max points is required for assignments", path: ["maxPoints"] },
+).refine(
+  (data) => data.type !== "QUIZ" || (data.quizData !== undefined && data.quizData !== null),
+  { message: "Quiz data is required for quiz posts", path: ["quizData"] },
+).refine(
+  (data) => {
+    if (data.type !== "QUIZ" || !data.quizData) return true;
+    return data.quizData.questions.every(q => q.correctIndex < q.options.length);
+  },
+  { message: "correctIndex must be within options range", path: ["quizData"] },
 );
 
 export const updatePostSchema = z.object({
   title: z.string().min(1).optional(),
   content: z.string().optional(),
   chapterId: z.string().uuid().optional(),
-  dueDate: z.string().datetime().optional(),
+  quizData: quizDataSchema.optional(),
+  dueDate: z.string().datetime({ local: true }).optional(),
   maxPoints: z.number().min(0).optional(),
 });
 

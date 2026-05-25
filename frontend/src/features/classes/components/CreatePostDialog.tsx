@@ -20,7 +20,9 @@ import {
   SelectValue,
 } from "@/shared/components/ui/select";
 import { createPost } from "@/services/content-service";
-import type { Chapter, ClassroomType, PostType, StudyMaterialType } from "@/shared/types";
+import type { Chapter, ClassroomType, PostType, StudyMaterialType, QuizQuestion } from "@/shared/types";
+import QuizBuilder from "./QuizBuilder";
+import DateTimeInput from "@/shared/components/ui/date-time-input";
 import {
   BookOpen,
   ClipboardList,
@@ -42,7 +44,7 @@ interface CreatePostDialogProps {
 const POST_TYPES: { value: PostType; label: string; icon: React.ReactNode; teachingOnly?: boolean }[] = [
   { value: "ANNOUNCEMENT", label: "Announcement", icon: <Megaphone className="size-4" /> },
   { value: "STUDY_MATERIAL", label: "Study Material", icon: <BookOpen className="size-4" /> },
-  { value: "QUIZ", label: "Quiz", icon: <FileText className="size-4" /> },
+  { value: "QUIZ", label: "Quiz", icon: <FileText className="size-4" />, teachingOnly: true },
   { value: "QUESTION", label: "Question", icon: <HelpCircle className="size-4" /> },
   { value: "ASSIGNMENT", label: "Assignment", icon: <ClipboardList className="size-4" />, teachingOnly: true },
 ];
@@ -76,6 +78,7 @@ const CreatePostDialog = ({
   const [attachments, setAttachments] = useState<AttachmentMeta[]>([]);
   const [uploading, setUploading] = useState(false);
   const [showChapterMgr, setShowChapterMgr] = useState(false);
+  const [quizQuestions, setQuizQuestions] = useState<QuizQuestion[]>([]);
 
   useEffect(() => {
     if (!chapterId && chapters.length > 0) {
@@ -114,7 +117,8 @@ const CreatePostDialog = ({
         content: content.trim() || undefined,
         type: postType,
         studyMaterialType: postType === "STUDY_MATERIAL" ? studyMaterialType : undefined,
-        dueDate: postType === "ASSIGNMENT" && dueDate ? dueDate : undefined,
+        quizData: postType === "QUIZ" ? { questions: quizQuestions } : undefined,
+        dueDate: (postType === "ASSIGNMENT" || postType === "QUIZ") && dueDate ? dueDate : undefined,
         maxPoints: postType === "ASSIGNMENT" && maxPoints ? Number(maxPoints) : undefined,
         attachments: attachments.length > 0 ? attachments : undefined,
       }),
@@ -133,6 +137,7 @@ const CreatePostDialog = ({
     setDueDate("");
     setMaxPoints("");
     setAttachments([]);
+    setQuizQuestions([]);
     setShowChapterMgr(false);
     onOpenChange(false);
   };
@@ -140,7 +145,8 @@ const CreatePostDialog = ({
   const isValid =
     title.trim().length > 0 &&
     chapterId &&
-    (postType !== "ASSIGNMENT" || (maxPoints !== "" && Number(maxPoints) >= 1));
+    (postType !== "ASSIGNMENT" || (maxPoints !== "" && Number(maxPoints) >= 1)) &&
+    (postType !== "QUIZ" || (quizQuestions.length > 0 && quizQuestions.every(q => q.text.trim() && q.options.every(o => o.trim()))));
 
   const availableTypes = isTeaching
     ? POST_TYPES
@@ -148,7 +154,7 @@ const CreatePostDialog = ({
 
   return (
     <Dialog open={open} onOpenChange={handleClose}>
-      <DialogContent className="sm:max-w-[540px]" showCloseButton={false}>
+      <DialogContent className="sm:max-w-[540px] max-h-[85vh] overflow-y-auto" showCloseButton={false}>
         <DialogHeader>
           <DialogTitle className="text-xl font-semibold">Create Post</DialogTitle>
           <DialogDescription className="sr-only">
@@ -258,6 +264,11 @@ const CreatePostDialog = ({
             />
           </div>
 
+          {/* Quiz builder */}
+          {postType === "QUIZ" && (
+            <QuizBuilder questions={quizQuestions} onChange={setQuizQuestions} />
+          )}
+
           {/* File attachments */}
           <FileAttachments
             attachments={attachments}
@@ -271,12 +282,7 @@ const CreatePostDialog = ({
             <div className="flex gap-4">
               <div className="flex-1">
                 <label className="text-sm font-medium text-muted-foreground">Due Date</label>
-                <input
-                  type="datetime-local"
-                  value={dueDate}
-                  onChange={(e) => setDueDate(e.target.value)}
-                  className="mt-1 w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm outline-none focus:border-blue-500"
-                />
+                <DateTimeInput value={dueDate} onChange={setDueDate} className="mt-1" />
               </div>
               <div className="w-32">
                 <label className="text-sm font-medium text-muted-foreground">Max Points *</label>
@@ -290,6 +296,14 @@ const CreatePostDialog = ({
                   className="mt-1 w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm outline-none focus:border-blue-500"
                 />
               </div>
+            </div>
+          )}
+
+          {/* Quiz due date */}
+          {postType === "QUIZ" && isTeaching && (
+            <div>
+              <label className="text-sm font-medium text-muted-foreground">Due Date</label>
+              <DateTimeInput value={dueDate} onChange={setDueDate} className="mt-1" />
             </div>
           )}
         </div>

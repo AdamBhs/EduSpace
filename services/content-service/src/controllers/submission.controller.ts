@@ -14,8 +14,8 @@ export class SubmissionController {
       if (!post) {
         return sendError(res, "Post not found", 404);
       }
-      if (post.type !== "ASSIGNMENT") {
-        return sendError(res, "Can only submit to assignments", 400);
+      if (post.type !== "ASSIGNMENT" && post.type !== "QUIZ") {
+        return sendError(res, "Can only submit to assignments and quizzes", 400);
       }
 
       const membership = await checkMembership(post.classId, userId, req.headers.authorization);
@@ -36,11 +36,56 @@ export class SubmissionController {
         return sendError(res, "Already submitted — update your existing submission", 409);
       }
 
+      let autoPoints: number | undefined;
+      let autoFeedback: string | undefined;
+
+      if (post.type === "QUIZ") {
+        if (!content) {
+          return sendError(res, "Quiz answers are required", 400);
+        }
+
+        let answers: { answers: Record<string, number> };
+        try {
+          answers = typeof content === "string" ? JSON.parse(content) : content;
+        } catch {
+          return sendError(res, "Invalid quiz answer format", 400);
+        }
+
+        if (!answers.answers || typeof answers.answers !== "object") {
+          return sendError(res, "Quiz answers must map question IDs to selected indices", 400);
+        }
+
+        const quizData = post.quizData as any;
+        let totalEarned = 0;
+        const results: { questionId: string; correct: boolean; earnedPoints: number }[] = [];
+
+        for (const question of quizData.questions) {
+          const selectedIndex = answers.answers[question.id];
+          const isCorrect = selectedIndex === question.correctIndex;
+          const earned = isCorrect ? question.points : 0;
+          totalEarned += earned;
+          results.push({ questionId: question.id, correct: isCorrect, earnedPoints: earned });
+        }
+
+        autoPoints = totalEarned;
+        autoFeedback = JSON.stringify({
+          autoGraded: true,
+          results,
+          totalEarned,
+          totalPossible: post.maxPoints,
+        });
+      }
+
       const submission = await prisma.submission.create({
         data: {
           postId,
           studentId: userId,
           content,
+          ...(post.type === "QUIZ" && autoPoints !== undefined && {
+            points: autoPoints,
+            feedback: autoFeedback,
+            gradedAt: new Date(),
+          }),
           attachments: attachments?.length
             ? {
                 create: attachments.map((a: any) => ({
@@ -77,6 +122,12 @@ export class SubmissionController {
       if (submission.studentId !== userId) {
         return sendError(res, "Can only update your own submission", 403);
       }
+
+      const submissionPost = await prisma.post.findUnique({ where: { id: submission.postId } });
+      if (submissionPost?.type === "QUIZ") {
+        return sendError(res, "Cannot update quiz submissions", 400);
+      }
+
       if (submission.gradedAt) {
         return sendError(res, "Cannot update a graded submission", 400);
       }

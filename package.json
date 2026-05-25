@@ -9,6 +9,7 @@
     "prisma:push": "pnpm --filter user-service exec prisma db push && pnpm --filter class-service exec prisma db push && pnpm --filter content-service exec prisma db push && pnpm --filter communication-service exec prisma db push && pnpm --filter notification-service exec prisma db push"
   },
   "devDependencies": {
+    "@types/node": "^25.9.1",
     "prettier": "^3.8.1",
     "prisma": "^7.3.0",
     "typescript": "^5.9.3"

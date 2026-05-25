@@ -35,6 +35,7 @@ import { Button } from "@/shared/components/ui/button";
 import StreamSkeleton from "../ui/StreamSkeleton";
 import { useAuth } from "@/context/AuthContext";
 import type { Classroom, Post, PostType, StudyMaterialType } from "@/shared/types";
+import { formatDate, formatDateTime } from "@/shared/lib/utils";
 import { FileText, HelpCircle, ClipboardList, Megaphone, BookOpen, Calendar, MoreVertical, Pencil, Trash2 } from "lucide-react";
 
 const postTypeIcon = (type: string) => {
@@ -114,7 +115,7 @@ const Stream = () => {
     if (!isTeaching) return [];
     const now = new Date();
     return allPosts
-      .filter((p) => p.type === "ASSIGNMENT" && p.dueDate && new Date(p.dueDate) > now)
+      .filter((p) => (p.type === "ASSIGNMENT" || p.type === "QUIZ") && p.dueDate && new Date(p.dueDate) > now)
       .sort((a, b) => new Date(a.dueDate!).getTime() - new Date(b.dueDate!).getTime())
       .slice(0, 5);
   }, [allPosts, isTeaching]);
@@ -187,7 +188,7 @@ const Stream = () => {
                           <Calendar className="w-3.5 h-3.5 text-[#94A3B8] shrink-0" />
                           <span className="truncate flex-1 text-[#334155]">{a.title}</span>
                           <span className="text-[#94A3B8] shrink-0">
-                            {new Date(a.dueDate!).toLocaleDateString()}
+                            {formatDate(a.dueDate!)}
                           </span>
                         </div>
                       ))}
@@ -292,7 +293,7 @@ const Stream = () => {
                           {post.type.replace("_", " ")}
                           {post.studyMaterialType ? ` · ${post.studyMaterialType}` : ""}
                           {" · "}
-                          {new Date(post.createdAt).toLocaleString()}
+                          {formatDateTime(post.createdAt)}
                         </p>
                       </div>
                       {isAdmin && (

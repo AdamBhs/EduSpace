@@ -7,6 +7,7 @@ import SearchInput from "./components/SearchInput";
 import CreatePostDialog from "./components/CreatePostDialog";
 import { useQuery } from "@tanstack/react-query";
 import type { Classroom, Post } from "@/shared/types";
+import { formatDate } from "@/shared/lib/utils";
 import { getClassroomById } from "@/services/classroom-service";
 import { getPostsByClass } from "@/services/content-service";
 import NavLinksClass from "./components/NavLinksClass";
@@ -190,7 +191,7 @@ const Class = () => {
                                 {post.type.replace("_", " ")}
                                 {post.studyMaterialType ? ` - ${post.studyMaterialType}` : ""}
                                 {" · "}
-                                {new Date(post.createdAt).toLocaleDateString()}
+                                {formatDate(post.createdAt)}
                               </p>
                             </div>
                             {post._count?.comments !== undefined && (
