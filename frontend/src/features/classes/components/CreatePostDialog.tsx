@@ -45,7 +45,7 @@ const POST_TYPES: { value: PostType; label: string; icon: React.ReactNode; teach
   { value: "ANNOUNCEMENT", label: "Announcement", icon: <Megaphone className="size-4" /> },
   { value: "STUDY_MATERIAL", label: "Study Material", icon: <BookOpen className="size-4" /> },
   { value: "QUIZ", label: "Quiz", icon: <FileText className="size-4" />, teachingOnly: true },
-  { value: "QUESTION", label: "Question", icon: <HelpCircle className="size-4" /> },
+  { value: "QUESTION", label: "Question", icon: <HelpCircle className="size-4" />, teachingOnly: true },
   { value: "ASSIGNMENT", label: "Assignment", icon: <ClipboardList className="size-4" />, teachingOnly: true },
 ];
 

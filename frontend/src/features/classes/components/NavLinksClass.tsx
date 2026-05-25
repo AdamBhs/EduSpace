@@ -26,7 +26,7 @@ const NavLinksClass = ({
 
   if (isTeaching) tabs.push("Assignments");
   if (chatEnabled) tabs.push("Chat");
-  if (isTeaching) tabs.push("Grades");
+  if (isTeaching && isAdmin) tabs.push("Grades");
 
   const handleNavSections = (tab: string) => {
     setSelectTab(tab);

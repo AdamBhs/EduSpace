@@ -415,6 +415,10 @@ const PostDetail = () => {
                   <div className="space-y-4">
                     {allSubmissions.map((sub) => {
                       const gi = gradeInputs[sub.id] ?? { points: sub.points?.toString() ?? "", feedback: sub.feedback ?? "" };
+                      let quizFb: QuizFeedback | null = null;
+                      if (isQuiz && sub.feedback) {
+                        try { quizFb = JSON.parse(sub.feedback) as QuizFeedback; } catch { /* ignore */ }
+                      }
                       return (
                         <div key={sub.id} className="rounded-lg border border-[#E2E8F0] p-4">
                           <div className="flex items-center gap-3 mb-2">
@@ -428,75 +432,101 @@ const PostDetail = () => {
                               {formatDateTime(sub.createdAt)}
                             </span>
                           </div>
-                          {sub.content && (
-                            <p className="text-sm text-[#334155] mb-3 whitespace-pre-wrap">{sub.content}</p>
-                          )}
-                          {sub.attachments && sub.attachments.length > 0 && (
-                            <div className="space-y-1.5 mb-3">
-                              {sub.attachments.map((att: any) => (
-                                <button
-                                  key={att.id ?? att.fileKey}
-                                  type="button"
-                                  onClick={() => handleDownload(att.fileKey, att.fileName)}
-                                  className="flex w-full items-center gap-2 rounded-lg border border-[#E2E8F0] p-2.5 text-sm hover:bg-[#F8FAFC] hover:border-[#137FEC]/40 transition-colors cursor-pointer"
+
+                          {isQuiz ? (
+                            <div className="space-y-2">
+                              <p className="text-sm font-medium text-[#0F172A]">
+                                Score: {sub.points}{post.maxPoints !== null ? `/${post.maxPoints}` : ""} points
+                              </p>
+                              {quizFb?.results && post.quizData && (
+                                <div className="space-y-1.5">
+                                  {post.quizData.questions.map((q, idx) => {
+                                    const r = quizFb!.results.find((r) => r.questionId === q.id);
+                                    return (
+                                      <div key={q.id} className="flex items-center justify-between text-xs">
+                                        <span className="text-[#334155]">{idx + 1}. {q.text}</span>
+                                        <span className={r?.correct ? "text-green-600 font-medium" : "text-red-600 font-medium"}>
+                                          {r?.earnedPoints}/{q.points}
+                                        </span>
+                                      </div>
+                                    );
+                                  })}
+                                </div>
+                              )}
+                            </div>
+                          ) : (
+                            <>
+                              {sub.content && (
+                                <p className="text-sm text-[#334155] mb-3 whitespace-pre-wrap">{sub.content}</p>
+                              )}
+                              {sub.attachments && sub.attachments.length > 0 && (
+                                <div className="space-y-1.5 mb-3">
+                                  {sub.attachments.map((att: any) => (
+                                    <button
+                                      key={att.id ?? att.fileKey}
+                                      type="button"
+                                      onClick={() => handleDownload(att.fileKey, att.fileName)}
+                                      className="flex w-full items-center gap-2 rounded-lg border border-[#E2E8F0] p-2.5 text-sm hover:bg-[#F8FAFC] hover:border-[#137FEC]/40 transition-colors cursor-pointer"
+                                    >
+                                      <Download className="w-3.5 h-3.5 text-[#137FEC]" />
+                                      <span className="flex-1 truncate text-[#334155] text-left">{att.fileName}</span>
+                                    </button>
+                                  ))}
+                                </div>
+                              )}
+                              <div className="flex items-end gap-3">
+                                <div className="flex-1">
+                                  <label className="text-xs text-[#64748B]">Points{post.maxPoints !== null ? ` (max ${post.maxPoints})` : ""}</label>
+                                  <input
+                                    type="number"
+                                    min="0"
+                                    max={post.maxPoints ?? undefined}
+                                    value={gi.points}
+                                    onChange={(e) =>
+                                      setGradeInputs((prev) => ({
+                                        ...prev,
+                                        [sub.id]: { ...gi, points: e.target.value },
+                                      }))
+                                    }
+                                    className="mt-1 w-full rounded-lg border border-gray-200 px-3 py-1.5 text-sm outline-none focus:border-blue-500"
+                                  />
+                                </div>
+                                <div className="flex-[2]">
+                                  <label className="text-xs text-[#64748B]">Feedback</label>
+                                  <input
+                                    type="text"
+                                    value={gi.feedback}
+                                    onChange={(e) =>
+                                      setGradeInputs((prev) => ({
+                                        ...prev,
+                                        [sub.id]: { ...gi, feedback: e.target.value },
+                                      }))
+                                    }
+                                    placeholder="Optional feedback"
+                                    className="mt-1 w-full rounded-lg border border-gray-200 px-3 py-1.5 text-sm outline-none focus:border-blue-500"
+                                  />
+                                </div>
+                                <Button
+                                  size="sm"
+                                  className="bg-green-600 hover:bg-green-700 text-white"
+                                  disabled={!gi.points || grade.isPending}
+                                  onClick={() =>
+                                    grade.mutate({
+                                      submissionId: sub.id,
+                                      points: Number(gi.points),
+                                      feedback: gi.feedback || undefined,
+                                    })
+                                  }
                                 >
-                                  <Download className="w-3.5 h-3.5 text-[#137FEC]" />
-                                  <span className="flex-1 truncate text-[#334155] text-left">{att.fileName}</span>
-                                </button>
-                              ))}
-                            </div>
-                          )}
-                          <div className="flex items-end gap-3">
-                            <div className="flex-1">
-                              <label className="text-xs text-[#64748B]">Points{post.maxPoints !== null ? ` (max ${post.maxPoints})` : ""}</label>
-                              <input
-                                type="number"
-                                min="0"
-                                max={post.maxPoints ?? undefined}
-                                value={gi.points}
-                                onChange={(e) =>
-                                  setGradeInputs((prev) => ({
-                                    ...prev,
-                                    [sub.id]: { ...gi, points: e.target.value },
-                                  }))
-                                }
-                                className="mt-1 w-full rounded-lg border border-gray-200 px-3 py-1.5 text-sm outline-none focus:border-blue-500"
-                              />
-                            </div>
-                            <div className="flex-[2]">
-                              <label className="text-xs text-[#64748B]">Feedback</label>
-                              <input
-                                type="text"
-                                value={gi.feedback}
-                                onChange={(e) =>
-                                  setGradeInputs((prev) => ({
-                                    ...prev,
-                                    [sub.id]: { ...gi, feedback: e.target.value },
-                                  }))
-                                }
-                                placeholder="Optional feedback"
-                                className="mt-1 w-full rounded-lg border border-gray-200 px-3 py-1.5 text-sm outline-none focus:border-blue-500"
-                              />
-                            </div>
-                            <Button
-                              size="sm"
-                              className="bg-green-600 hover:bg-green-700 text-white"
-                              disabled={!gi.points || grade.isPending}
-                              onClick={() =>
-                                grade.mutate({
-                                  submissionId: sub.id,
-                                  points: Number(gi.points),
-                                  feedback: gi.feedback || undefined,
-                                })
-                              }
-                            >
-                              {sub.gradedAt ? "Re-grade" : "Grade"}
-                            </Button>
-                          </div>
-                          {sub.gradedAt && (
-                            <p className="text-xs text-green-600 mt-2">
-                              Graded: {sub.points}{post.maxPoints !== null ? `/${post.maxPoints}` : ""} points
-                            </p>
+                                  {sub.gradedAt ? "Re-grade" : "Grade"}
+                                </Button>
+                              </div>
+                              {sub.gradedAt && (
+                                <p className="text-xs text-green-600 mt-2">
+                                  Graded: {sub.points}{post.maxPoints !== null ? `/${post.maxPoints}` : ""} points
+                                </p>
+                              )}
+                            </>
                           )}
                         </div>
                       );
