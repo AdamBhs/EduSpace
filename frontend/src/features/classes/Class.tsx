@@ -59,7 +59,7 @@ const Class = () => {
 
   const allPosts = posts ?? [];
 
-  const basePosts = trimmed.length >= 2
+  const basePosts = trimmed.length >= 1
     ? allPosts.filter((p) =>
         p.title.toLowerCase().includes(trimmed) ||
         (p.content && p.content.toLowerCase().includes(trimmed)) ||
@@ -98,7 +98,7 @@ const Class = () => {
               className="text-sm font-semibold rounded-lg cursor-pointer hover:opacity-90 text-white bg-[#137FEC] py-3 px-5 flex gap-1 items-center justify-center"
               style={{ boxShadow: "0 2px 10px rgba(19, 127, 236, 0.5)" }}
             >
-              <IoMdAdd size={18} /> Create Post
+              <IoMdAdd size={18} /> Create
             </div>
             <CreatePostDialog
               open={createOpen}
@@ -156,7 +156,7 @@ const Class = () => {
           <div className="flex flex-col gap-2.5 flex-1 min-h-0 mt-2">
             {filteredPosts.length === 0 && !postsLoading && (
               <div className="flex items-center justify-center h-40 text-gray-400">
-                {trimmed.length >= 2 ? "No matching posts" : "No posts yet"}
+                {trimmed.length >= 1 ? "No matching posts" : "No posts yet"}
               </div>
             )}
             {orderedChapterIds.length > 0 && (

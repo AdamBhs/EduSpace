@@ -12,7 +12,7 @@ import {
 import { ScrollArea } from "@/shared/components/ui/scroll-area";
 import { cn } from "@/shared/lib/utils";
 import { LuListTodo } from "react-icons/lu";
-import { useNavigate, useLocation } from "react-router-dom";
+import { useNavigate, useLocation, Link } from "react-router-dom";
 import { IoMenu } from "react-icons/io5";
 
 const navSections = [
@@ -246,24 +246,26 @@ export default function Sidebar() {
           className="flex h-[60px] shrink-0 items-center gap-3 border-b px-4"
           style={{ borderColor: "#E2E8F0" }}
         >
-          <div
-            className="flex h-8 w-8 shrink-0 ml-12 items-center justify-center rounded-lg text-sm font-black text-white"
-            style={{
-              background: "linear-gradient(135deg, #1a93f6, #57ccff)",
-              boxShadow: "0 4px 14px rgba(26,147,246,0.28)",
-            }}
-          >
-            E
-          </div>
+          <Link to="/" className="flex items-center gap-3 ml-12">
+            <div
+              className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-sm font-black text-white"
+              style={{
+                background: "linear-gradient(135deg, #1a93f6, #57ccff)",
+                boxShadow: "0 4px 14px rgba(26,147,246,0.28)",
+              }}
+            >
+              E
+            </div>
 
-          <span
-            className={cn(
-              "overflow-hidden whitespace-nowrap text-sm font-bold tracking-wide text-[#133358] transition-all duration-300",
-              collapsed ? "w-full opacity-100" : "w-full opacity-100",
-            )}
-          >
-            EduSpace
-          </span>
+            <span
+              className={cn(
+                "overflow-hidden whitespace-nowrap text-sm font-bold tracking-wide text-[#133358] transition-all duration-300",
+                collapsed ? "w-full opacity-100" : "w-full opacity-100",
+              )}
+            >
+              EduSpace
+            </span>
+          </Link>
           {!hidden ? menuButton : null}
         </div>
 
