@@ -84,15 +84,13 @@ const StudentPicker = ({
       </div>
       {!allStudents && (
         <div className="rounded-lg border border-gray-200 overflow-hidden">
-          {students.length > 5 && (
-            <input
-              type="text"
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              placeholder="Search students..."
-              className="w-full px-3 py-2 text-sm border-b border-gray-200 outline-none focus:bg-blue-50/30"
-            />
-          )}
+          <input
+            type="text"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Search students..."
+            className="w-full px-3 py-2 text-sm border-b border-gray-200 outline-none focus:bg-blue-50/30"
+          />
           <div className="max-h-48 overflow-y-auto">
             {filtered.length === 0 && (
               <p className="text-xs text-gray-400 text-center py-3">No students found</p>

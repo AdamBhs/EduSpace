@@ -56,7 +56,7 @@ export class PostController {
                    : type === "QUIZ" ? quizData.questions.reduce((sum: number, q: any) => sum + q.points, 0)
                    : type === "QUESTION" ? questionData.question.points
                    : null,
-          attachments: attachments?.length
+          attachments: type !== "QUIZ" && type !== "QUESTION" && attachments?.length
             ? {
                 create: attachments.map((a: any) => ({
                   fileKey: a.fileKey,

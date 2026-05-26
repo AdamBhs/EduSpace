@@ -206,7 +206,7 @@ const CreatePostDialog = ({
 
   return (
     <Dialog open={open} onOpenChange={handleClose}>
-      <DialogContent className="sm:max-w-[540px] max-h-[85vh] overflow-y-auto" showCloseButton={false}>
+      <DialogContent className="sm:max-w-[780px] max-h-[85vh] overflow-y-auto" showCloseButton={false}>
         <DialogHeader>
           <DialogTitle className="text-xl font-semibold">Create Post</DialogTitle>
           <DialogDescription className="sr-only">
@@ -214,245 +214,157 @@ const CreatePostDialog = ({
           </DialogDescription>
         </DialogHeader>
 
-        <div className="flex flex-col gap-4">
-          {/* Post type selector */}
-          <div>
-            <p className="text-sm font-medium text-muted-foreground mb-2">Post Type</p>
-            <div className="flex flex-wrap gap-2">
-              {availableTypes.map((t) => (
-                <button
-                  key={t.value}
-                  type="button"
-                  onClick={() => setPostType(t.value)}
-                  className={`flex items-center gap-1.5 rounded-lg border-2 px-3 py-2 text-sm font-medium transition-colors cursor-pointer ${
-                    postType === t.value
-                      ? "border-blue-500 text-blue-600 bg-blue-50"
-                      : "border-gray-200 text-gray-500 bg-white hover:border-gray-300"
-                  }`}
-                >
-                  {t.icon}
-                  {t.label}
-                </button>
-              ))}
+        <div className="flex gap-6">
+          {/* Left column — main form */}
+          <div className="flex flex-col gap-4 flex-1 min-w-0">
+            {/* Title */}
+            <div className="relative">
+              <input
+                type="text"
+                value={title}
+                onChange={(e) => setTitle(e.target.value)}
+                placeholder=" "
+                className="peer w-full border-b border-gray-300 bg-transparent px-0 pb-1.5 pt-5 text-sm outline-none transition-colors focus:border-blue-500"
+              />
+              <label className="pointer-events-none absolute left-0 top-0 text-sm text-muted-foreground transition-all peer-placeholder-shown:top-4 peer-placeholder-shown:text-sm peer-focus:top-0 peer-focus:text-xs peer-focus:text-blue-500 peer-[:not(:placeholder-shown)]:top-0 peer-[:not(:placeholder-shown)]:text-xs">
+                Title (required)
+              </label>
             </div>
-          </div>
 
-          {/* Study material sub-type */}
-          {postType === "STUDY_MATERIAL" && (
+            {/* Content */}
             <div>
-              <p className="text-sm font-medium text-muted-foreground mb-2">Material Type</p>
-              <div className="flex gap-2">
-                {STUDY_MATERIAL_TYPES.map((t) => (
-                  <button
-                    key={t.value}
-                    type="button"
-                    onClick={() => setStudyMaterialType(t.value)}
-                    className={`rounded-lg border-2 px-3 py-1.5 text-sm font-medium transition-colors cursor-pointer ${
-                      studyMaterialType === t.value
-                        ? "border-blue-500 text-blue-600 bg-blue-50"
-                        : "border-gray-200 text-gray-500 bg-white hover:border-gray-300"
-                    }`}
-                  >
-                    {t.label}
-                  </button>
-                ))}
-              </div>
+              <textarea
+                value={content}
+                onChange={(e) => setContent(e.target.value)}
+                placeholder="Write something..."
+                rows={4}
+                className="w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm outline-none transition-colors focus:border-blue-500 resize-none"
+              />
             </div>
-          )}
 
-          {/* Chapter selector */}
-          <div>
-            <div className="flex items-center justify-between mb-2">
-              <p className="text-sm font-medium text-muted-foreground">Chapter</p>
-              <button
-                type="button"
-                onClick={() => setShowChapterMgr((p) => !p)}
-                className="flex items-center gap-1 text-xs text-[#137FEC] hover:text-[#1171d4] cursor-pointer"
-              >
-                <Settings2 className="w-3 h-3" />
-                {showChapterMgr ? "Done" : "Manage"}
-              </button>
-            </div>
-            {showChapterMgr ? (
-              <ChapterManager classId={classId} chapters={chapters} />
-            ) : (
-              <Select value={chapterId} onValueChange={setChapterId}>
-                <SelectTrigger className="w-full">
-                  <SelectValue placeholder="Select chapter" />
-                </SelectTrigger>
-                <SelectContent>
-                  {chapters.map((ch) => (
-                    <SelectItem key={ch.id} value={ch.id}>
-                      {ch.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+            {/* Quiz builder */}
+            {postType === "QUIZ" && (
+              <QuizBuilder questions={quizQuestions} onChange={setQuizQuestions} />
             )}
-          </div>
 
-          {/* Title */}
-          <div className="relative">
-            <input
-              type="text"
-              value={title}
-              onChange={(e) => setTitle(e.target.value)}
-              placeholder=" "
-              className="peer w-full border-b border-gray-300 bg-transparent px-0 pb-1.5 pt-5 text-sm outline-none transition-colors focus:border-blue-500"
-            />
-            <label className="pointer-events-none absolute left-0 top-0 text-sm text-muted-foreground transition-all peer-placeholder-shown:top-4 peer-placeholder-shown:text-sm peer-focus:top-0 peer-focus:text-xs peer-focus:text-blue-500 peer-[:not(:placeholder-shown)]:top-0 peer-[:not(:placeholder-shown)]:text-xs">
-              Title (required)
-            </label>
-          </div>
-
-          {/* Content */}
-          <div>
-            <textarea
-              value={content}
-              onChange={(e) => setContent(e.target.value)}
-              placeholder="Write something..."
-              rows={4}
-              className="w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm outline-none transition-colors focus:border-blue-500 resize-none"
-            />
-          </div>
-
-          {/* Quiz builder */}
-          {postType === "QUIZ" && (
-            <QuizBuilder questions={quizQuestions} onChange={setQuizQuestions} />
-          )}
-
-          {/* Question builder */}
-          {postType === "QUESTION" && (
-            <div className="flex flex-col gap-3">
-              <div>
-                <p className="text-sm font-medium text-muted-foreground mb-2">Answer Type</p>
-                <div className="flex gap-2">
-                  {([["multiple_choice", "Multiple Choice"], ["text", "Text Answer"]] as const).map(([val, label]) => (
-                    <button
-                      key={val}
-                      type="button"
-                      onClick={() => setQuestionAnswerType(val)}
-                      className={`rounded-lg border-2 px-3 py-1.5 text-sm font-medium transition-colors cursor-pointer ${
-                        questionAnswerType === val
-                          ? "border-blue-500 text-blue-600 bg-blue-50"
-                          : "border-gray-200 text-gray-500 bg-white hover:border-gray-300"
-                      }`}
-                    >
-                      {label}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              <div>
-                <input
-                  type="text"
-                  value={questionText}
-                  onChange={(e) => setQuestionText(e.target.value)}
-                  placeholder="Question text *"
-                  className="w-full border-b border-gray-300 bg-transparent px-0 pb-1.5 pt-1 text-sm outline-none focus:border-blue-500"
-                />
-              </div>
-
-              {questionAnswerType === "multiple_choice" && (
-                <div className="space-y-2">
-                  {questionOptions.map((opt, idx) => (
-                    <div key={idx} className="flex items-center gap-2">
+            {/* Question builder */}
+            {postType === "QUESTION" && (
+              <div className="flex flex-col gap-3">
+                <div>
+                  <p className="text-sm font-medium text-muted-foreground mb-2">Answer Type</p>
+                  <div className="flex gap-2">
+                    {([["multiple_choice", "Multiple Choice"], ["text", "Text Answer"]] as const).map(([val, label]) => (
                       <button
+                        key={val}
                         type="button"
-                        onClick={() => setQuestionCorrectIndex(idx)}
-                        className="cursor-pointer shrink-0"
-                      >
-                        <CircleCheck
-                          className={`w-4.5 h-4.5 ${
-                            questionCorrectIndex === idx
-                              ? "text-green-500"
-                              : "text-gray-300 hover:text-gray-400"
-                          }`}
-                        />
-                      </button>
-                      <input
-                        type="text"
-                        value={opt}
-                        onChange={(e) => {
-                          const next = [...questionOptions];
-                          next[idx] = e.target.value;
-                          setQuestionOptions(next);
-                        }}
-                        placeholder={`Option ${idx + 1}`}
-                        className={`flex-1 rounded border px-2.5 py-1.5 text-sm outline-none transition-colors ${
-                          questionCorrectIndex === idx
-                            ? "border-green-300 bg-green-50"
-                            : "border-gray-200 focus:border-blue-500"
+                        onClick={() => setQuestionAnswerType(val)}
+                        className={`rounded-lg border-2 px-3 py-1.5 text-sm font-medium transition-colors cursor-pointer ${
+                          questionAnswerType === val
+                            ? "border-blue-500 text-blue-600 bg-blue-50"
+                            : "border-gray-200 text-gray-500 bg-white hover:border-gray-300"
                         }`}
-                      />
-                      {questionOptions.length > 2 && (
+                      >
+                        {label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                <div>
+                  <input
+                    type="text"
+                    value={questionText}
+                    onChange={(e) => setQuestionText(e.target.value)}
+                    placeholder="Question text *"
+                    className="w-full border-b border-gray-300 bg-transparent px-0 pb-1.5 pt-1 text-sm outline-none focus:border-blue-500"
+                  />
+                </div>
+
+                {questionAnswerType === "multiple_choice" && (
+                  <div className="space-y-2">
+                    {questionOptions.map((opt, idx) => (
+                      <div key={idx} className="flex items-center gap-2">
                         <button
                           type="button"
-                          onClick={() => {
-                            const next = questionOptions.filter((_, i) => i !== idx);
-                            setQuestionOptions(next);
-                            if (questionCorrectIndex === idx) setQuestionCorrectIndex(0);
-                            else if (questionCorrectIndex > idx) setQuestionCorrectIndex(questionCorrectIndex - 1);
-                          }}
-                          className="p-0.5 text-[#94A3B8] hover:text-red-500 cursor-pointer"
+                          onClick={() => setQuestionCorrectIndex(idx)}
+                          className="cursor-pointer shrink-0"
                         >
-                          <X className="w-3.5 h-3.5" />
+                          <CircleCheck
+                            className={`w-4.5 h-4.5 ${
+                              questionCorrectIndex === idx
+                                ? "text-green-500"
+                                : "text-gray-300 hover:text-gray-400"
+                            }`}
+                          />
                         </button>
-                      )}
-                    </div>
-                  ))}
-                  {questionOptions.length < 6 && (
-                    <button
-                      type="button"
-                      onClick={() => setQuestionOptions([...questionOptions, ""])}
-                      className="flex items-center gap-1 text-xs text-[#137FEC] hover:text-[#1171d4] ml-6.5 cursor-pointer"
-                    >
-                      <Plus className="w-3 h-3" /> Add option
-                    </button>
-                  )}
+                        <input
+                          type="text"
+                          value={opt}
+                          onChange={(e) => {
+                            const next = [...questionOptions];
+                            next[idx] = e.target.value;
+                            setQuestionOptions(next);
+                          }}
+                          placeholder={`Option ${idx + 1}`}
+                          className={`flex-1 rounded border px-2.5 py-1.5 text-sm outline-none transition-colors ${
+                            questionCorrectIndex === idx
+                              ? "border-green-300 bg-green-50"
+                              : "border-gray-200 focus:border-blue-500"
+                          }`}
+                        />
+                        {questionOptions.length > 2 && (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const next = questionOptions.filter((_, i) => i !== idx);
+                              setQuestionOptions(next);
+                              if (questionCorrectIndex === idx) setQuestionCorrectIndex(0);
+                              else if (questionCorrectIndex > idx) setQuestionCorrectIndex(questionCorrectIndex - 1);
+                            }}
+                            className="p-0.5 text-[#94A3B8] hover:text-red-500 cursor-pointer"
+                          >
+                            <X className="w-3.5 h-3.5" />
+                          </button>
+                        )}
+                      </div>
+                    ))}
+                    {questionOptions.length < 6 && (
+                      <button
+                        type="button"
+                        onClick={() => setQuestionOptions([...questionOptions, ""])}
+                        className="flex items-center gap-1 text-xs text-[#137FEC] hover:text-[#1171d4] ml-6.5 cursor-pointer"
+                      >
+                        <Plus className="w-3 h-3" /> Add option
+                      </button>
+                    )}
+                  </div>
+                )}
+
+                <div className="w-32">
+                  <label className="text-sm font-medium text-muted-foreground">Points *</label>
+                  <input
+                    type="number"
+                    min="1"
+                    value={questionPoints}
+                    onChange={(e) => setQuestionPoints(e.target.value)}
+                    className="mt-1 w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm outline-none focus:border-blue-500"
+                  />
                 </div>
-              )}
-
-              <div className="w-32">
-                <label className="text-sm font-medium text-muted-foreground">Points *</label>
-                <input
-                  type="number"
-                  min="1"
-                  value={questionPoints}
-                  onChange={(e) => setQuestionPoints(e.target.value)}
-                  className="mt-1 w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm outline-none focus:border-blue-500"
-                />
               </div>
-            </div>
-          )}
+            )}
 
-          {/* Assign to */}
-          {hasAssignableType && isTeaching && (
-            <StudentPicker
-              classId={classId}
-              selectedIds={assignedStudentIds}
-              onChange={setAssignedStudentIds}
-              allStudents={allStudents}
-              onToggleAll={setAllStudents}
-            />
-          )}
+            {/* File attachments (not for quiz/question) */}
+            {postType !== "QUIZ" && postType !== "QUESTION" && (
+              <FileAttachments
+                attachments={attachments}
+                onAdd={handleAddFiles}
+                onRemove={handleRemoveFile}
+                uploading={uploading}
+              />
+            )}
 
-          {/* File attachments */}
-          <FileAttachments
-            attachments={attachments}
-            onAdd={handleAddFiles}
-            onRemove={handleRemoveFile}
-            uploading={uploading}
-          />
-
-          {/* Assignment-specific fields */}
-          {postType === "ASSIGNMENT" && isTeaching && (
-            <div className="flex gap-4">
-              <div className="flex-1">
-                <label className="text-sm font-medium text-muted-foreground">Due Date</label>
-                <DateTimeInput value={dueDate} onChange={setDueDate} className="mt-1" />
-              </div>
+            {/* Assignment max points */}
+            {postType === "ASSIGNMENT" && isTeaching && (
               <div className="w-32">
                 <label className="text-sm font-medium text-muted-foreground">Max Points *</label>
                 <input
@@ -465,16 +377,110 @@ const CreatePostDialog = ({
                   className="mt-1 w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm outline-none focus:border-blue-500"
                 />
               </div>
-            </div>
-          )}
+            )}
+          </div>
 
-          {/* Quiz / Question due date */}
-          {(postType === "QUIZ" || postType === "QUESTION") && isTeaching && (
+          {/* Right column — post type, chapter, due date, assign to */}
+          <div className="w-56 shrink-0 flex flex-col gap-4 border-l border-gray-200 pl-6">
+            {/* Post type selector */}
             <div>
-              <label className="text-sm font-medium text-muted-foreground">Due Date</label>
-              <DateTimeInput value={dueDate} onChange={setDueDate} className="mt-1" />
+              <p className="text-sm font-medium text-muted-foreground mb-2">Post Type</p>
+              <Select
+                value={postType}
+                onValueChange={(val: string) => {
+                  setPostType(val as PostType);
+                  if (val === "QUIZ" || val === "QUESTION") setAttachments([]);
+                }}
+              >
+                <SelectTrigger className="w-full">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {availableTypes.map((t) => (
+                    <SelectItem key={t.value} value={t.value}>
+                      <span className="flex items-center gap-2">
+                        {t.icon}
+                        {t.label}
+                      </span>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
-          )}
+
+            {/* Study material sub-type */}
+            {postType === "STUDY_MATERIAL" && (
+              <div>
+                <p className="text-sm font-medium text-muted-foreground mb-2">Material Type</p>
+                <div className="flex flex-wrap gap-1.5">
+                  {STUDY_MATERIAL_TYPES.map((t) => (
+                    <button
+                      key={t.value}
+                      type="button"
+                      onClick={() => setStudyMaterialType(t.value)}
+                      className={`rounded-lg border-2 px-2.5 py-1 text-xs font-medium transition-colors cursor-pointer ${
+                        studyMaterialType === t.value
+                          ? "border-blue-500 text-blue-600 bg-blue-50"
+                          : "border-gray-200 text-gray-500 bg-white hover:border-gray-300"
+                      }`}
+                    >
+                      {t.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Chapter selector */}
+            <div>
+              <div className="flex items-center justify-between mb-2">
+                <p className="text-sm font-medium text-muted-foreground">Chapter</p>
+                <button
+                  type="button"
+                  onClick={() => setShowChapterMgr((p) => !p)}
+                  className="flex items-center gap-1 text-xs text-[#137FEC] hover:text-[#1171d4] cursor-pointer"
+                >
+                  <Settings2 className="w-3 h-3" />
+                  {showChapterMgr ? "Done" : "Manage"}
+                </button>
+              </div>
+              {showChapterMgr ? (
+                <ChapterManager classId={classId} chapters={chapters} />
+              ) : (
+                <Select value={chapterId} onValueChange={setChapterId}>
+                  <SelectTrigger className="w-full">
+                    <SelectValue placeholder="Select chapter" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {chapters.map((ch) => (
+                      <SelectItem key={ch.id} value={ch.id}>
+                        {ch.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              )}
+            </div>
+
+            {/* Due date */}
+            {hasAssignableType && isTeaching && (
+              <div>
+                <label className="text-sm font-medium text-muted-foreground">Due Date</label>
+                <DateTimeInput value={dueDate} onChange={setDueDate} className="mt-1" />
+              </div>
+            )}
+
+            {/* Assign to */}
+            {hasAssignableType && isTeaching && (
+              <StudentPicker
+                classId={classId}
+                selectedIds={assignedStudentIds}
+                onChange={setAssignedStudentIds}
+                allStudents={allStudents}
+                onToggleAll={setAllStudents}
+              />
+            )}
+          </div>
         </div>
 
         <DialogFooter className="mt-2">
@@ -486,7 +492,7 @@ const CreatePostDialog = ({
             disabled={!isValid || mutation.isPending || uploading}
             className="bg-blue-500 hover:bg-blue-600 text-white disabled:opacity-50"
           >
-            {mutation.isPending ? "Posting..." : "Post"}
+            {mutation.isPending ? "Creating..." : "Create"}
           </Button>
         </DialogFooter>
 
