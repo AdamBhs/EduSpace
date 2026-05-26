@@ -125,6 +125,17 @@ const quizDataSchema = z.object({
   questions: z.array(quizQuestionSchema).min(1, "At least one question is required"),
 });
 
+const questionDataSchema = z.object({
+  answerType: z.enum(["multiple_choice", "text"]),
+  question: z.object({
+    id: z.string().min(1),
+    text: z.string().min(1, "Question text is required"),
+    options: z.array(z.string().min(1)).min(2).max(6).optional(),
+    correctIndex: z.number().int().min(0).optional(),
+    points: z.number().int().min(1, "Points must be at least 1"),
+  }),
+});
+
 export const createPostSchema = z.object({
   classId: z.string().uuid(),
   chapterId: z.string().uuid(),
@@ -133,6 +144,7 @@ export const createPostSchema = z.object({
   type: z.enum(["STUDY_MATERIAL", "QUIZ", "QUESTION", "ASSIGNMENT", "ANNOUNCEMENT"]),
   studyMaterialType: z.enum(["COURS", "TD", "TP", "RESUME"]).optional(),
   quizData: quizDataSchema.optional(),
+  questionData: questionDataSchema.optional(),
   dueDate: z.string().datetime({ local: true }).optional(),
   maxPoints: z.number().min(1, "Max points must be at least 1").optional(),
   attachments: z
@@ -157,6 +169,21 @@ export const createPostSchema = z.object({
     return data.quizData.questions.every(q => q.correctIndex < q.options.length);
   },
   { message: "correctIndex must be within options range", path: ["quizData"] },
+).refine(
+  (data) => data.type !== "QUESTION" || (data.questionData !== undefined && data.questionData !== null),
+  { message: "Question data is required for question posts", path: ["questionData"] },
+).refine(
+  (data) => {
+    if (data.type !== "QUESTION" || !data.questionData) return true;
+    const q = data.questionData;
+    if (q.answerType === "multiple_choice") {
+      return q.question.options && q.question.options.length >= 2
+        && q.question.correctIndex !== undefined
+        && q.question.correctIndex < q.question.options.length;
+    }
+    return true;
+  },
+  { message: "Multiple choice questions require options and a valid correctIndex", path: ["questionData"] },
 );
 
 export const updatePostSchema = z.object({
@@ -164,6 +191,7 @@ export const updatePostSchema = z.object({
   content: z.string().optional(),
   chapterId: z.string().uuid().optional(),
   quizData: quizDataSchema.optional(),
+  questionData: questionDataSchema.optional(),
   dueDate: z.string().datetime({ local: true }).optional(),
   maxPoints: z.number().min(0).optional(),
 });

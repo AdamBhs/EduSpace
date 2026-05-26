@@ -17,6 +17,7 @@ export class PostController {
         type,
         studyMaterialType,
         quizData,
+        questionData,
         dueDate,
         maxPoints,
         attachments,
@@ -43,10 +44,13 @@ export class PostController {
           content,
           type,
           studyMaterialType: type === "STUDY_MATERIAL" ? studyMaterialType : null,
-          quizData: type === "QUIZ" ? quizData : undefined,
-          dueDate: (type === "ASSIGNMENT" || type === "QUIZ") && dueDate ? new Date(dueDate) : null,
+          quizData: type === "QUIZ" ? quizData
+                  : type === "QUESTION" ? questionData
+                  : undefined,
+          dueDate: (type === "ASSIGNMENT" || type === "QUIZ" || type === "QUESTION") && dueDate ? new Date(dueDate) : null,
           maxPoints: type === "ASSIGNMENT" ? maxPoints
                    : type === "QUIZ" ? quizData.questions.reduce((sum: number, q: any) => sum + q.points, 0)
+                   : type === "QUESTION" ? questionData.question.points
                    : null,
           attachments: attachments?.length
             ? {
@@ -159,15 +163,28 @@ export class PostController {
         });
 
         if (!studentSubmission) {
-          (post as any).quizData = {
-            ...(post.quizData as any),
-            questions: (post.quizData as any).questions.map((q: any) => ({
-              id: q.id,
-              text: q.text,
-              options: q.options,
-              points: q.points,
-            })),
-          };
+          const qd = post.quizData as any;
+          if (post.type === "QUESTION" && qd.answerType === "multiple_choice") {
+            (post as any).quizData = {
+              ...qd,
+              question: {
+                id: qd.question.id,
+                text: qd.question.text,
+                options: qd.question.options,
+                points: qd.question.points,
+              },
+            };
+          } else if (post.type === "QUIZ") {
+            (post as any).quizData = {
+              ...qd,
+              questions: qd.questions.map((q: any) => ({
+                id: q.id,
+                text: q.text,
+                options: q.options,
+                points: q.points,
+              })),
+            };
+          }
         }
       }
 
@@ -182,7 +199,7 @@ export class PostController {
     try {
       const userId = req.user!.userId;
       const postId = req.params.postId as string;
-      const { title, content, chapterId, quizData, dueDate, maxPoints } = req.body;
+      const { title, content, chapterId, quizData, questionData, dueDate, maxPoints } = req.body;
 
       const post = await prisma.post.findUnique({ where: { id: postId } });
       if (!post) {
@@ -196,9 +213,11 @@ export class PostController {
 
       const newMaxPoints = quizData !== undefined && post.type === "QUIZ"
         ? quizData.questions.reduce((sum: number, q: any) => sum + q.points, 0)
-        : maxPoints !== undefined && post.type !== "QUIZ"
-          ? maxPoints
-          : undefined;
+        : questionData !== undefined && post.type === "QUESTION"
+          ? questionData.question.points
+          : maxPoints !== undefined && post.type !== "QUIZ" && post.type !== "QUESTION"
+            ? maxPoints
+            : undefined;
 
       const updated = await prisma.post.update({
         where: { id: postId },
@@ -210,20 +229,28 @@ export class PostController {
             quizData,
             maxPoints: newMaxPoints,
           }),
+          ...(questionData !== undefined && post.type === "QUESTION" && {
+            quizData: questionData,
+            maxPoints: newMaxPoints,
+          }),
           ...(dueDate !== undefined && { dueDate: dueDate ? new Date(dueDate) : null }),
-          ...(maxPoints !== undefined && post.type !== "QUIZ" && { maxPoints }),
+          ...(maxPoints !== undefined && post.type !== "QUIZ" && post.type !== "QUESTION" && { maxPoints }),
         },
         include: { attachments: true },
       });
 
-      if (maxPoints !== undefined && post.type !== "QUIZ" && maxPoints !== post.maxPoints) {
+      if (maxPoints !== undefined && post.type === "ASSIGNMENT" && maxPoints !== post.maxPoints) {
         await prisma.submission.updateMany({
           where: { postId, gradedAt: { not: null } },
           data: { points: null, feedback: null, gradedAt: null },
         });
       }
 
-      if (quizData !== undefined && post.type === "QUIZ") {
+      const shouldRegradeQuiz = quizData !== undefined && post.type === "QUIZ";
+      const shouldRegradeQuestion = questionData !== undefined && post.type === "QUESTION"
+        && questionData.answerType === "multiple_choice";
+
+      if (shouldRegradeQuiz || shouldRegradeQuestion) {
         const submissions = await prisma.submission.findMany({
           where: { postId, gradedAt: { not: null } },
         });
@@ -241,12 +268,20 @@ export class PostController {
           let totalEarned = 0;
           const results: { questionId: string; correct: boolean; earnedPoints: number }[] = [];
 
-          for (const question of quizData.questions) {
-            const selectedIndex = answers.answers[question.id];
-            const isCorrect = selectedIndex === question.correctIndex;
-            const earned = isCorrect ? question.points : 0;
-            totalEarned += earned;
-            results.push({ questionId: question.id, correct: isCorrect, earnedPoints: earned });
+          if (shouldRegradeQuiz) {
+            for (const question of quizData.questions) {
+              const selectedIndex = answers.answers[question.id];
+              const isCorrect = selectedIndex === question.correctIndex;
+              const earned = isCorrect ? question.points : 0;
+              totalEarned += earned;
+              results.push({ questionId: question.id, correct: isCorrect, earnedPoints: earned });
+            }
+          } else {
+            const q = questionData.question;
+            const selectedIndex = answers.answers[q.id];
+            const isCorrect = selectedIndex === q.correctIndex;
+            totalEarned = isCorrect ? q.points : 0;
+            results.push({ questionId: q.id, correct: isCorrect, earnedPoints: totalEarned });
           }
 
           await prisma.submission.update({
@@ -293,7 +328,7 @@ export class PostController {
 
       const posts = await prisma.post.findMany({
         where: {
-          type: "ASSIGNMENT",
+          type: { in: ["ASSIGNMENT", "QUIZ", "QUESTION"] },
           dueDate: { gte: now, lte: in24h },
         },
         select: {

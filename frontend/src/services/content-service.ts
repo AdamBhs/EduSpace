@@ -1,5 +1,5 @@
 import { api } from "./axios";
-import type { PostType, StudyMaterialType, QuizQuestion } from "@/shared/types";
+import type { PostType, StudyMaterialType, QuizQuestion, QuestionData } from "@/shared/types";
 
 // ─── Posts ──────────────────────────────────────────────────
 
@@ -11,6 +11,7 @@ export const createPost = async (data: {
   type: PostType;
   studyMaterialType?: StudyMaterialType;
   quizData?: { questions: QuizQuestion[] };
+  questionData?: QuestionData;
   dueDate?: string;
   maxPoints?: number;
   attachments?: { fileKey: string; fileName: string; fileSize: number; fileType: string }[];
@@ -46,6 +47,7 @@ export const updatePost = async (
     content?: string;
     chapterId?: string;
     quizData?: { questions: QuizQuestion[] };
+    questionData?: QuestionData;
     dueDate?: string;
     maxPoints?: number;
   },
@@ -65,6 +67,14 @@ export const submitQuiz = async (postId: string, answers: Record<string, number>
   const response = await api.post("/content/api/submissions", {
     postId,
     content: JSON.stringify({ answers }),
+  });
+  return response.data.data;
+};
+
+export const submitQuestion = async (postId: string, content: string) => {
+  const response = await api.post("/content/api/submissions", {
+    postId,
+    content,
   });
   return response.data.data;
 };

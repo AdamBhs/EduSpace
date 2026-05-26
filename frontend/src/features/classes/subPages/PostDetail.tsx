@@ -1,7 +1,7 @@
 import { useState, useCallback } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { getPostById, getComments, createComment, deleteComment, deletePost, getSubmissions, submitAssignment, submitQuiz, gradeSubmission } from "@/services/content-service";
+import { getPostById, getComments, createComment, deleteComment, deletePost, getSubmissions, submitAssignment, submitQuiz, submitQuestion, gradeSubmission } from "@/services/content-service";
 import { getClassroomById } from "@/services/classroom-service";
 import { getUsers } from "@/services/user-service";
 import { getFileUrl } from "@/services/file-service";
@@ -42,7 +42,7 @@ import {
   MoreVertical,
   Pencil,
 } from "lucide-react";
-import type { Classroom, Post, Comment, Submission, UserSummary, QuizFeedback } from "@/shared/types";
+import type { Classroom, Post, Comment, Submission, UserSummary, QuizFeedback, QuestionData } from "@/shared/types";
 import { formatDateTime } from "@/shared/lib/utils";
 
 const postTypeIcon = (type: string) => {
@@ -70,6 +70,7 @@ const PostDetail = () => {
   const [editOpen, setEditOpen] = useState(false);
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [quizAnswers, setQuizAnswers] = useState<Record<string, number>>({});
+  const [questionAnswer, setQuestionAnswer] = useState("");
 
   const { data: classroom } = useQuery<Classroom>({
     queryKey: ["classroom", classId],
@@ -94,11 +95,15 @@ const PostDetail = () => {
   const isTeaching = classroom?.type === "TEACHING";
   const isAssignment = post?.type === "ASSIGNMENT";
   const isQuiz = post?.type === "QUIZ";
+  const isQuestion = post?.type === "QUESTION";
+  const questionData = isQuestion && post?.quizData ? (post.quizData as QuestionData) : null;
+  const isQuestionMC = questionData?.answerType === "multiple_choice";
+  const isQuestionText = questionData?.answerType === "text";
 
   const { data: submissions } = useQuery<Submission | Submission[]>({
     queryKey: ["submissions", postId],
     queryFn: () => getSubmissions(postId!),
-    enabled: !!postId && (isAssignment || isQuiz) && isTeaching,
+    enabled: !!postId && (isAssignment || isQuiz || isQuestion) && isTeaching,
   });
 
   const allComments = comments ?? post?.comments ?? [];
@@ -200,6 +205,24 @@ const PostDetail = () => {
     mutationFn: () => submitQuiz(postId!, quizAnswers),
     onSuccess: () => {
       setQuizAnswers({});
+      queryClient.invalidateQueries({ queryKey: ["submissions", postId] });
+      queryClient.invalidateQueries({ queryKey: ["post", postId] });
+    },
+  });
+
+  const submitQuestionMC = useMutation({
+    mutationFn: () => submitQuiz(postId!, quizAnswers),
+    onSuccess: () => {
+      setQuizAnswers({});
+      queryClient.invalidateQueries({ queryKey: ["submissions", postId] });
+      queryClient.invalidateQueries({ queryKey: ["post", postId] });
+    },
+  });
+
+  const submitQuestionText = useMutation({
+    mutationFn: () => submitQuestion(postId!, questionAnswer.trim()),
+    onSuccess: () => {
+      setQuestionAnswer("");
       queryClient.invalidateQueries({ queryKey: ["submissions", postId] });
       queryClient.invalidateQueries({ queryKey: ["post", postId] });
     },
@@ -332,6 +355,29 @@ const PostDetail = () => {
                 </div>
               )}
 
+              {/* Question info */}
+              {isQuestion && isTeaching && questionData && (
+                <div className="flex flex-wrap gap-4 mb-6">
+                  {post.dueDate && (
+                    <div className="flex items-center gap-2 rounded-lg border border-[#E2E8F0] px-4 py-2 text-sm">
+                      <Calendar className="w-4 h-4 text-[#64748B]" />
+                      <span className="text-[#64748B]">Due:</span>
+                      <span className="font-medium">{formatDateTime(post.dueDate)}</span>
+                    </div>
+                  )}
+                  <div className="flex items-center gap-2 rounded-lg border border-[#E2E8F0] px-4 py-2 text-sm">
+                    <Award className="w-4 h-4 text-[#64748B]" />
+                    <span className="text-[#64748B]">Points:</span>
+                    <span className="font-medium">{questionData.question.points}</span>
+                  </div>
+                  <div className="flex items-center gap-2 rounded-lg border border-[#E2E8F0] px-4 py-2 text-sm">
+                    <HelpCircle className="w-4 h-4 text-[#64748B]" />
+                    <span className="text-[#64748B]">Type:</span>
+                    <span className="font-medium">{isQuestionMC ? "Multiple Choice" : "Text Answer"}</span>
+                  </div>
+                </div>
+              )}
+
               {/* Post content */}
               {post.content && (
                 <div className="prose prose-sm max-w-none mb-6 text-[#334155] whitespace-pre-wrap">
@@ -406,8 +452,46 @@ const PostDetail = () => {
                 </div>
               )}
 
+              {/* Question MC form for MEMBERs */}
+              {isQuestion && isQuestionMC && isTeaching && isMember && !mySubmission && questionData && (
+                <div className="mb-6 rounded-lg border border-[#E2E8F0] p-5">
+                  <h3 className="text-sm font-semibold text-[#0F172A] mb-4">Answer Question</h3>
+                  <p className="text-sm font-medium text-[#0F172A] mb-3">
+                    {questionData.question.text}{" "}
+                    <span className="text-xs text-[#64748B] font-normal">({questionData.question.points} pts)</span>
+                  </p>
+                  <div className="space-y-1.5 ml-5">
+                    {questionData.question.options?.map((opt, optIdx) => (
+                      <label key={optIdx} className="flex items-center gap-2.5 cursor-pointer py-0.5">
+                        <input
+                          type="radio"
+                          name={`question-${questionData.question.id}`}
+                          checked={quizAnswers[questionData.question.id] === optIdx}
+                          onChange={() => setQuizAnswers((prev) => ({ ...prev, [questionData.question.id]: optIdx }))}
+                          className="accent-blue-500"
+                        />
+                        <span className="text-sm text-[#334155]">{opt}</span>
+                      </label>
+                    ))}
+                  </div>
+                  <Button
+                    onClick={() => submitQuestionMC.mutate()}
+                    disabled={submitQuestionMC.isPending || quizAnswers[questionData.question.id] === undefined}
+                    className="mt-5 bg-blue-500 hover:bg-blue-600 text-white"
+                    size="sm"
+                  >
+                    {submitQuestionMC.isPending ? "Submitting..." : "Submit Answer"}
+                  </Button>
+                  {submitQuestionMC.isError && (
+                    <p className="text-xs text-red-500 mt-2">
+                      {(submitQuestionMC.error as any)?.response?.data?.error || "Failed to submit answer"}
+                    </p>
+                  )}
+                </div>
+              )}
+
               {/* Submissions list for ADMINs */}
-              {(isAssignment || isQuiz) && isTeaching && isAdmin && allSubmissions.length > 0 && (
+              {(isAssignment || isQuiz || isQuestion) && isTeaching && isAdmin && allSubmissions.length > 0 && (
                 <div className="mb-6 rounded-lg border border-[#E2E8F0] p-5">
                   <h3 className="text-sm font-semibold text-[#0F172A] mb-3">
                     Submissions ({allSubmissions.length})
@@ -415,9 +499,10 @@ const PostDetail = () => {
                   <div className="space-y-4">
                     {allSubmissions.map((sub) => {
                       const gi = gradeInputs[sub.id] ?? { points: sub.points?.toString() ?? "", feedback: sub.feedback ?? "" };
-                      let quizFb: QuizFeedback | null = null;
-                      if (isQuiz && sub.feedback) {
-                        try { quizFb = JSON.parse(sub.feedback) as QuizFeedback; } catch { /* ignore */ }
+                      const isAutoGraded = isQuiz || (isQuestion && isQuestionMC);
+                      let autoFb: QuizFeedback | null = null;
+                      if (isAutoGraded && sub.feedback) {
+                        try { autoFb = JSON.parse(sub.feedback) as QuizFeedback; } catch { /* ignore */ }
                       }
                       return (
                         <div key={sub.id} className="rounded-lg border border-[#E2E8F0] p-4">
@@ -433,15 +518,15 @@ const PostDetail = () => {
                             </span>
                           </div>
 
-                          {isQuiz ? (
+                          {isAutoGraded ? (
                             <div className="space-y-2">
                               <p className="text-sm font-medium text-[#0F172A]">
                                 Score: {sub.points}{post.maxPoints !== null ? `/${post.maxPoints}` : ""} points
                               </p>
-                              {quizFb?.results && post.quizData && (
+                              {isQuiz && autoFb?.results && post.quizData && "questions" in post.quizData && (
                                 <div className="space-y-1.5">
                                   {post.quizData.questions.map((q, idx) => {
-                                    const r = quizFb!.results.find((r) => r.questionId === q.id);
+                                    const r = autoFb!.results.find((r) => r.questionId === q.id);
                                     return (
                                       <div key={q.id} className="flex items-center justify-between text-xs">
                                         <span className="text-[#334155]">{idx + 1}. {q.text}</span>
@@ -452,6 +537,11 @@ const PostDetail = () => {
                                     );
                                   })}
                                 </div>
+                              )}
+                              {isQuestion && isQuestionMC && autoFb?.results?.[0] && questionData && (
+                                <p className={`text-sm font-medium ${autoFb.results[0].correct ? "text-green-600" : "text-red-600"}`}>
+                                  {autoFb.results[0].correct ? "Correct" : "Incorrect"}
+                                </p>
                               )}
                             </div>
                           ) : (
@@ -606,7 +696,7 @@ const PostDetail = () => {
             </div>
 
             {/* Right column — submission panel (member view) */}
-            {(isAssignment || isQuiz) && isTeaching && isMember && (
+            {(isAssignment || isQuiz || isQuestion) && isTeaching && isMember && (
               <div className="w-72 shrink-0">
                 <div className="sticky top-0 space-y-4">
                   {/* Assignment submission */}
@@ -689,7 +779,7 @@ const PostDetail = () => {
                           Score: {mySubmission.points}{post.maxPoints !== null ? `/${post.maxPoints}` : ""} points
                         </p>
                       </div>
-                      {mySubmission.feedback && post.quizData && (() => {
+                      {mySubmission.feedback && post.quizData && "questions" in post.quizData && (() => {
                         let fb: QuizFeedback | null = null;
                         try { fb = JSON.parse(mySubmission.feedback) as QuizFeedback; } catch { /* ignore */ }
                         if (!fb?.results) return null;
@@ -718,6 +808,90 @@ const PostDetail = () => {
                                 </div>
                               );
                             })}
+                          </div>
+                        );
+                      })()}
+                    </div>
+                  )}
+
+                  {/* Question text answer form */}
+                  {isQuestion && isQuestionText && (
+                    <div className="rounded-lg border border-[#E2E8F0] p-5">
+                      <h3 className="text-sm font-semibold text-[#0F172A] mb-3">Your Answer</h3>
+                      {mySubmission ? (
+                        <div className="space-y-2">
+                          {mySubmission.content && (
+                            <p className="text-sm text-[#334155] whitespace-pre-wrap">{mySubmission.content}</p>
+                          )}
+                          <p className="text-xs text-[#64748B]">
+                            Submitted {formatDateTime(mySubmission.createdAt)}
+                          </p>
+                          {mySubmission.gradedAt && (
+                            <div className="mt-2 rounded-lg bg-green-50 border border-green-200 p-3">
+                              <p className="text-sm font-medium text-green-800">
+                                Grade: {mySubmission.points}{post.maxPoints !== null ? `/${post.maxPoints}` : " points"}
+                              </p>
+                              {mySubmission.feedback && (
+                                <p className="text-sm text-green-700 mt-1">{mySubmission.feedback}</p>
+                              )}
+                            </div>
+                          )}
+                        </div>
+                      ) : (
+                        <div className="space-y-3">
+                          {questionData && (
+                            <p className="text-sm text-[#334155] font-medium">{questionData.question.text}</p>
+                          )}
+                          <textarea
+                            value={questionAnswer}
+                            onChange={(e) => setQuestionAnswer(e.target.value)}
+                            placeholder="Write your answer..."
+                            rows={4}
+                            className="w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm outline-none focus:border-blue-500 resize-none"
+                          />
+                          <Button
+                            onClick={() => submitQuestionText.mutate()}
+                            disabled={submitQuestionText.isPending || !questionAnswer.trim()}
+                            className="w-full bg-blue-500 hover:bg-blue-600 text-white"
+                            size="sm"
+                          >
+                            {submitQuestionText.isPending ? "Submitting..." : "Submit Answer"}
+                          </Button>
+                          {submitQuestionText.isError && (
+                            <p className="text-xs text-red-500">
+                              {(submitQuestionText.error as any)?.response?.data?.error || "Failed to submit"}
+                            </p>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                  {/* Question MC results */}
+                  {isQuestion && isQuestionMC && mySubmission && questionData && (
+                    <div className="rounded-lg border border-[#E2E8F0] p-5">
+                      <h3 className="text-sm font-semibold text-[#0F172A] mb-3">Result</h3>
+                      <div className="rounded-lg bg-green-50 border border-green-200 p-3 mb-3">
+                        <p className="text-sm font-medium text-green-800">
+                          Score: {mySubmission.points}{post.maxPoints !== null ? `/${post.maxPoints}` : ""} points
+                        </p>
+                      </div>
+                      {mySubmission.feedback && (() => {
+                        let fb: QuizFeedback | null = null;
+                        try { fb = JSON.parse(mySubmission.feedback) as QuizFeedback; } catch { /* ignore */ }
+                        if (!fb?.results?.[0]) return null;
+                        const result = fb.results[0];
+                        return (
+                          <div className={`rounded-lg p-3 border ${result.correct ? "border-green-200 bg-green-50" : "border-red-200 bg-red-50"}`}>
+                            <p className="text-sm font-medium text-[#0F172A]">{questionData.question.text}</p>
+                            <p className={`text-xs font-semibold mt-1 ${result.correct ? "text-green-600" : "text-red-600"}`}>
+                              {result.correct ? "Correct" : "Incorrect"}
+                            </p>
+                            {questionData.question.correctIndex !== undefined && questionData.question.options && (
+                              <p className="text-xs text-[#64748B] mt-1">
+                                Correct answer: {questionData.question.options[questionData.question.correctIndex]}
+                              </p>
+                            )}
                           </div>
                         );
                       })()}

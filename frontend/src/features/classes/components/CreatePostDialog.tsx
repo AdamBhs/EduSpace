@@ -20,7 +20,7 @@ import {
   SelectValue,
 } from "@/shared/components/ui/select";
 import { createPost } from "@/services/content-service";
-import type { Chapter, ClassroomType, PostType, StudyMaterialType, QuizQuestion } from "@/shared/types";
+import type { Chapter, ClassroomType, PostType, StudyMaterialType, QuizQuestion, QuestionData } from "@/shared/types";
 import QuizBuilder from "./QuizBuilder";
 import DateTimeInput from "@/shared/components/ui/date-time-input";
 import {
@@ -30,6 +30,9 @@ import {
   HelpCircle,
   Megaphone,
   Settings2,
+  Plus,
+  X,
+  CircleCheck,
 } from "lucide-react";
 import ChapterManager from "./ChapterManager";
 
@@ -79,6 +82,11 @@ const CreatePostDialog = ({
   const [uploading, setUploading] = useState(false);
   const [showChapterMgr, setShowChapterMgr] = useState(false);
   const [quizQuestions, setQuizQuestions] = useState<QuizQuestion[]>([]);
+  const [questionAnswerType, setQuestionAnswerType] = useState<"multiple_choice" | "text">("multiple_choice");
+  const [questionText, setQuestionText] = useState("");
+  const [questionOptions, setQuestionOptions] = useState<string[]>(["", ""]);
+  const [questionCorrectIndex, setQuestionCorrectIndex] = useState(0);
+  const [questionPoints, setQuestionPoints] = useState("1");
 
   useEffect(() => {
     if (!chapterId && chapters.length > 0) {
@@ -109,8 +117,23 @@ const CreatePostDialog = ({
   }, []);
 
   const mutation = useMutation({
-    mutationFn: () =>
-      createPost({
+    mutationFn: () => {
+      let questionData: QuestionData | undefined;
+      if (postType === "QUESTION") {
+        questionData = {
+          answerType: questionAnswerType,
+          question: {
+            id: `q_${Date.now()}_1`,
+            text: questionText.trim(),
+            ...(questionAnswerType === "multiple_choice" && {
+              options: questionOptions.map(o => o.trim()),
+              correctIndex: questionCorrectIndex,
+            }),
+            points: Number(questionPoints) || 1,
+          },
+        };
+      }
+      return createPost({
         classId,
         chapterId,
         title: title.trim(),
@@ -118,10 +141,12 @@ const CreatePostDialog = ({
         type: postType,
         studyMaterialType: postType === "STUDY_MATERIAL" ? studyMaterialType : undefined,
         quizData: postType === "QUIZ" ? { questions: quizQuestions } : undefined,
-        dueDate: (postType === "ASSIGNMENT" || postType === "QUIZ") && dueDate ? dueDate : undefined,
+        questionData,
+        dueDate: (postType === "ASSIGNMENT" || postType === "QUIZ" || postType === "QUESTION") && dueDate ? dueDate : undefined,
         maxPoints: postType === "ASSIGNMENT" && maxPoints ? Number(maxPoints) : undefined,
         attachments: attachments.length > 0 ? attachments : undefined,
-      }),
+      });
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["posts", classId] });
       handleClose();
@@ -138,15 +163,31 @@ const CreatePostDialog = ({
     setMaxPoints("");
     setAttachments([]);
     setQuizQuestions([]);
+    setQuestionAnswerType("multiple_choice");
+    setQuestionText("");
+    setQuestionOptions(["", ""]);
+    setQuestionCorrectIndex(0);
+    setQuestionPoints("1");
     setShowChapterMgr(false);
     onOpenChange(false);
   };
+
+  const isQuestionValid = postType !== "QUESTION" || (
+    questionText.trim().length > 0 &&
+    Number(questionPoints) >= 1 &&
+    (questionAnswerType !== "multiple_choice" || (
+      questionOptions.length >= 2 &&
+      questionOptions.every(o => o.trim()) &&
+      questionCorrectIndex < questionOptions.length
+    ))
+  );
 
   const isValid =
     title.trim().length > 0 &&
     chapterId &&
     (postType !== "ASSIGNMENT" || (maxPoints !== "" && Number(maxPoints) >= 1)) &&
-    (postType !== "QUIZ" || (quizQuestions.length > 0 && quizQuestions.every(q => q.text.trim() && q.options.every(o => o.trim()))));
+    (postType !== "QUIZ" || (quizQuestions.length > 0 && quizQuestions.every(q => q.text.trim() && q.options.every(o => o.trim())))) &&
+    isQuestionValid;
 
   const availableTypes = isTeaching
     ? POST_TYPES
@@ -269,6 +310,112 @@ const CreatePostDialog = ({
             <QuizBuilder questions={quizQuestions} onChange={setQuizQuestions} />
           )}
 
+          {/* Question builder */}
+          {postType === "QUESTION" && (
+            <div className="flex flex-col gap-3">
+              <div>
+                <p className="text-sm font-medium text-muted-foreground mb-2">Answer Type</p>
+                <div className="flex gap-2">
+                  {([["multiple_choice", "Multiple Choice"], ["text", "Text Answer"]] as const).map(([val, label]) => (
+                    <button
+                      key={val}
+                      type="button"
+                      onClick={() => setQuestionAnswerType(val)}
+                      className={`rounded-lg border-2 px-3 py-1.5 text-sm font-medium transition-colors cursor-pointer ${
+                        questionAnswerType === val
+                          ? "border-blue-500 text-blue-600 bg-blue-50"
+                          : "border-gray-200 text-gray-500 bg-white hover:border-gray-300"
+                      }`}
+                    >
+                      {label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div>
+                <input
+                  type="text"
+                  value={questionText}
+                  onChange={(e) => setQuestionText(e.target.value)}
+                  placeholder="Question text *"
+                  className="w-full border-b border-gray-300 bg-transparent px-0 pb-1.5 pt-1 text-sm outline-none focus:border-blue-500"
+                />
+              </div>
+
+              {questionAnswerType === "multiple_choice" && (
+                <div className="space-y-2">
+                  {questionOptions.map((opt, idx) => (
+                    <div key={idx} className="flex items-center gap-2">
+                      <button
+                        type="button"
+                        onClick={() => setQuestionCorrectIndex(idx)}
+                        className="cursor-pointer shrink-0"
+                      >
+                        <CircleCheck
+                          className={`w-4.5 h-4.5 ${
+                            questionCorrectIndex === idx
+                              ? "text-green-500"
+                              : "text-gray-300 hover:text-gray-400"
+                          }`}
+                        />
+                      </button>
+                      <input
+                        type="text"
+                        value={opt}
+                        onChange={(e) => {
+                          const next = [...questionOptions];
+                          next[idx] = e.target.value;
+                          setQuestionOptions(next);
+                        }}
+                        placeholder={`Option ${idx + 1}`}
+                        className={`flex-1 rounded border px-2.5 py-1.5 text-sm outline-none transition-colors ${
+                          questionCorrectIndex === idx
+                            ? "border-green-300 bg-green-50"
+                            : "border-gray-200 focus:border-blue-500"
+                        }`}
+                      />
+                      {questionOptions.length > 2 && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const next = questionOptions.filter((_, i) => i !== idx);
+                            setQuestionOptions(next);
+                            if (questionCorrectIndex === idx) setQuestionCorrectIndex(0);
+                            else if (questionCorrectIndex > idx) setQuestionCorrectIndex(questionCorrectIndex - 1);
+                          }}
+                          className="p-0.5 text-[#94A3B8] hover:text-red-500 cursor-pointer"
+                        >
+                          <X className="w-3.5 h-3.5" />
+                        </button>
+                      )}
+                    </div>
+                  ))}
+                  {questionOptions.length < 6 && (
+                    <button
+                      type="button"
+                      onClick={() => setQuestionOptions([...questionOptions, ""])}
+                      className="flex items-center gap-1 text-xs text-[#137FEC] hover:text-[#1171d4] ml-6.5 cursor-pointer"
+                    >
+                      <Plus className="w-3 h-3" /> Add option
+                    </button>
+                  )}
+                </div>
+              )}
+
+              <div className="w-32">
+                <label className="text-sm font-medium text-muted-foreground">Points *</label>
+                <input
+                  type="number"
+                  min="1"
+                  value={questionPoints}
+                  onChange={(e) => setQuestionPoints(e.target.value)}
+                  className="mt-1 w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm outline-none focus:border-blue-500"
+                />
+              </div>
+            </div>
+          )}
+
           {/* File attachments */}
           <FileAttachments
             attachments={attachments}
@@ -299,8 +446,8 @@ const CreatePostDialog = ({
             </div>
           )}
 
-          {/* Quiz due date */}
-          {postType === "QUIZ" && isTeaching && (
+          {/* Quiz / Question due date */}
+          {(postType === "QUIZ" || postType === "QUESTION") && isTeaching && (
             <div>
               <label className="text-sm font-medium text-muted-foreground">Due Date</label>
               <DateTimeInput value={dueDate} onChange={setDueDate} className="mt-1" />

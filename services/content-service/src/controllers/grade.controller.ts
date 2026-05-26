@@ -139,7 +139,7 @@ export class GradeController {
       }
 
       const assignments = await prisma.post.findMany({
-        where: { classId, type: { in: ["ASSIGNMENT", "QUIZ"] } },
+        where: { classId, type: { in: ["ASSIGNMENT", "QUIZ", "QUESTION"] } },
         include: {
           submissions: {
             ...(membership.role === "MEMBER"

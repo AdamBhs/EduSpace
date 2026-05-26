@@ -115,7 +115,7 @@ const Stream = () => {
     if (!isTeaching) return [];
     const now = new Date();
     return allPosts
-      .filter((p) => (p.type === "ASSIGNMENT" || p.type === "QUIZ") && p.dueDate && new Date(p.dueDate) > now)
+      .filter((p) => (p.type === "ASSIGNMENT" || p.type === "QUIZ" || p.type === "QUESTION") && p.dueDate && new Date(p.dueDate) > now)
       .sort((a, b) => new Date(a.dueDate!).getTime() - new Date(b.dueDate!).getTime())
       .slice(0, 5);
   }, [allPosts, isTeaching]);

@@ -104,6 +104,17 @@ export type QuizData = {
   questions: QuizQuestion[];
 };
 
+export type QuestionData = {
+  answerType: "multiple_choice" | "text";
+  question: {
+    id: string;
+    text: string;
+    options?: string[];
+    correctIndex?: number;
+    points: number;
+  };
+};
+
 export type QuizResult = {
   questionId: string;
   correct: boolean;
@@ -138,7 +149,7 @@ export type Post = {
   content: string | null;
   type: PostType;
   studyMaterialType: StudyMaterialType | null;
-  quizData?: QuizData | null;
+  quizData?: QuizData | QuestionData | null;
   dueDate: string | null;
   maxPoints: number | null;
   createdAt: string;

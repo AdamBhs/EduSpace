@@ -34,12 +34,12 @@ const Assignments = () => {
   const events = useMemo(() => {
     if (!posts) return [];
     return posts
-      .filter((p) => (p.type === "ASSIGNMENT" || p.type === "QUIZ") && p.dueDate)
+      .filter((p) => (p.type === "ASSIGNMENT" || p.type === "QUIZ" || p.type === "QUESTION") && p.dueDate)
       .map((p) => ({
         id: p.id,
         title: p.title,
         date: p.dueDate!,
-        color: p.type === "QUIZ" ? "#9333ea" : p.maxPoints ? "#16a34a" : "#2563eb",
+        color: p.type === "QUIZ" ? "#9333ea" : p.type === "QUESTION" ? "#d97706" : p.maxPoints ? "#16a34a" : "#2563eb",
         extendedProps: { postId: p.id },
       }));
   }, [posts]);
