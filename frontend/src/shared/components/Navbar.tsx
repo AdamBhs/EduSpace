@@ -556,11 +556,7 @@ export default function Navbar() {
           <div
             className="px-4 py-2.5 text-center cursor-pointer hover:bg-[#d9f3ff] transition-colors"
             style={{ borderTop: "1px solid #bbebff" }}
-            onClick={() =>
-              navigate("/settings/notifications", {
-                state: { tab: "notifications" },
-              })
-            }
+            onClick={() => navigate("/notifications")}
           >
             <span
               className="text-[11px] font-semibold"
