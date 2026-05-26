@@ -37,7 +37,7 @@ const Calendar = () => {
         classrooms.map(async (c) => {
           const posts: Post[] = await getPostsByClass(c.id);
           return posts
-            .filter((p) => p.type === "ASSIGNMENT" && p.dueDate)
+            .filter((p) => (p.type === "ASSIGNMENT" || p.type === "QUIZ" || p.type === "QUESTION") && p.dueDate)
             .map((p) => ({ ...p, classroomName: c.name }));
         }),
       );

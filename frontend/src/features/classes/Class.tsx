@@ -142,7 +142,7 @@ const Class = () => {
       <section className="flex min-h-0 flex-1 flex-col pl-6 pb-4">
         <NavLinksClass
           classId={classId!}
-          activeTab="Materials"
+          activeTab="Classwork"
           classroomType={classroom!.type}
           userRole={classroom!.userRole!}
           chatEnabled={classroom!.chatEnabled}

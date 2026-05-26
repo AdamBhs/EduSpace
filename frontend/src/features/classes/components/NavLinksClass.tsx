@@ -22,9 +22,8 @@ const NavLinksClass = ({
   const isTeaching = classroomType === "TEACHING";
   const isAdmin = userRole === "ADMIN";
 
-  const tabs: string[] = ["Stream", "Materials", "People"];
+  const tabs: string[] = ["Stream", "Classwork", "People"];
 
-  if (isTeaching) tabs.push("Assignments");
   if (chatEnabled) tabs.push("Chat");
   if (isTeaching && isAdmin) tabs.push("Grades");
 
@@ -35,14 +34,11 @@ const NavLinksClass = ({
       case "Stream":
         navigate(`/c/${classId}`);
         break;
-      case "Materials":
+      case "Classwork":
         navigate(`/c/${classId}/materials`);
         break;
       case "People":
         navigate(`/c/${classId}/people`);
-        break;
-      case "Assignments":
-        navigate(`/c/${classId}/assignments`);
         break;
       case "Chat":
         navigate(`/c/${classId}/chat`);
