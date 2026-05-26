@@ -18,6 +18,7 @@ export class PostController {
         studyMaterialType,
         quizData,
         questionData,
+        assignedTo,
         dueDate,
         maxPoints,
         attachments,
@@ -47,6 +48,9 @@ export class PostController {
           quizData: type === "QUIZ" ? quizData
                   : type === "QUESTION" ? questionData
                   : undefined,
+          assignedTo: (type === "ASSIGNMENT" || type === "QUIZ" || type === "QUESTION") && assignedTo?.length
+            ? assignedTo
+            : undefined,
           dueDate: (type === "ASSIGNMENT" || type === "QUIZ" || type === "QUESTION") && dueDate ? new Date(dueDate) : null,
           maxPoints: type === "ASSIGNMENT" ? maxPoints
                    : type === "QUIZ" ? quizData.questions.reduce((sum: number, q: any) => sum + q.points, 0)
@@ -124,9 +128,17 @@ export class PostController {
         orderBy,
       });
 
+      const visiblePosts = membership.role === "MEMBER"
+        ? posts.filter((p: any) => {
+            if (!p.assignedTo) return true;
+            const assigned = p.assignedTo as string[];
+            return assigned.includes(userId);
+          })
+        : posts;
+
       await cacheSet(cacheKey, posts, 120);
 
-      sendSuccess(res, posts, "Posts retrieved");
+      sendSuccess(res, visiblePosts, "Posts retrieved");
     } catch (error) {
       console.error("Error getting posts:", error);
       sendError(res, "Failed to get posts", 500);
@@ -154,6 +166,13 @@ export class PostController {
       const membership = await checkMembership(post.classId, userId, req.headers.authorization);
       if (!membership) {
         return sendError(res, "Not a member of this classroom", 403);
+      }
+
+      if (membership.role === "MEMBER" && post.assignedTo) {
+        const assigned = post.assignedTo as string[];
+        if (!assigned.includes(userId)) {
+          return sendError(res, "You are not assigned to this post", 403);
+        }
       }
 
       if (post.quizData && membership.role !== "ADMIN") {
@@ -199,7 +218,7 @@ export class PostController {
     try {
       const userId = req.user!.userId;
       const postId = req.params.postId as string;
-      const { title, content, chapterId, quizData, questionData, dueDate, maxPoints } = req.body;
+      const { title, content, chapterId, quizData, questionData, assignedTo, dueDate, maxPoints } = req.body;
 
       const post = await prisma.post.findUnique({ where: { id: postId } });
       if (!post) {
@@ -225,6 +244,7 @@ export class PostController {
           ...(title !== undefined && { title }),
           ...(content !== undefined && { content }),
           ...(chapterId !== undefined && { chapterId }),
+          ...(assignedTo !== undefined && { assignedTo: assignedTo }),
           ...(quizData !== undefined && post.type === "QUIZ" && {
             quizData,
             maxPoints: newMaxPoints,

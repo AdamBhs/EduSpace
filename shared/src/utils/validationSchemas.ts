@@ -145,6 +145,7 @@ export const createPostSchema = z.object({
   studyMaterialType: z.enum(["COURS", "TD", "TP", "RESUME"]).optional(),
   quizData: quizDataSchema.optional(),
   questionData: questionDataSchema.optional(),
+  assignedTo: z.array(z.string().uuid()).min(1, "At least one student required").optional(),
   dueDate: z.string().datetime({ local: true }).optional(),
   maxPoints: z.number().min(1, "Max points must be at least 1").optional(),
   attachments: z
@@ -192,6 +193,7 @@ export const updatePostSchema = z.object({
   chapterId: z.string().uuid().optional(),
   quizData: quizDataSchema.optional(),
   questionData: questionDataSchema.optional(),
+  assignedTo: z.array(z.string().uuid()).min(1).optional().nullable(),
   dueDate: z.string().datetime({ local: true }).optional(),
   maxPoints: z.number().min(0).optional(),
 });

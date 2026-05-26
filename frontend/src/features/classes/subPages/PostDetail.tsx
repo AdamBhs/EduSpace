@@ -41,6 +41,7 @@ import {
   Award,
   MoreVertical,
   Pencil,
+  Users,
 } from "lucide-react";
 import type { Classroom, Post, Comment, Submission, UserSummary, QuizFeedback, QuestionData } from "@/shared/types";
 import { formatDateTime } from "@/shared/lib/utils";
@@ -375,6 +376,16 @@ const PostDetail = () => {
                     <span className="text-[#64748B]">Type:</span>
                     <span className="font-medium">{isQuestionMC ? "Multiple Choice" : "Text Answer"}</span>
                   </div>
+                </div>
+              )}
+
+              {/* Assigned to indicator */}
+              {(isAssignment || isQuiz || isQuestion) && isTeaching && isAdmin && post.assignedTo && post.assignedTo.length > 0 && (
+                <div className="flex items-center gap-2 rounded-lg border border-amber-200 bg-amber-50 px-4 py-2 text-sm mb-6">
+                  <Users className="w-4 h-4 text-amber-600" />
+                  <span className="text-amber-700 font-medium">
+                    Assigned to {post.assignedTo.length} student{post.assignedTo.length !== 1 ? "s" : ""}
+                  </span>
                 </div>
               )}
 

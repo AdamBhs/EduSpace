@@ -32,6 +32,7 @@ model Post {
   type              PostType
   studyMaterialType StudyMaterialType? @map("study_material_type")
   quizData          Json?              @map("quiz_data")
+  assignedTo        Json?              @map("assigned_to")
   dueDate           DateTime?          @map("due_date")
   maxPoints         Int?               @map("max_points")
   createdAt         DateTime           @default(now()) @map("created_at")

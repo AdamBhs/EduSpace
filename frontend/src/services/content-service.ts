@@ -12,6 +12,7 @@ export const createPost = async (data: {
   studyMaterialType?: StudyMaterialType;
   quizData?: { questions: QuizQuestion[] };
   questionData?: QuestionData;
+  assignedTo?: string[];
   dueDate?: string;
   maxPoints?: number;
   attachments?: { fileKey: string; fileName: string; fileSize: number; fileType: string }[];
@@ -48,6 +49,7 @@ export const updatePost = async (
     chapterId?: string;
     quizData?: { questions: QuizQuestion[] };
     questionData?: QuestionData;
+    assignedTo?: string[] | null;
     dueDate?: string;
     maxPoints?: number;
   },

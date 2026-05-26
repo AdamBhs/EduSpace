@@ -21,6 +21,7 @@ import type { Post, Chapter, ClassroomType, QuizQuestion, QuestionData } from "@
 import QuizBuilder from "./QuizBuilder";
 import DateTimeInput from "@/shared/components/ui/date-time-input";
 import { Plus, X, CircleCheck } from "lucide-react";
+import StudentPicker from "./StudentPicker";
 
 interface EditPostDialogProps {
   open: boolean;
@@ -56,6 +57,10 @@ const EditPostDialog = ({
     (post.quizData && "questions" in post.quizData ? post.quizData.questions as QuizQuestion[] : []),
   );
 
+  const hasAssignableType = isAssignment || isQuiz || isQuestion;
+  const [allStudents, setAllStudents] = useState(!post.assignedTo || post.assignedTo.length === 0);
+  const [assignedStudentIds, setAssignedStudentIds] = useState<string[]>(post.assignedTo ?? []);
+
   const existingQD = post.quizData && "answerType" in (post.quizData as any) ? (post.quizData as QuestionData) : null;
   const [questionAnswerType, setQuestionAnswerType] = useState<"multiple_choice" | "text">(existingQD?.answerType ?? "multiple_choice");
   const [questionText, setQuestionText] = useState(existingQD?.question?.text ?? "");
@@ -73,6 +78,8 @@ const EditPostDialog = ({
       );
       setMaxPoints(post.maxPoints !== null ? String(post.maxPoints) : "");
       setQuizQuestions(post.quizData && "questions" in post.quizData ? post.quizData.questions as QuizQuestion[] : []);
+      setAllStudents(!post.assignedTo || post.assignedTo.length === 0);
+      setAssignedStudentIds(post.assignedTo ?? []);
       const qd = post.quizData && "answerType" in (post.quizData as any) ? (post.quizData as QuestionData) : null;
       setQuestionAnswerType(qd?.answerType ?? "multiple_choice");
       setQuestionText(qd?.question?.text ?? "");
@@ -105,6 +112,9 @@ const EditPostDialog = ({
         chapterId,
         quizData: isQuiz ? { questions: quizQuestions } : undefined,
         questionData,
+        assignedTo: hasAssignableType
+          ? (allStudents ? null : assignedStudentIds.length > 0 ? assignedStudentIds : null)
+          : undefined,
         dueDate: (isAssignment || isQuiz || isQuestion) && dueDate ? dueDate : undefined,
         maxPoints: isAssignment && maxPoints ? Number(maxPoints) : undefined,
       });
@@ -126,12 +136,15 @@ const EditPostDialog = ({
     ))
   );
 
+  const assignValid = !hasAssignableType || allStudents || assignedStudentIds.length > 0;
+
   const isValid =
     title.trim().length > 0 &&
     chapterId &&
     (!isAssignment || (maxPoints !== "" && Number(maxPoints) >= 1)) &&
     (!isQuiz || (quizQuestions.length > 0 && quizQuestions.every(q => q.text.trim() && q.options.every(o => o.trim())))) &&
-    isQuestionValid;
+    isQuestionValid &&
+    assignValid;
 
   const typeLabel = post.type.replace("_", " ");
 
@@ -303,6 +316,17 @@ const EditPostDialog = ({
                 />
               </div>
             </div>
+          )}
+
+          {/* Assign to */}
+          {hasAssignableType && isTeaching && (
+            <StudentPicker
+              classId={post.classId}
+              selectedIds={assignedStudentIds}
+              onChange={setAssignedStudentIds}
+              allStudents={allStudents}
+              onToggleAll={setAllStudents}
+            />
           )}
 
           {/* Assignment-specific fields */}

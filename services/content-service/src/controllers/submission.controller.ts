@@ -29,6 +29,13 @@ export class SubmissionController {
         return sendError(res, "Only members/students can submit", 403);
       }
 
+      if (post.assignedTo) {
+        const assigned = post.assignedTo as string[];
+        if (!assigned.includes(userId)) {
+          return sendError(res, "You are not assigned to this task", 403);
+        }
+      }
+
       const existing = await prisma.submission.findUnique({
         where: { postId_studentId: { postId, studentId: userId } },
       });

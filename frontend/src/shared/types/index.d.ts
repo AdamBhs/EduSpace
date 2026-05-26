@@ -150,6 +150,7 @@ export type Post = {
   type: PostType;
   studyMaterialType: StudyMaterialType | null;
   quizData?: QuizData | QuestionData | null;
+  assignedTo?: string[] | null;
   dueDate: string | null;
   maxPoints: number | null;
   createdAt: string;

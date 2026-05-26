@@ -35,6 +35,7 @@ import {
   CircleCheck,
 } from "lucide-react";
 import ChapterManager from "./ChapterManager";
+import StudentPicker from "./StudentPicker";
 
 interface CreatePostDialogProps {
   open: boolean;
@@ -87,6 +88,8 @@ const CreatePostDialog = ({
   const [questionOptions, setQuestionOptions] = useState<string[]>(["", ""]);
   const [questionCorrectIndex, setQuestionCorrectIndex] = useState(0);
   const [questionPoints, setQuestionPoints] = useState("1");
+  const [allStudents, setAllStudents] = useState(true);
+  const [assignedStudentIds, setAssignedStudentIds] = useState<string[]>([]);
 
   useEffect(() => {
     if (!chapterId && chapters.length > 0) {
@@ -142,6 +145,8 @@ const CreatePostDialog = ({
         studyMaterialType: postType === "STUDY_MATERIAL" ? studyMaterialType : undefined,
         quizData: postType === "QUIZ" ? { questions: quizQuestions } : undefined,
         questionData,
+        assignedTo: (postType === "ASSIGNMENT" || postType === "QUIZ" || postType === "QUESTION") && !allStudents && assignedStudentIds.length > 0
+          ? assignedStudentIds : undefined,
         dueDate: (postType === "ASSIGNMENT" || postType === "QUIZ" || postType === "QUESTION") && dueDate ? dueDate : undefined,
         maxPoints: postType === "ASSIGNMENT" && maxPoints ? Number(maxPoints) : undefined,
         attachments: attachments.length > 0 ? attachments : undefined,
@@ -169,6 +174,8 @@ const CreatePostDialog = ({
     setQuestionCorrectIndex(0);
     setQuestionPoints("1");
     setShowChapterMgr(false);
+    setAllStudents(true);
+    setAssignedStudentIds([]);
     onOpenChange(false);
   };
 
@@ -182,12 +189,16 @@ const CreatePostDialog = ({
     ))
   );
 
+  const hasAssignableType = postType === "ASSIGNMENT" || postType === "QUIZ" || postType === "QUESTION";
+  const assignValid = !hasAssignableType || allStudents || assignedStudentIds.length > 0;
+
   const isValid =
     title.trim().length > 0 &&
     chapterId &&
     (postType !== "ASSIGNMENT" || (maxPoints !== "" && Number(maxPoints) >= 1)) &&
     (postType !== "QUIZ" || (quizQuestions.length > 0 && quizQuestions.every(q => q.text.trim() && q.options.every(o => o.trim())))) &&
-    isQuestionValid;
+    isQuestionValid &&
+    assignValid;
 
   const availableTypes = isTeaching
     ? POST_TYPES
@@ -414,6 +425,17 @@ const CreatePostDialog = ({
                 />
               </div>
             </div>
+          )}
+
+          {/* Assign to */}
+          {hasAssignableType && isTeaching && (
+            <StudentPicker
+              classId={classId}
+              selectedIds={assignedStudentIds}
+              onChange={setAssignedStudentIds}
+              allStudents={allStudents}
+              onToggleAll={setAllStudents}
+            />
           )}
 
           {/* File attachments */}
