@@ -83,3 +83,10 @@ export const changePassword = async (currentPassword: string, newPassword: strin
   });
   return response.data;
 };
+
+export const deleteAccount = async (classroomAction: "delete" | "transfer" = "delete") => {
+  const response = await api.delete("/users/api/user/me", {
+    data: { classroomAction },
+  });
+  return response.data;
+};

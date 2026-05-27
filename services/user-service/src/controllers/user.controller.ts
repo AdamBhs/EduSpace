@@ -1,6 +1,7 @@
 import { Request, Response } from "express";
 import { prisma } from "../db/prisma";
 import { sendSuccess, sendError } from "../../../../shared/src/utils/response";
+import { publishEvent, Events } from "../../../../shared/src";
 import axios from "axios";
 import FormData from "form-data";
 
@@ -157,7 +158,11 @@ export class UserController {
         return;
       }
 
+      const classroomAction = req.body?.classroomAction || "delete";
+
       await prisma.user.delete({ where: { userId } });
+
+      await publishEvent(Events.USER_DELETED, { userId, classroomAction });
 
       sendSuccess(res, { message: "Account deleted successfully" });
     } catch (error) {

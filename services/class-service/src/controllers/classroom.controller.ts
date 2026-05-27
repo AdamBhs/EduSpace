@@ -116,6 +116,38 @@ export class ClassroomController {
     }
   }
 
+  static async getDeletionImpact(req: Request, res: Response) {
+    try {
+      const userId = req.user!.userId;
+
+      const owned = await prisma.classroom.findMany({
+        where: { creatorId: userId },
+        include: {
+          members: { select: { userId: true, role: true } },
+        },
+      });
+
+      const transferable: { id: string; name: string }[] = [];
+      const deletable: { id: string; name: string }[] = [];
+
+      for (const c of owned) {
+        const hasOtherAdmin = c.members.some(
+          (m: any) => m.userId !== userId && m.role === "ADMIN",
+        );
+        if (hasOtherAdmin) {
+          transferable.push({ id: c.id, name: c.name });
+        } else {
+          deletable.push({ id: c.id, name: c.name });
+        }
+      }
+
+      sendSuccess(res, { transferable, deletable }, "Deletion impact retrieved");
+    } catch (error) {
+      console.error("Error getting deletion impact:", error);
+      sendError(res, "Failed to get deletion impact", 500);
+    }
+  }
+
   static async getMyClassrooms(req: Request, res: Response) {
     try {
       const userId = req.user!.userId;

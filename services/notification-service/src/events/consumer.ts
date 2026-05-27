@@ -46,6 +46,7 @@ export async function startConsumers(): Promise<void> {
       Events.POST_CREATED,
       Events.SUBMISSION_GRADED,
       Events.CHAT_MESSAGE,
+      Events.USER_DELETED,
     ],
     async (event, payload) => {
       switch (event) {
@@ -122,6 +123,14 @@ export async function startConsumers(): Promise<void> {
               : "A file was shared in the group chat",
             payload.classId,
           );
+          break;
+        }
+
+        case Events.USER_DELETED: {
+          const result = await prisma.notification.deleteMany({
+            where: { userId: payload.userId },
+          });
+          console.log(`[Event] Deleted ${result.count} notifications for deleted user ${payload.userId}`);
           break;
         }
       }
