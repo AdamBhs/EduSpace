@@ -4,14 +4,18 @@
   "packageManager": "pnpm@9.0.0",
   "scripts": {
     "dev": "pnpm -r dev",
-    "build": "pnpm -r build"
+    "build": "pnpm -r build",
+    "prisma:generate": "pnpm --filter user-service exec prisma generate && pnpm --filter class-service exec prisma generate && pnpm --filter content-service exec prisma generate && pnpm --filter communication-service exec prisma generate && pnpm --filter notification-service exec prisma generate",
+    "prisma:push": "pnpm --filter user-service exec prisma db push && pnpm --filter class-service exec prisma db push && pnpm --filter content-service exec prisma db push && pnpm --filter communication-service exec prisma db push && pnpm --filter notification-service exec prisma db push"
   },
   "devDependencies": {
     "prettier": "^3.8.1",
+    "prisma": "^7.3.0",
     "typescript": "^5.9.3"
   },
   "dependencies": {
     "@prisma/adapter-pg": "^7.3.0",
+    "@tanstack/react-query": "^5.90.21",
     "@types/morgan": "^1.9.10",
     "@types/multer": "^2.0.0",
     "axios": "^1.13.5",

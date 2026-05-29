@@ -1,49 +1,85 @@
 import { api } from "./axios";
+import type { AuthUser } from "@/shared/types";
 
-// Users API
-export const getUsers = async () => {
-  const response = await api.get("/users"); // this hits NGINX -> /api/users -> 3002
+export const register = async (userData: {
+  email: string;
+  password: string;
+  firstName: string;
+  lastName: string;
+  phoneNumber?: string;
+}) => {
+  const response = await api.post("/users/api/auth/register", userData);
   return response.data;
 };
 
-export const register = async (userData: any) => {
-  try {
-    const response = await api.post("/users/api/auth/register", userData);
-    console.log("Registration successful:", response.data);
-    return response.data;
-  } catch (error: any) {
-    console.error("Registration error:", error.response?.data || error.message);
-    throw error;
-  }
+export const login = async (credentials: {
+  email: string;
+  password: string;
+}): Promise<{ token: string; user: AuthUser }> => {
+  const response = await api.post("/users/api/auth/login", credentials);
+  const { token, user } = response.data.data;
+  localStorage.setItem("token", token);
+  localStorage.setItem("user", JSON.stringify(user));
+  return { token, user };
 };
 
-export const login = async (userData: any) => {
-  try {
-    const response = await api.post("/users/api/auth/login", userData);
-
-    await localStorage.setItem("token", response.data.data.token);
-
-    await localStorage.setItem("user", JSON.stringify(response.data.data.user));
-
-    return response.data;
-  } catch (error: any) {
-    console.error("Login error:", error.response?.data || error.message);
-    throw error;
-  }
-};
-
-export const verifyCode = async (data: any) => {
-  try {
-    const response = await api.post("/users/api/auth/verifyCode", data);
-    console.log("Veirfy code sucessfuly");
-    return response;
-  } catch (error: any) {
-    console.error("Verify code error:", error.response?.data || error.message);
-    throw error;
-  }
+export const verifyCode = async (data: { email: string; code: string }) => {
+  const response = await api.post("/users/api/auth/verifyCode", data);
+  return response.data;
 };
 
 export const resendCode = async (email: string) => {
   const response = await api.post("/users/api/auth/resendCode", { email });
+  return response.data;
+};
+
+export const getProfile = async () => {
+  const response = await api.get("/users/api/user/me");
+  return response.data.data;
+};
+
+export const updateProfile = async (data: {
+  firstName?: string;
+  lastName?: string;
+  phoneNumber?: string;
+  timezone?: string;
+}) => {
+  const response = await api.put("/users/api/user/me", data);
+  return response.data.data;
+};
+
+export const uploadProfilePicture = async (file: File) => {
+  const formData = new FormData();
+  formData.append("file", file, file.name);
+
+  const response = await api.put("/users/api/user/upload_avatar", formData, {
+    headers: { "Content-Type": "multipart/form-data" },
+  });
+  return response.data.data;
+};
+
+export const getUsers = async (userIds: string[]): Promise<import("@/shared/types").UserSummary[]> => {
+  const response = await api.post("/users/api/user/getUsers", { userIds });
+  return response.data.data;
+};
+
+export const requestPasswordReset = async (email: string) => {
+  const response = await api.post("/users/api/auth/request-reset", { email });
+  return response.data;
+};
+
+export const resetPassword = async (resetToken: string, newPassword: string) => {
+  const response = await api.post("/users/api/auth/reset-password", {
+    resetToken,
+    newPassword,
+  });
+  return response.data;
+};
+
+export const changePassword = async (currentPassword: string, newPassword: string) => {
+  const response = await api.post("/users/api/auth/change-password", {
+    currentPassword,
+    newPassword,
+  });
   return response.data;
 };

@@ -1,485 +1,311 @@
 import { Request, Response } from "express";
 import { prisma } from "../db/prisma";
 import { sendSuccess, sendError } from "../../../../shared/src/utils/response";
-import axios from "axios";
+import { publishEvent, Events } from "../../../../shared/src";
+import { cacheGet, cacheSet, cacheDel, cacheDelPattern } from "../../../../shared/src/utils/redis";
+import { ClassroomType, Role } from "../generated/prisma/enums";
+import { fetchUsers } from "../utils/userService";
 
-async function generateClassCode(length = 8): Promise<string> {
-  let classCode: string;
-  let exists: Boolean = true;
+function generateClassCode(): string {
   const chars = "abcdefghijklmnopqrstuvwxyz0123456789";
-  while (exists) {
-    classCode = Array.from({ length }, () =>
-      chars.charAt(Math.floor(Math.random() * chars.length)),
-    ).join("");
-    const found = await prisma.classroom.findUnique({
-      where: { class_code: classCode },
-    });
-    if (!found) return classCode;
-  }
+  return Array.from({ length: 6 }, () =>
+    chars.charAt(Math.floor(Math.random() * chars.length)),
+  ).join("");
+}
 
-  return "";
+async function uniqueClassCode(): Promise<string> {
+  for (let i = 0; i < 10; i++) {
+    const code = generateClassCode();
+    const exists = await prisma.classroom.findUnique({ where: { classCode: code } });
+    if (!exists) return code;
+  }
+  throw new Error("Failed to generate unique class code");
 }
 
 export class ClassroomController {
-  /**
-   * GetAllEnrollClassroom
-   * Get /api/classroom/getClassrooms
-   */
-  static async getAllEnrollClassroom(req: Request, res: Response) {
+  static async create(req: Request, res: Response) {
     try {
       const userId = req.user!.userId;
+      const { name, type, description, subject, section, chatEnabled } = req.body;
 
-      const classes_enrolled = await prisma.enrollement.findMany({
-        where: {
-          user_id: userId,
-        },
-        include: {
-          classroom: true,
-        },
-      });
-
-      const classrooms = classes_enrolled.map((enroll) => enroll.classroom);
-
-      sendSuccess(
-        res,
-        classrooms,
-        "Getting all classrooms enrolled succefully",
-        200,
-      );
-    } catch (error) {
-      console.error("Error getting all the classroom enrolled in : ", error);
-      sendError(res, "Error getting all classroom", 500);
-    }
-  }
-  /**
-   * Join a Classroom
-   * POST /api/classroom/join
-   */
-  static async joinClassroom(req: Request, res: Response) {
-    try {
-      const { class_code } = req.body;
-      const userId = req.user!.userId;
-
-      const userResponse = await axios.get(
-        `http://localhost:3002/api/user/${userId}`,
-        {
-          headers: {
-            Authorization: req.headers.authorization,
-          },
-        },
-      );
-
-      if (!userResponse.data) {
-        return sendError(res, "User not found", 404);
-      }
-
-      const classRoom = await prisma.classroom.findUnique({
-        where: { class_code },
-      });
-
-      if (!classRoom) {
-        return sendError(res, "Classroom not found", 404);
-      }
-
-      if (classRoom?.teacher_id === userId) {
-        return sendError(res, "User can't Join a classroom he create", 422);
-      }
-
-      const existingEnrollment = await prisma.enrollement.findFirst({
-        where: {
-          class_id: classRoom.classId,
-          user_id: userId,
-        },
-      });
-
-      if (existingEnrollment) {
-        return sendError(res, "User already joined this classroom", 422);
-      }
-
-      const enrollment = await prisma.enrollement.create({
-        data: {
-          class_id: classRoom.classId,
-          user_id: userId,
-        },
-      });
-
-      return sendSuccess(
-        res,
-        enrollment,
-        "User joined classroom successfuly",
-        201,
-      );
-    } catch (error) {
-      console.error("Error joining classroom :", error);
-      sendError(res, "Error joining Classroom", 400);
-    }
-  }
-  /**
-   * Create a new Classroom
-   * POST /api/classroom/create
-   */
-  static async createClassroom(req: Request, res: Response) {
-    try {
-      const userId = req.user!.userId;
-
-      if (!userId) {
-        sendError(res, "Error getting UserId", 400);
-        return;
-      }
-
-      const {
-        name,
-        description,
-        subject,
-        section,
-        chapter,
-        material_categories,
-      } = req.body;
-
-      const classCode = await generateClassCode(8);
+      const classCode = await uniqueClassCode();
 
       const classroom = await prisma.$transaction(async (tx: any) => {
         const newClass = await tx.classroom.create({
           data: {
             name,
-            teacher_id: userId,
-            class_code: classCode,
+            type: type as ClassroomType,
+            classCode,
             description,
             subject,
             section,
-            chapter,
-            material_categories: material_categories || [],
+            chatEnabled: chatEnabled ?? true,
+            creatorId: userId,
           },
         });
 
-        await tx.enrollement.create({
+        await tx.member.create({
           data: {
-            class_id: newClass.classId,
-            user_id: userId,
-            role: "teacher",
+            classId: newClass.id,
+            userId,
+            role: Role.ADMIN,
+          },
+        });
+
+        await tx.chapter.create({
+          data: {
+            classId: newClass.id,
+            name: "General",
+            position: 0,
           },
         });
 
         return newClass;
       });
 
-      return sendSuccess(res, classroom, "Classroom Created successfully", 201);
+      await publishEvent(Events.CLASSROOM_CREATED, {
+        classId: classroom.id,
+        name: classroom.name,
+        chatEnabled: classroom.chatEnabled,
+        creatorId: userId,
+      });
+
+      sendSuccess(res, classroom, "Classroom created", 201);
     } catch (error) {
-      console.error("Error Creating new Classroom", error);
-      sendError(res, "Problem Creating classroom", 500);
+      console.error("Error creating classroom:", error);
+      sendError(res, "Failed to create classroom", 500);
     }
   }
-  /**
-   * Get people enrolled at classroom
-   * Get /api/classroom/getPeople
-   */
-  static async getPeopleEnrolled(req: Request, res: Response) {
+
+  static async getById(req: Request, res: Response) {
     try {
-      const { class_code } = req.body;
+      const userId = req.user!.userId;
+      const classId = req.params.classId as string;
+
+      const member = await prisma.member.findUnique({
+        where: { classId_userId: { classId, userId } },
+      });
+      if (!member) {
+        return sendError(res, "Not a member of this classroom", 403);
+      }
+
+      const cacheKey = `classroom:${classId}`;
+      const cached = await cacheGet<any>(cacheKey);
+      if (cached) {
+        return sendSuccess(res, { ...cached, userRole: member.role }, "Classroom retrieved");
+      }
 
       const classroom = await prisma.classroom.findUnique({
-        where: { class_code },
+        where: { id: classId },
+        include: {
+          chapters: { orderBy: { position: "asc" } },
+          _count: { select: { members: true } },
+        },
       });
 
       if (!classroom) {
-        return sendError(res, "Error finding the classroom", 404);
+        return sendError(res, "Classroom not found", 404);
       }
 
-      const enrolled = await prisma.enrollement.findMany({
-        where: { class_id: classroom.classId },
-      });
+      await cacheSet(cacheKey, classroom, 300);
 
-      const users_ids = enrolled.map((e) => e.user_id);
+      sendSuccess(res, { ...classroom, userRole: member.role }, "Classroom retrieved");
+    } catch (error) {
+      console.error("Error getting classroom:", error);
+      sendError(res, "Failed to get classroom", 500);
+    }
+  }
 
-      const userResponse = await axios.post(
-        "http://localhost:3002/api/user/getUsers",
-        { users_ids },
-        {
-          headers: {
-            Authorization: req.headers.authorization,
+  static async getMyClassrooms(req: Request, res: Response) {
+    try {
+      const userId = req.user!.userId;
+
+      const memberships = await prisma.member.findMany({
+        where: { userId },
+        include: {
+          classroom: {
+            include: { _count: { select: { members: true } } },
           },
         },
-      );
-
-      return sendSuccess(
-        res,
-        userResponse.data,
-        "Getting people enrolled in classroom successfuly",
-        201,
-      );
-    } catch (error) {
-      console.error("Error getting people enrolled :", error);
-      sendError(res, "Error getting people by classroom ID", 500);
-    }
-  }
-}
-
-type AuthenticatedRequest = Request & {
-  user?: {
-    userId: string;
-    email?: string;
-  };
-};
-
-const isUuid = (value: string): boolean => {
-  return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(
-    value,
-  );
-};
-
-const parseMaterialCategories = (value: unknown): string[] | undefined => {
-  const allowed = new Set([
-    "lessons",
-    "labs",
-    "assignments",
-    "announcements",
-    "other",
-  ]);
-
-  if (value === undefined) {
-    return undefined;
-  }
-
-  if (!Array.isArray(value)) {
-    return [];
-  }
-
-  const categories = value
-    .filter(
-      (item): item is string =>
-        typeof item === "string" && item.trim().length > 0,
-    )
-    .map((item) => item.trim().toLowerCase())
-    .filter((item) => allowed.has(item));
-
-  return Array.from(new Set(categories));
-};
-
-export class UserController {
-  static async getClasses(req: Request, res: Response): Promise<void> {
-    try {
-      const teacherId =
-        typeof req.query.teacherId === "string"
-          ? req.query.teacherId
-          : undefined;
-      const subject =
-        typeof req.query.subject === "string" ? req.query.subject : undefined;
-
-      if (teacherId && !isUuid(teacherId)) {
-        sendError(res, "Invalid teacherId", 400);
-        return;
-      }
-
-      const classes = await prisma.classroom.findMany({
-        where: {
-          teacher_id: teacherId,
-          subject,
-        },
-        orderBy: {
-          created_at: "desc",
-        },
+        orderBy: { joinedAt: "desc" },
       });
 
-      sendSuccess(res, { classes });
+      const creatorIds: string[] = [
+        ...new Set<string>(memberships.map((m: any) => m.classroom.creatorId)),
+      ];
+      const creators = await fetchUsers(creatorIds, req.headers.authorization);
+      const creatorById = new Map(creators.map((u: any) => [u.userId, u]));
+
+      const classrooms = memberships.map((m: any) => ({
+        classroom: m.classroom,
+        role: m.role,
+        creator: creatorById.get(m.classroom.creatorId) ?? null,
+      }));
+
+      sendSuccess(res, classrooms, "Classrooms retrieved");
     } catch (error) {
-      console.error("Get classes error:", error);
-      sendError(res, "Failed to fetch classes", 500);
+      console.error("Error getting classrooms:", error);
+      sendError(res, "Failed to get classrooms", 500);
     }
   }
 
-  static async getClassById(req: Request, res: Response): Promise<void> {
+  static async join(req: Request, res: Response) {
     try {
-      const { classId } = req.params;
-
-      if (typeof classId !== "string") {
-        sendError(res, "Invalid classId", 400);
-        return;
-      }
-
-      if (!isUuid(classId)) {
-        sendError(res, "Invalid classId format", 400);
-        return;
-      }
+      const userId = req.user!.userId;
+      const { classCode } = req.body;
 
       const classroom = await prisma.classroom.findUnique({
-        where: { classId },
+        where: { classCode },
       });
 
       if (!classroom) {
-        sendError(res, "Classroom not found", 404);
-        return;
+        return sendError(res, "Invalid class code", 404);
       }
 
-      sendSuccess(res, { classroom });
+      const existing = await prisma.member.findUnique({
+        where: { classId_userId: { classId: classroom.id, userId } },
+      });
+
+      if (existing) {
+        return sendError(res, "Already a member of this classroom", 409);
+      }
+
+      const member = await prisma.member.create({
+        data: {
+          classId: classroom.id,
+          userId,
+          role: Role.MEMBER,
+        },
+      });
+
+      await cacheDel(`classroom:${classroom.id}`, `members:${classroom.id}`);
+
+      await publishEvent(Events.MEMBER_JOINED, {
+        classId: classroom.id,
+        userId,
+        classroomName: classroom.name,
+      });
+
+      sendSuccess(res, { member, classroom }, "Joined classroom", 201);
     } catch (error) {
-      console.error("Get class by id error:", error);
-      sendError(res, "Failed to fetch classroom", 500);
+      console.error("Error joining classroom:", error);
+      sendError(res, "Failed to join classroom", 500);
     }
   }
 
-  static async updateClass(req: Request, res: Response): Promise<void> {
+  static async update(req: Request, res: Response) {
     try {
-      const { classId } = req.params;
-      const userId = (req as AuthenticatedRequest).user?.userId;
+      const userId = req.user!.userId;
+      const classId = req.params.classId as string;
+      const { name, description, subject, section, chatEnabled, coverImage } = req.body;
 
-      if (typeof classId !== "string") {
-        sendError(res, "Invalid classId", 400);
-        return;
-      }
-
-      if (!isUuid(classId)) {
-        sendError(res, "Invalid classId format", 400);
-        return;
-      }
-
-      if (!userId) {
-        sendError(res, "User not authenticated", 401);
-        return;
-      }
-
-      if (!isUuid(userId)) {
-        sendError(res, "Invalid authenticated user id", 400);
-        return;
-      }
-
-      const existingClass = await prisma.classroom.findUnique({
-        where: { classId },
+      const member = await prisma.member.findUnique({
+        where: { classId_userId: { classId, userId } },
       });
 
-      if (!existingClass) {
-        sendError(res, "Classroom not found", 404);
-        return;
-      }
-
-      if (existingClass.teacher_id !== userId) {
-        sendError(res, "Forbidden", 403);
-        return;
-      }
-
-      const {
-        name,
-        description,
-        subject,
-        section,
-        chapter,
-        materialCategories,
-        isArchived,
-      } = req.body;
-
-      const updateData: {
-        name?: string;
-        description?: string | null;
-        subject?: string | null;
-        section?: string | null;
-        chapter?: string | null;
-        material_categories?: string[];
-        is_archived?: boolean;
-      } = {};
-
-      if (name !== undefined) {
-        if (typeof name !== "string" || !name.trim()) {
-          sendError(res, "name must be a non-empty string", 400);
-          return;
-        }
-
-        updateData.name = name;
-      }
-
-      if (description !== undefined) {
-        updateData.description =
-          typeof description === "string" ? description : null;
-      }
-
-      if (subject !== undefined) {
-        updateData.subject = typeof subject === "string" ? subject : null;
-      }
-
-      if (section !== undefined) {
-        updateData.section = typeof section === "string" ? section : null;
-      }
-
-      if (chapter !== undefined) {
-        updateData.chapter = typeof chapter === "string" ? chapter : null;
-      }
-
-      const parsedCategories = parseMaterialCategories(materialCategories);
-      if (parsedCategories !== undefined) {
-        updateData.material_categories = parsedCategories;
-      }
-
-      if (isArchived !== undefined) {
-        if (typeof isArchived !== "boolean") {
-          sendError(res, "isArchived must be a boolean", 400);
-          return;
-        }
-
-        updateData.is_archived = isArchived;
-      }
-
-      if (Object.keys(updateData).length === 0) {
-        sendError(res, "No valid fields provided for update", 400);
-        return;
+      if (!member || member.role !== Role.ADMIN) {
+        return sendError(res, "Only admins can update classroom settings", 403);
       }
 
       const classroom = await prisma.classroom.update({
-        where: { classId },
-        data: updateData,
+        where: { id: classId },
+        data: {
+          ...(name !== undefined && { name }),
+          ...(description !== undefined && { description }),
+          ...(subject !== undefined && { subject }),
+          ...(section !== undefined && { section }),
+          ...(chatEnabled !== undefined && { chatEnabled }),
+          ...(coverImage !== undefined && { coverImage }),
+        },
       });
 
-      sendSuccess(res, { classroom }, "Classroom updated successfully");
+      await cacheDel(`classroom:${classId}`);
+
+      if (chatEnabled !== undefined) {
+        await publishEvent(Events.CHAT_TOGGLED, {
+          classId,
+          enabled: classroom.chatEnabled,
+        });
+      }
+
+      sendSuccess(res, classroom, "Classroom updated");
     } catch (error) {
-      console.error("Update class error:", error);
+      console.error("Error updating classroom:", error);
       sendError(res, "Failed to update classroom", 500);
     }
   }
 
-  static async deleteClass(req: Request, res: Response): Promise<void> {
+  static async delete(req: Request, res: Response) {
     try {
-      const { classId } = req.params;
-      const userId = (req as AuthenticatedRequest).user?.userId;
+      const userId = req.user!.userId;
+      const classId = req.params.classId as string;
 
-      if (typeof classId !== "string") {
-        sendError(res, "Invalid classId", 400);
-        return;
-      }
-
-      if (!isUuid(classId)) {
-        sendError(res, "Invalid classId format", 400);
-        return;
-      }
-
-      if (!userId) {
-        sendError(res, "User not authenticated", 401);
-        return;
-      }
-
-      if (!isUuid(userId)) {
-        sendError(res, "Invalid authenticated user id", 400);
-        return;
-      }
-
-      const existingClass = await prisma.classroom.findUnique({
-        where: { classId },
+      const classroom = await prisma.classroom.findUnique({
+        where: { id: classId },
       });
 
-      if (!existingClass) {
-        sendError(res, "Classroom not found", 404);
-        return;
+      if (!classroom) {
+        return sendError(res, "Classroom not found", 404);
       }
 
-      if (existingClass.teacher_id !== userId) {
-        sendError(res, "Forbidden", 403);
-        return;
+      if (classroom.creatorId !== userId) {
+        return sendError(res, "Only the classroom creator can delete it", 403);
       }
 
-      await prisma.classroom.delete({
-        where: { classId },
-      });
+      await prisma.classroom.delete({ where: { id: classId } });
 
-      sendSuccess(res, { classId }, "Classroom deleted successfully");
+      await cacheDelPattern(`*:${classId}*`);
+
+      await publishEvent(Events.CLASSROOM_DELETED, { classId });
+
+      sendSuccess(res, null, "Classroom deleted");
     } catch (error) {
-      console.error("Delete class error:", error);
+      console.error("Error deleting classroom:", error);
       sendError(res, "Failed to delete classroom", 500);
+    }
+  }
+
+  static async leave(req: Request, res: Response) {
+    try {
+      const userId = req.user!.userId;
+      const classId = req.params.classId as string;
+
+      const classroom = await prisma.classroom.findUnique({
+        where: { id: classId },
+      });
+
+      if (!classroom) {
+        return sendError(res, "Classroom not found", 404);
+      }
+
+      if (classroom.creatorId === userId) {
+        return sendError(res, "The creator cannot leave — delete the classroom instead", 400);
+      }
+
+      const member = await prisma.member.findUnique({
+        where: { classId_userId: { classId, userId } },
+      });
+
+      if (!member) {
+        return sendError(res, "Not a member of this classroom", 404);
+      }
+
+      await prisma.member.delete({
+        where: { classId_userId: { classId, userId } },
+      });
+
+      await cacheDel(`classroom:${classId}`, `members:${classId}`);
+
+      await publishEvent(Events.MEMBER_REMOVED, {
+        classId,
+        userId,
+        classroomName: classroom.name,
+      });
+
+      sendSuccess(res, null, "Left classroom");
+    } catch (error) {
+      console.error("Error leaving classroom:", error);
+      sendError(res, "Failed to leave classroom", 500);
     }
   }
 }

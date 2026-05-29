@@ -5,7 +5,7 @@ export default function AlreadyLoginRoute({ children }: PropsChildrenReact) {
   const token = localStorage.getItem("token");
 
   if (token) {
-    return <Navigate to="/dashboard" replace />;
+    return <Navigate to="/" replace />;
   }
 
   return children;

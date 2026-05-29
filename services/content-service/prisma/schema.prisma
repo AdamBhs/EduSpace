@@ -1,0 +1,121 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum PostType {
+  STUDY_MATERIAL
+  QUIZ
+  QUESTION
+  ASSIGNMENT
+  ANNOUNCEMENT
+}
+
+enum StudyMaterialType {
+  COURS
+  TD
+  TP
+  RESUME
+}
+
+model Post {
+  id                String             @id @default(uuid()) @db.Uuid
+  classId           String             @map("class_id") @db.Uuid
+  chapterId         String             @map("chapter_id") @db.Uuid
+  authorId          String             @map("author_id") @db.Uuid
+  title             String
+  content           String?
+  type              PostType
+  studyMaterialType StudyMaterialType? @map("study_material_type")
+  dueDate           DateTime?          @map("due_date")
+  maxPoints         Int?               @map("max_points")
+  createdAt         DateTime           @default(now()) @map("created_at")
+  updatedAt         DateTime           @updatedAt @map("updated_at")
+
+  attachments Attachment[]
+  comments    Comment[]
+  submissions Submission[]
+
+  @@index([classId])
+  @@index([chapterId])
+  @@index([authorId])
+  @@map("posts")
+}
+
+model Attachment {
+  id       String  @id @default(uuid()) @db.Uuid
+  postId   String  @map("post_id") @db.Uuid
+  fileKey  String  @map("file_key")
+  fileName String  @map("file_name")
+  fileType String? @map("file_type")
+  fileSize Int?    @map("file_size")
+
+  post Post @relation(fields: [postId], references: [id], onDelete: Cascade)
+
+  @@index([postId])
+  @@map("attachments")
+}
+
+model Comment {
+  id        String   @id @default(uuid()) @db.Uuid
+  postId    String   @map("post_id") @db.Uuid
+  authorId  String   @map("author_id") @db.Uuid
+  content   String
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  post Post @relation(fields: [postId], references: [id], onDelete: Cascade)
+
+  @@index([postId])
+  @@index([authorId])
+  @@map("comments")
+}
+
+model Submission {
+  id        String   @id @default(uuid()) @db.Uuid
+  postId    String   @map("post_id") @db.Uuid
+  studentId String   @map("student_id") @db.Uuid
+  content   String?
+  points    Int?
+  feedback  String?
+  gradedAt  DateTime? @map("graded_at")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  post        Post                     @relation(fields: [postId], references: [id], onDelete: Cascade)
+  attachments SubmissionAttachment[]
+
+  @@unique([postId, studentId])
+  @@index([postId])
+  @@index([studentId])
+  @@map("submissions")
+}
+
+model SubmissionAttachment {
+  id           String  @id @default(uuid()) @db.Uuid
+  submissionId String  @map("submission_id") @db.Uuid
+  fileKey      String  @map("file_key")
+  fileName     String  @map("file_name")
+  fileType     String? @map("file_type")
+  fileSize     Int?    @map("file_size")
+
+  submission Submission @relation(fields: [submissionId], references: [id], onDelete: Cascade)
+
+  @@index([submissionId])
+  @@map("submission_attachments")
+}
+
+model GradeCategory {
+  id       String @id @default(uuid()) @db.Uuid
+  classId  String @map("class_id") @db.Uuid
+  name     String
+  weight   Int
+  position Int    @default(0)
+
+  @@index([classId])
+  @@map("grade_categories")
+}

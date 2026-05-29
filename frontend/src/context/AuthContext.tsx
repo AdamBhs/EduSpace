@@ -1,4 +1,4 @@
-import type { AuthContextType } from "@/shared/types";
+import type { AuthContextType, AuthUser } from "@/shared/types";
 import { createContext, useContext, useState } from "react";
 import type { ReactNode } from "react";
 import { useNavigate } from "react-router-dom";
@@ -11,11 +11,15 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [token, setToken] = useState<string | null>(
     localStorage.getItem("token"),
   );
-  const [user, setUser] = useState<any | null>(
-    JSON.parse(localStorage.getItem("user") || "null"),
-  );
+  const [user, setUser] = useState<AuthUser | null>(() => {
+    try {
+      return JSON.parse(localStorage.getItem("user") || "null");
+    } catch {
+      return null;
+    }
+  });
 
-  const setAuth = (newToken: string, newUser: any) => {
+  const setAuth = (newToken: string, newUser: AuthUser) => {
     setToken(newToken);
     setUser(newUser);
     localStorage.setItem("token", newToken);

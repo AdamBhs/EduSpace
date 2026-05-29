@@ -1,14 +1,6 @@
-import { useState } from "react";
-import {
-  FileText,
-  CalendarDays,
-  Users,
-  Settings,
-  ChevronLeft,
-  ChevronRight,
-} from "lucide-react";
+import { useEffect, useRef, useState } from "react";
+import { CalendarDays, Settings } from "lucide-react";
 import { GoHomeFill } from "react-icons/go";
-import { Button } from "@/shared/components/ui/button";
 import { Badge } from "@/shared/components/ui/badge";
 import { Separator } from "@/shared/components/ui/separator";
 import {
@@ -22,48 +14,127 @@ import { cn } from "@/shared/lib/utils";
 import { LuListTodo } from "react-icons/lu";
 import { MdOutlineArchive } from "react-icons/md";
 import { useNavigate, useLocation } from "react-router-dom";
+import { IoMenu } from "react-icons/io5";
 
 const navSections = [
   {
     items: [
-      { icon: GoHomeFill, label: "Home", path: "/dashboard", badge: null },
+      { icon: GoHomeFill, label: "Home", path: "/", badge: null },
       {
         icon: CalendarDays,
         label: "Calendar",
-        path: "/dashboard/calendar",
+        path: "/calendar",
         badge: null,
       },
       {
         icon: LuListTodo,
         label: "To-do",
-        path: "/dashboard/todo",
+        path: "/todo",
         badge: null,
       },
-    ],
-  },
-  {
-    label: "Workspace",
-    items: [
-      {
-        icon: FileText,
-        label: "Documents",
-        path: "/dashboard/documents",
-        badge: null,
-      },
-      { icon: Users, label: "Users", path: "/dashboard/users", badge: null },
     ],
   },
 ];
 
 const footerItems = [
-  { icon: MdOutlineArchive, label: "Archive", path: "/dashboard/archive" },
-  { icon: Settings, label: "Settings", path: "/dashboard/settings" },
+  { icon: MdOutlineArchive, label: "Archive", path: "/archive" },
+  { icon: Settings, label: "Settings", path: "/settings" },
 ];
 
 export default function Sidebar() {
   const navigate = useNavigate();
   const location = useLocation();
   const [collapsed, setCollapsed] = useState(false);
+  const [hidden, setHidden] = useState(
+    () => localStorage.getItem("sidebarHidden") === "true",
+  );
+  const [overlayOpen, setOverlayOpen] = useState(false);
+  const isClassRoute = location.pathname.startsWith("/c/");
+  const sidebarRef = useRef<HTMLElement | null>(null);
+  const menuButtonRef = useRef<HTMLButtonElement | null>(null);
+
+  useEffect(() => {
+    if (!isClassRoute) {
+      if (hidden) {
+        setHidden(false);
+      }
+      localStorage.setItem("sidebarHidden", "false");
+      setOverlayOpen(false);
+      return;
+    }
+
+    const storedHidden = localStorage.getItem("sidebarHidden") === "true";
+    setHidden(storedHidden);
+    setOverlayOpen(false);
+  }, [isClassRoute, location.pathname, hidden]);
+
+  useEffect(() => {
+    if (hidden && collapsed) {
+      setCollapsed(false);
+    }
+  }, [hidden, collapsed]);
+
+  useEffect(() => {
+    const shouldListen = isClassRoute && (hidden ? overlayOpen : !collapsed);
+    if (!shouldListen) {
+      return;
+    }
+
+    const handleOutsideClick = (event: MouseEvent) => {
+      const target = event.target as Node | null;
+      if (!target) {
+        return;
+      }
+
+      if (
+        sidebarRef.current?.contains(target) ||
+        menuButtonRef.current?.contains(target)
+      ) {
+        return;
+      }
+
+      if (hidden) {
+        setOverlayOpen(false);
+      } else {
+        setCollapsed(true);
+      }
+    };
+
+    document.addEventListener("mousedown", handleOutsideClick);
+    return () => document.removeEventListener("mousedown", handleOutsideClick);
+  }, [hidden, overlayOpen, collapsed, isClassRoute]);
+
+  const handleMenuClick = () => {
+    if (hidden) {
+      setOverlayOpen((prev) => !prev);
+      return;
+    }
+
+    setCollapsed((prev) => !prev);
+  };
+
+  const menuButton = (
+    <button
+      ref={menuButtonRef}
+      type="button"
+      onClick={handleMenuClick}
+      className={cn(
+        "z-50 border-none cursor-pointer rounded-full flex items-center justify-center w-8 h-8 transition-all duration-200 hover:bg-gray-200",
+        hidden ? "fixed left-3.5 top-3.5" : "absolute left-3.5 top-3.5",
+      )}
+      aria-label={
+        hidden
+          ? overlayOpen
+            ? "Close sidebar"
+            : "Open sidebar"
+          : collapsed
+            ? "Expand sidebar"
+            : "Collapse sidebar"
+      }
+    >
+      <IoMenu size={22} className="text-[#475569]" />
+    </button>
+  );
 
   const renderNavButton = (
     item: { icon: any; label: string; path: string; badge?: string | null },
@@ -72,8 +143,8 @@ export default function Sidebar() {
     const Icon = item.icon;
     // Use startsWith for index route, exact match for others
     const isActive =
-      item.path === "/dashboard"
-        ? location.pathname === "/dashboard"
+      item.path === "/"
+        ? location.pathname === "/"
         : location.pathname.startsWith(item.path);
 
     const btn = (
@@ -90,17 +161,17 @@ export default function Sidebar() {
       >
         {isActive && (
           <span
-            className="absolute left-0 top-1/2 h-4 w-[3px] -translate-y-1/2 rounded-r-full"
+            className="absolute left-0 top-1/2 h-4 w-0.75 -translate-y-1/2 rounded-r-full"
             style={{ background: "linear-gradient(180deg, #1a93f6, #57ccff)" }}
           />
         )}
 
         <Icon
           className={cn(
-            "h-4 w-4 shrink-0 transition-colors",
+            "h-4.5 w-4.5 shrink-0 transition-colors",
             isActive
               ? "text-[#1a93f6]"
-              : "text-[#57ccff] group-hover:text-[#1a93f6]",
+              : "text-[#475569] group-hover:text-[#1a93f6]",
           )}
         />
 
@@ -116,7 +187,7 @@ export default function Sidebar() {
         {item.badge && !collapsed && (
           <Badge
             variant="secondary"
-            className="h-4 min-w-[18px] rounded-full px-1.5 text-[9px] font-semibold"
+            className="h-4 min-w-4.5 rounded-full px-1.5 text-[9px] font-semibold"
             style={{
               background: "#E2E8F0",
               color: "#137fec",
@@ -154,10 +225,21 @@ export default function Sidebar() {
 
   return (
     <TooltipProvider delayDuration={0}>
+      {hidden ? menuButton : null}
       <aside
+        ref={sidebarRef}
         className={cn(
-          "relative flex h-full flex-col border-r transition-all duration-300 ease-in-out",
-          collapsed ? "w-[68px]" : "w-[220px]",
+          "flex flex-col transition-all duration-300 ease-in-out",
+          hidden
+            ? "fixed left-0 top-0 z-40 h-screen w-62.5 shadow-lg transition-transform"
+            : "relative h-full",
+          hidden
+            ? overlayOpen
+              ? "translate-x-0"
+              : "-translate-x-full pointer-events-none"
+            : collapsed
+              ? "w-17"
+              : "w-62.5",
         )}
         style={{ background: "white", borderColor: "#E2E8F0" }}
       >
@@ -167,7 +249,7 @@ export default function Sidebar() {
           style={{ borderColor: "#E2E8F0" }}
         >
           <div
-            className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-sm font-black text-white"
+            className="flex h-8 w-8 shrink-0 ml-12 items-center justify-center rounded-lg text-sm font-black text-white"
             style={{
               background: "linear-gradient(135deg, #1a93f6, #57ccff)",
               boxShadow: "0 4px 14px rgba(26,147,246,0.28)",
@@ -179,11 +261,12 @@ export default function Sidebar() {
           <span
             className={cn(
               "overflow-hidden whitespace-nowrap text-sm font-bold tracking-wide text-[#133358] transition-all duration-300",
-              collapsed ? "w-0 opacity-0" : "w-full opacity-100",
+              collapsed ? "w-full opacity-100" : "w-full opacity-100",
             )}
           >
             EduSpace
           </span>
+          {!hidden ? menuButton : null}
         </div>
 
         {/* ── NAVIGATION ── */}
@@ -231,20 +314,6 @@ export default function Sidebar() {
         </div>
 
         {/* ── COLLAPSE TOGGLE ── */}
-        <Button
-          variant="outline"
-          size="icon"
-          onClick={() => setCollapsed(!collapsed)}
-          className="absolute -right-3.5 top-[22px] z-20 h-7 w-7 rounded-full border-[1.5px] shadow-md transition-all duration-200 hover:shadow-lg [&>svg]:h-3.5 [&>svg]:w-3.5"
-          style={{
-            background: "#eefaff",
-            borderColor: "#8de0ff",
-            color: "#1a93f6",
-          }}
-          aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
-        >
-          {collapsed ? <ChevronRight /> : <ChevronLeft />}
-        </Button>
       </aside>
     </TooltipProvider>
   );
