@@ -15,11 +15,15 @@ export const register = async (userData: {
 export const login = async (credentials: {
   email: string;
   password: string;
-}): Promise<{ token: string; user: AuthUser }> => {
-  const response = await api.post("/users/api/auth/login", credentials);
+}, rememberMe = false): Promise<{ token: string; user: AuthUser }> => {
+  const response = await api.post("/users/api/auth/login", {
+    email: credentials.email,
+    password: credentials.password,
+  });
   const { token, user } = response.data.data;
-  localStorage.setItem("token", token);
-  localStorage.setItem("user", JSON.stringify(user));
+  const storage = rememberMe ? localStorage : sessionStorage;
+  storage.setItem("token", token);
+  storage.setItem("user", JSON.stringify(user));
   return { token, user };
 };
 

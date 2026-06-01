@@ -19,12 +19,13 @@ export function LoginForm({ className, onSubmit, error, ...props }: any) {
   const [password, setPassword] = useState("");
   const [email, setEmail] = useState("");
   const [loading, setLoading] = useState(false);
+  const [rememberMe, setRememberMe] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
     try {
-      await onSubmit({ email, password });
+      await onSubmit({ email, password, rememberMe });
     } finally {
       setLoading(false);
     }
@@ -80,7 +81,7 @@ export function LoginForm({ className, onSubmit, error, ...props }: any) {
             <div className="flex justify-between w-full">
               <p>Password</p>
               <Link to="/forgot-password" className="text-[#137FEC] cursor-pointer hover:underline">
-                Forget password?
+                Forgot password?
               </Link>
             </div>
           </FieldLabel>
@@ -116,7 +117,11 @@ export function LoginForm({ className, onSubmit, error, ...props }: any) {
         </Field>
 
         <div className="flex items-center gap-2">
-          <Checkbox className="bg-[#1E293B] border-[#728298] cursor-pointer w-4.5 h-4.5" />
+          <Checkbox
+            checked={rememberMe}
+            onCheckedChange={(checked) => setRememberMe(checked === true)}
+            className="bg-[#1E293B] border-[#728298] cursor-pointer w-4.5 h-4.5"
+          />
           <p className="text-[#94A3B8] mt-[1.5px]">Keep me signed in</p>
         </div>
 
