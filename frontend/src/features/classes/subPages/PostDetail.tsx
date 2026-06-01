@@ -1,7 +1,7 @@
 import { useState, useCallback } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { getPostById, getComments, createComment, deleteComment, deletePost, getSubmissions, submitAssignment, submitQuiz, submitQuestion, gradeSubmission } from "@/services/content-service";
+import { getPostById, getComments, createComment, updateComment, deleteComment, deletePost, getSubmissions, submitAssignment, submitQuiz, submitQuestion, gradeSubmission } from "@/services/content-service";
 import { getClassroomById } from "@/services/classroom-service";
 import { getUsers } from "@/services/user-service";
 import { getFileUrl } from "@/services/file-service";
@@ -41,6 +41,8 @@ import {
   Award,
   MoreVertical,
   Pencil,
+  Check,
+  X,
   Users,
 } from "lucide-react";
 import type { Classroom, Post, Comment, Submission, UserSummary, QuizFeedback, QuestionData } from "@/shared/types";
@@ -64,6 +66,8 @@ const PostDetail = () => {
   const { user } = useAuth();
 
   const [commentText, setCommentText] = useState("");
+  const [editingCommentId, setEditingCommentId] = useState<string | null>(null);
+  const [editingCommentText, setEditingCommentText] = useState("");
   const [submissionText, setSubmissionText] = useState("");
   const [submissionFiles, setSubmissionFiles] = useState<AttachmentMeta[]>([]);
   const [subUploading, setSubUploading] = useState(false);
@@ -160,6 +164,17 @@ const PostDetail = () => {
     mutationFn: () => createComment(postId!, commentText.trim()),
     onSuccess: () => {
       setCommentText("");
+      queryClient.invalidateQueries({ queryKey: ["comments", postId] });
+      queryClient.invalidateQueries({ queryKey: ["post", postId] });
+    },
+  });
+
+  const editComment = useMutation({
+    mutationFn: ({ commentId, content }: { commentId: string; content: string }) =>
+      updateComment(commentId, content),
+    onSuccess: () => {
+      setEditingCommentId(null);
+      setEditingCommentText("");
       queryClient.invalidateQueries({ queryKey: ["comments", postId] });
       queryClient.invalidateQueries({ queryKey: ["post", postId] });
     },
@@ -655,16 +670,63 @@ const PostDetail = () => {
                           <span className="text-xs text-[#94A3B8]">
                             {formatDateTime(c.createdAt)}
                           </span>
-                          {(c.authorId === user?.userId || isAdmin) && (
-                            <button
-                              onClick={() => removeComment.mutate(c.id)}
-                              className="ml-auto text-[#94A3B8] hover:text-red-500 cursor-pointer"
-                            >
-                              <Trash2 className="w-3.5 h-3.5" />
-                            </button>
-                          )}
+                          <div className="ml-auto flex items-center gap-1">
+                            {c.authorId === user?.userId && editingCommentId !== c.id && (
+                              <button
+                                onClick={() => {
+                                  setEditingCommentId(c.id);
+                                  setEditingCommentText(c.content);
+                                }}
+                                className="text-[#94A3B8] hover:text-blue-500 cursor-pointer"
+                              >
+                                <Pencil className="w-3.5 h-3.5" />
+                              </button>
+                            )}
+                            {(c.authorId === user?.userId || isAdmin) && editingCommentId !== c.id && (
+                              <button
+                                onClick={() => removeComment.mutate(c.id)}
+                                className="text-[#94A3B8] hover:text-red-500 cursor-pointer"
+                              >
+                                <Trash2 className="w-3.5 h-3.5" />
+                              </button>
+                            )}
+                          </div>
                         </div>
-                        <p className="text-sm text-[#334155] mt-0.5">{c.content}</p>
+                        {editingCommentId === c.id ? (
+                          <div className="flex gap-2 mt-1">
+                            <input
+                              type="text"
+                              value={editingCommentText}
+                              onChange={(e) => setEditingCommentText(e.target.value)}
+                              onKeyDown={(e) => {
+                                if (e.key === "Enter" && editingCommentText.trim()) {
+                                  editComment.mutate({ commentId: c.id, content: editingCommentText.trim() });
+                                }
+                                if (e.key === "Escape") {
+                                  setEditingCommentId(null);
+                                  setEditingCommentText("");
+                                }
+                              }}
+                              autoFocus
+                              className="flex-1 rounded-lg border border-blue-300 bg-white px-3 py-1.5 text-sm outline-none focus:border-blue-500"
+                            />
+                            <button
+                              onClick={() => editComment.mutate({ commentId: c.id, content: editingCommentText.trim() })}
+                              disabled={!editingCommentText.trim() || editComment.isPending}
+                              className="text-green-600 hover:text-green-700 cursor-pointer disabled:opacity-50"
+                            >
+                              <Check className="w-4 h-4" />
+                            </button>
+                            <button
+                              onClick={() => { setEditingCommentId(null); setEditingCommentText(""); }}
+                              className="text-[#94A3B8] hover:text-gray-600 cursor-pointer"
+                            >
+                              <X className="w-4 h-4" />
+                            </button>
+                          </div>
+                        ) : (
+                          <p className="text-sm text-[#334155] mt-0.5">{c.content}</p>
+                        )}
                       </div>
                     </div>
                   ))}

@@ -322,6 +322,7 @@ export class SubmissionController {
         points: graded.points,
         maxPoints: submission.post.maxPoints,
         postTitle: submission.post.title,
+        feedback: graded.feedback,
       });
 
       sendSuccess(res, graded, "Submission graded");

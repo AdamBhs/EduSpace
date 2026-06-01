@@ -93,6 +93,11 @@ export const createComment = async (postId: string, content: string) => {
   return response.data.data;
 };
 
+export const updateComment = async (commentId: string, content: string) => {
+  const response = await api.put(`/content/api/comments/${commentId}`, { content });
+  return response.data.data;
+};
+
 export const deleteComment = async (commentId: string) => {
   const response = await api.delete(`/content/api/comments/${commentId}`);
   return response.data;

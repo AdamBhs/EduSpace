@@ -260,6 +260,15 @@ export class ClassroomController {
         });
       }
 
+      await publishEvent(Events.CLASSROOM_UPDATED, {
+        classId,
+        name: classroom.name,
+        description: classroom.description,
+        subject: classroom.subject,
+        section: classroom.section,
+        chatEnabled: classroom.chatEnabled,
+      });
+
       sendSuccess(res, classroom, "Classroom updated");
     } catch (error) {
       console.error("Error updating classroom:", error);
