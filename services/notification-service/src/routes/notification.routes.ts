@@ -5,6 +5,9 @@ import { InternalController } from "../controllers/internal.controller";
 
 const router = Router();
 
+// SSE stream (auth via query param, bypasses gateway)
+router.get("/stream", NotificationController.stream);
+
 // User-facing (auth required)
 router.get("/", authenticate, NotificationController.getMyNotifications);
 router.get("/unread-count", authenticate, NotificationController.getUnreadCount);

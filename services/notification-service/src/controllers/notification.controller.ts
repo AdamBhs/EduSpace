@@ -1,6 +1,8 @@
 import { Request, Response } from "express";
 import { prisma } from "../db/prisma";
 import { sendSuccess, sendError } from "../../../../shared/src/utils/response";
+import { verifyToken } from "../../../../shared/src/utils/jwt";
+import { createSubscriber, channelForUser } from "../utils/redis";
 
 export class NotificationController {
   static async getMyNotifications(req: Request, res: Response) {
@@ -119,5 +121,46 @@ export class NotificationController {
       console.error("Error deleting all notifications:", error);
       sendError(res, "Failed to delete all notifications", 500);
     }
+  }
+
+  static async stream(req: Request, res: Response) {
+    const token = req.query.token as string;
+    if (!token) {
+      return sendError(res, "No token provided", 401);
+    }
+
+    const decoded = verifyToken(token);
+    if (!decoded) {
+      return sendError(res, "Invalid or expired token", 401);
+    }
+
+    const userId = decoded.userId;
+
+    res.writeHead(200, {
+      "Content-Type": "text/event-stream",
+      "Cache-Control": "no-cache",
+      Connection: "keep-alive",
+      "X-Accel-Buffering": "no",
+    });
+    res.write("\n");
+
+    const subscriber = createSubscriber();
+    const channel = channelForUser(userId);
+
+    await subscriber.subscribe(channel);
+
+    subscriber.on("message", (_ch: string, message: string) => {
+      res.write(`event: notification\ndata: ${message}\n\n`);
+    });
+
+    const heartbeat = setInterval(() => {
+      res.write(": heartbeat\n\n");
+    }, 30_000);
+
+    req.on("close", () => {
+      clearInterval(heartbeat);
+      subscriber.unsubscribe(channel).catch(() => {});
+      subscriber.disconnect();
+    });
   }
 }

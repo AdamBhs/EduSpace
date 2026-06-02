@@ -43,6 +43,7 @@ import {
   deleteNotification,
 } from "@/services/notification-service";
 import { getNotificationPreferences } from "@/features/settings/components/NotificationSettings";
+import { useNotificationStream } from "@/shared/hooks/useNotificationStream";
 import { searchAllClassrooms } from "@/services/search-service";
 import { getClassrooms } from "@/services/classroom-service";
 import type { Notification, EnrolledClassroom, SearchHit } from "@/shared/types";
@@ -61,16 +62,18 @@ export default function Navbar() {
   const queryClient = useQueryClient();
   const location = useLocation();
 
+  useNotificationStream();
+
   const { data: unreadCount = 0 } = useQuery<number>({
     queryKey: ["unreadCount"],
     queryFn: getUnreadCount,
-    refetchInterval: 30_000,
+    refetchInterval: 300_000,
   });
 
   const { data: notifListRaw } = useQuery<Notification[]>({
     queryKey: ["notifications"],
     queryFn: () => getNotifications({ limit: 8 }),
-    refetchInterval: 30_000,
+    refetchInterval: 300_000,
   });
   const notifPrefs = getNotificationPreferences();
   const notifList = (Array.isArray(notifListRaw) ? notifListRaw : []).filter(
