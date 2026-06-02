@@ -212,12 +212,6 @@ export class ClassroomController {
 
       await cacheDel(`classroom:${classroom.id}`, `members:${classroom.id}`);
 
-      await publishEvent(Events.MEMBER_JOINED, {
-        classId: classroom.id,
-        userId,
-        classroomName: classroom.name,
-      });
-
       sendSuccess(res, { member, classroom }, "Joined classroom", 201);
     } catch (error) {
       console.error("Error joining classroom:", error);
@@ -336,12 +330,6 @@ export class ClassroomController {
       });
 
       await cacheDel(`classroom:${classId}`, `members:${classId}`);
-
-      await publishEvent(Events.MEMBER_REMOVED, {
-        classId,
-        userId,
-        classroomName: classroom.name,
-      });
 
       sendSuccess(res, null, "Left classroom");
     } catch (error) {

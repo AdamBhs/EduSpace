@@ -1,7 +1,6 @@
 import { Request, Response } from "express";
 import { prisma } from "../db/prisma";
 import { sendSuccess, sendError } from "../../../../shared/src/utils/response";
-import { publishEvent, Events } from "../../../../shared/src";
 import { cacheGet, cacheSet, cacheDel } from "../../../../shared/src/utils/redis";
 import { Role } from "../generated/prisma/enums";
 import { fetchUsers } from "../utils/userService";
@@ -91,18 +90,6 @@ export class MemberController {
 
       await cacheDel(`members:${classId}`);
 
-      const classroomInfo = await prisma.classroom.findUnique({
-        where: { id: classId },
-        select: { name: true },
-      });
-
-      await publishEvent(Events.MEMBER_ROLE_CHANGED, {
-        classId,
-        userId: target.userId,
-        newRole: role,
-        classroomName: classroomInfo?.name,
-      });
-
       sendSuccess(res, updated, "Role updated");
     } catch (error) {
       console.error("Error updating role:", error);
@@ -141,17 +128,6 @@ export class MemberController {
       await prisma.member.delete({ where: { id: memberId } });
 
       await cacheDel(`members:${classId}`, `classroom:${classId}`);
-
-      const classroomInfo = await prisma.classroom.findUnique({
-        where: { id: classId },
-        select: { name: true },
-      });
-
-      await publishEvent(Events.MEMBER_REMOVED, {
-        classId,
-        userId: target.userId,
-        classroomName: classroomInfo?.name,
-      });
 
       sendSuccess(res, null, "Member removed");
     } catch (error) {
