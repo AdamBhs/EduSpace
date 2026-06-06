@@ -14,8 +14,8 @@ export class SubmissionController {
       if (!post) {
         return sendError(res, "Post not found", 404);
       }
-      if (post.type !== "ASSIGNMENT") {
-        return sendError(res, "Can only submit to assignments", 400);
+      if (post.type !== "ASSIGNMENT" && post.type !== "QUIZ" && post.type !== "QUESTION") {
+        return sendError(res, "Can only submit to assignments, quizzes, and questions", 400);
       }
 
       const membership = await checkMembership(post.classId, userId, req.headers.authorization);
@@ -29,6 +29,13 @@ export class SubmissionController {
         return sendError(res, "Only members/students can submit", 403);
       }
 
+      if (post.assignedTo) {
+        const assigned = post.assignedTo as string[];
+        if (!assigned.includes(userId)) {
+          return sendError(res, "You are not assigned to this task", 403);
+        }
+      }
+
       const existing = await prisma.submission.findUnique({
         where: { postId_studentId: { postId, studentId: userId } },
       });
@@ -36,12 +43,101 @@ export class SubmissionController {
         return sendError(res, "Already submitted — update your existing submission", 409);
       }
 
+      if (post.type === "QUESTION" && attachments?.length) {
+        return sendError(res, "File attachments are not allowed for question answers", 400);
+      }
+
+      let autoPoints: number | undefined;
+      let autoFeedback: string | undefined;
+
+      if (post.type === "QUIZ") {
+        if (!content) {
+          return sendError(res, "Quiz answers are required", 400);
+        }
+
+        let answers: { answers: Record<string, number> };
+        try {
+          answers = typeof content === "string" ? JSON.parse(content) : content;
+        } catch {
+          return sendError(res, "Invalid quiz answer format", 400);
+        }
+
+        if (!answers.answers || typeof answers.answers !== "object") {
+          return sendError(res, "Quiz answers must map question IDs to selected indices", 400);
+        }
+
+        const quizData = post.quizData as any;
+        let totalEarned = 0;
+        const results: { questionId: string; correct: boolean; earnedPoints: number }[] = [];
+
+        for (const question of quizData.questions) {
+          const selectedIndex = answers.answers[question.id];
+          const isCorrect = selectedIndex === question.correctIndex;
+          const earned = isCorrect ? question.points : 0;
+          totalEarned += earned;
+          results.push({ questionId: question.id, correct: isCorrect, earnedPoints: earned });
+        }
+
+        autoPoints = totalEarned;
+        autoFeedback = JSON.stringify({
+          autoGraded: true,
+          results,
+          totalEarned,
+          totalPossible: post.maxPoints,
+        });
+      }
+
+      if (post.type === "QUESTION") {
+        const qd = post.quizData as any;
+        if (qd?.answerType === "multiple_choice") {
+          if (!content) {
+            return sendError(res, "Answer is required", 400);
+          }
+
+          let answers: { answers: Record<string, number> };
+          try {
+            answers = typeof content === "string" ? JSON.parse(content) : content;
+          } catch {
+            return sendError(res, "Invalid answer format", 400);
+          }
+
+          if (!answers.answers || typeof answers.answers !== "object") {
+            return sendError(res, "Answer must map question ID to selected index", 400);
+          }
+
+          const q = qd.question;
+          const selectedIndex = answers.answers[q.id];
+          const isCorrect = selectedIndex === q.correctIndex;
+          const earned = isCorrect ? q.points : 0;
+
+          autoPoints = earned;
+          autoFeedback = JSON.stringify({
+            autoGraded: true,
+            results: [{ questionId: q.id, correct: isCorrect, earnedPoints: earned }],
+            totalEarned: earned,
+            totalPossible: post.maxPoints,
+          });
+        } else if (qd?.answerType === "text") {
+          if (!content || !content.trim()) {
+            return sendError(res, "A text answer is required", 400);
+          }
+        }
+      }
+
+      const isAutoGraded = (post.type === "QUIZ") ||
+        (post.type === "QUESTION" && (post.quizData as any)?.answerType === "multiple_choice");
+
       const submission = await prisma.submission.create({
         data: {
           postId,
           studentId: userId,
           content,
-          attachments: attachments?.length
+          ...(isAutoGraded && autoPoints !== undefined && {
+            points: autoPoints,
+            feedback: autoFeedback,
+            gradedAt: new Date(),
+          }),
+          attachments: post.type !== "QUESTION" && attachments?.length
             ? {
                 create: attachments.map((a: any) => ({
                   fileKey: a.fileKey,
@@ -77,6 +173,18 @@ export class SubmissionController {
       if (submission.studentId !== userId) {
         return sendError(res, "Can only update your own submission", 403);
       }
+
+      const submissionPost = await prisma.post.findUnique({ where: { id: submission.postId } });
+      if (submissionPost?.type === "QUIZ") {
+        return sendError(res, "Cannot update quiz submissions", 400);
+      }
+      if (submissionPost?.type === "QUESTION") {
+        const qd = submissionPost.quizData as any;
+        if (qd?.answerType === "multiple_choice") {
+          return sendError(res, "Cannot update auto-graded question submissions", 400);
+        }
+      }
+
       if (submission.gradedAt) {
         return sendError(res, "Cannot update a graded submission", 400);
       }
@@ -214,6 +322,7 @@ export class SubmissionController {
         points: graded.points,
         maxPoints: submission.post.maxPoints,
         postTitle: submission.post.title,
+        feedback: graded.feedback,
       });
 
       sendSuccess(res, graded, "Submission graded");

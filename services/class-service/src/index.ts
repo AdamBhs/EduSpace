@@ -6,6 +6,7 @@ import cors from "cors";
 import morgan from "morgan";
 import { errorHandler } from "../../../shared/src/middleware/errorHandler";
 import classroomRoutes from "./routes/classroom.routes";
+import { startConsumers } from "./events/consumer";
 
 const app: Application = express();
 
@@ -38,4 +39,7 @@ app.use(errorHandler);
 const PORT = process.env.PORT || 3003;
 app.listen(PORT, () => {
   console.log(`Class service running on http://localhost:${PORT}`);
+  startConsumers().catch((err) =>
+    console.error("Failed to start class-service consumers:", err),
+  );
 });

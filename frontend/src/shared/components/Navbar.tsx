@@ -1,6 +1,5 @@
 import { Fragment, useCallback, useEffect, useRef, useState } from "react";
 import {
-  Search,
   Bell,
   ChevronDown,
   LogOut,
@@ -8,11 +7,12 @@ import {
   HelpCircle,
   Menu,
   Trash2,
+  Search,
+  Loader2,
   FileText,
   BookOpen,
   ClipboardList,
   Megaphone,
-  Loader2,
 } from "lucide-react";
 import { Button } from "@/shared/components/ui/button";
 import {
@@ -42,9 +42,11 @@ import {
   markAllAsRead,
   deleteNotification,
 } from "@/services/notification-service";
-import { searchAllClassrooms } from "@/services/search-service";
 import { getNotificationPreferences } from "@/features/settings/components/NotificationSettings";
-import type { EnrolledClassroom, Notification, SearchHit } from "@/shared/types";
+import { useNotificationStream } from "@/shared/hooks/useNotificationStream";
+import { searchAllClassrooms } from "@/services/search-service";
+import { getClassrooms } from "@/services/classroom-service";
+import type { Notification, EnrolledClassroom, SearchHit } from "@/shared/types";
 import {
   Breadcrumb,
   BreadcrumbItem,
@@ -58,92 +60,20 @@ export default function Navbar() {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
-  const [searchOpen, setSearchOpen] = useState(false);
-  const [searchQuery, setSearchQuery] = useState("");
-  const [searchResults, setSearchResults] = useState<SearchHit[]>([]);
-  const [searching, setSearching] = useState(false);
-  const searchTimerRef = useRef<ReturnType<typeof setTimeout>>(null);
-  const searchContainerRef = useRef<HTMLDivElement>(null);
   const location = useLocation();
 
-  const classroomMap = useCallback((): Map<string, string> => {
-    const cached = queryClient.getQueryData<EnrolledClassroom[]>(["classrooms"]);
-    const map = new Map<string, string>();
-    if (cached) {
-      for (const ec of cached) map.set(ec.classroom.id, ec.classroom.name);
-    }
-    return map;
-  }, [queryClient]);
-
-  const doSearch = useCallback(
-    (q: string) => {
-      if (q.trim().length < 2) {
-        setSearchResults([]);
-        setSearching(false);
-        return;
-      }
-      const cached = queryClient.getQueryData<EnrolledClassroom[]>(["classrooms"]);
-      if (!cached || cached.length === 0) {
-        setSearching(false);
-        return;
-      }
-      setSearching(true);
-      const classIds = cached.map((ec) => ec.classroom.id);
-      searchAllClassrooms(classIds, q.trim())
-        .then((hits) => setSearchResults(hits))
-        .catch(() => setSearchResults([]))
-        .finally(() => setSearching(false));
-    },
-    [queryClient],
-  );
-
-  const handleSearchInput = useCallback(
-    (value: string) => {
-      setSearchQuery(value);
-      if (searchTimerRef.current) clearTimeout(searchTimerRef.current);
-      searchTimerRef.current = setTimeout(() => doSearch(value), 350);
-    },
-    [doSearch],
-  );
-
-  const closeSearch = useCallback(() => {
-    setSearchOpen(false);
-    setSearchQuery("");
-    setSearchResults([]);
-    setSearching(false);
-  }, []);
-
-  useEffect(() => {
-    const handleClickOutside = (e: MouseEvent) => {
-      if (searchContainerRef.current && !searchContainerRef.current.contains(e.target as Node)) {
-        closeSearch();
-      }
-    };
-    if (searchOpen) document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, [searchOpen, closeSearch]);
-
-  const postTypeIcon = (type: string) => {
-    switch (type) {
-      case "ASSIGNMENT": return <ClipboardList className="h-3.5 w-3.5 text-orange-500" />;
-      case "STUDY_MATERIAL": return <BookOpen className="h-3.5 w-3.5 text-green-500" />;
-      case "ANNOUNCEMENT": return <Megaphone className="h-3.5 w-3.5 text-blue-500" />;
-      default: return <FileText className="h-3.5 w-3.5 text-gray-500" />;
-    }
-  };
-
-  const sanitizeHighlight = (html: string) => html.replace(/<(?!\/?em>)[^>]+>/g, "");
+  useNotificationStream();
 
   const { data: unreadCount = 0 } = useQuery<number>({
     queryKey: ["unreadCount"],
     queryFn: getUnreadCount,
-    refetchInterval: 30_000,
+    refetchInterval: 300_000,
   });
 
   const { data: notifListRaw } = useQuery<Notification[]>({
     queryKey: ["notifications"],
     queryFn: () => getNotifications({ limit: 8 }),
-    refetchInterval: 30_000,
+    refetchInterval: 300_000,
   });
   const notifPrefs = getNotificationPreferences();
   const notifList = (Array.isArray(notifListRaw) ? notifListRaw : []).filter(
@@ -173,6 +103,85 @@ export default function Navbar() {
       queryClient.invalidateQueries({ queryKey: ["unreadCount"] });
     },
   });
+
+  // ── GLOBAL SEARCH STATE ──
+  const [searchOpen, setSearchOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [searchResults, setSearchResults] = useState<SearchHit[]>([]);
+  const [searching, setSearching] = useState(false);
+  const searchTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const searchContainerRef = useRef<HTMLDivElement | null>(null);
+
+  const { data: classrooms } = useQuery<EnrolledClassroom[]>({
+    queryKey: ["classrooms"],
+    queryFn: getClassrooms,
+  });
+
+  const classroomMap = new Map(
+    (classrooms ?? []).map((ec) => [ec.classroom.id, ec.classroom.name]),
+  );
+
+  const searchPostTypeIcon = (type: string) => {
+    switch (type) {
+      case "STUDY_MATERIAL": return <BookOpen className="w-3.5 h-3.5 text-[#137FEC]" />;
+      case "ASSIGNMENT": return <ClipboardList className="w-3.5 h-3.5 text-green-600" />;
+      case "QUIZ": return <FileText className="w-3.5 h-3.5 text-purple-600" />;
+      case "QUESTION": return <HelpCircle className="w-3.5 h-3.5 text-amber-600" />;
+      case "ANNOUNCEMENT": return <Megaphone className="w-3.5 h-3.5 text-red-500" />;
+      default: return <FileText className="w-3.5 h-3.5 text-gray-500" />;
+    }
+  };
+
+  const sanitizeHighlight = (html: string) => html.replace(/<(?!\/?em>)[^>]+>/g, "");
+
+  const doSearch = useCallback(async (query: string) => {
+    if (query.trim().length < 2) {
+      setSearchResults([]);
+      setSearching(false);
+      return;
+    }
+    const classIds = (classrooms ?? []).map((ec) => ec.classroom.id);
+    if (classIds.length === 0) { setSearching(false); return; }
+    setSearching(true);
+    try {
+      const hits = await searchAllClassrooms(classIds, query.trim());
+      setSearchResults(hits);
+    } catch {
+      setSearchResults([]);
+    } finally {
+      setSearching(false);
+    }
+  }, [classrooms]);
+
+  const handleSearchInput = (value: string) => {
+    setSearchQuery(value);
+    if (searchTimerRef.current) clearTimeout(searchTimerRef.current);
+    if (value.trim().length < 2) {
+      setSearchResults([]);
+      setSearching(false);
+      return;
+    }
+    setSearching(true);
+    searchTimerRef.current = setTimeout(() => doSearch(value), 400);
+  };
+
+  const closeSearch = useCallback(() => {
+    setSearchOpen(false);
+    setSearchQuery("");
+    setSearchResults([]);
+    setSearching(false);
+  }, []);
+
+  useEffect(() => {
+    if (!searchOpen) return;
+    const handleClickOutside = (e: MouseEvent) => {
+      if (searchContainerRef.current && !searchContainerRef.current.contains(e.target as Node)) {
+        closeSearch();
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, [searchOpen, closeSearch]);
 
   const timeAgo = (dateStr: string) => {
     const diff = Date.now() - new Date(dateStr).getTime();
@@ -351,87 +360,67 @@ export default function Navbar() {
           </BreadcrumbList>
         </Breadcrumb>
       </div>
-      {/* ── SPACER ── */}
-      <div className="flex-1" />
+      {/* ── GLOBAL SEARCH (centered) ── */}
+      <div className="flex-1 flex justify-center px-4">
+        <div ref={searchContainerRef} className="relative w-full max-w-lg">
+          <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-[#94A3B8]" />
+          <input
+            value={searchQuery}
+            onChange={(e) => handleSearchInput(e.target.value)}
+            onFocus={() => setSearchOpen(true)}
+            placeholder="Search across all classrooms..."
+            className="h-9 w-full rounded-lg border border-[#E2E8F0] bg-[#F8FAFC] pl-10 pr-10 text-sm text-[#1E293B] placeholder:text-[#94A3B8] focus:border-[#57ccff] focus:bg-white focus:outline-none transition-colors"
+          />
+          {searching && (
+            <Loader2 className="absolute right-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-[#57ccff] animate-spin" />
+          )}
 
-      {/* ── SEARCH ── */}
-      <div className="hidden md:flex items-center relative" ref={searchContainerRef}>
-        {searchOpen ? (
-          <div className="relative">
+          {searchOpen && (searchResults.length > 0 || (searchQuery.trim().length >= 2 && !searching)) && (
             <div
-              className="flex items-center gap-2 rounded-lg px-3 py-1.5 transition-all"
-              style={{
-                background: "#d9f3ff",
-                border: "1px solid #8de0ff",
-              }}
+              className="absolute left-0 right-0 top-11 z-50 max-h-80 overflow-y-auto rounded-lg border bg-white shadow-lg"
+              style={{ borderColor: "#bbebff" }}
             >
-              <Search
-                className="h-3.5 w-3.5 shrink-0"
-                style={{ color: "#57ccff" }}
-              />
-              <input
-                autoFocus
-                placeholder="Search posts…"
-                value={searchQuery}
-                onChange={(e) => handleSearchInput(e.target.value)}
-                onKeyDown={(e) => e.key === "Escape" && closeSearch()}
-                className="w-52 bg-transparent text-sm outline-none placeholder:text-[#57ccff80] text-[#133358]"
-              />
-              {searching && <Loader2 className="h-3.5 w-3.5 animate-spin text-[#57ccff]" />}
+              {searchResults.length === 0 ? (
+                <div className="px-4 py-6 text-center text-xs text-[#94A3B8]">
+                  No results found
+                </div>
+              ) : (
+                searchResults.map((hit) => (
+                  <div
+                    key={hit.postId}
+                    className="flex items-start gap-3 px-4 py-3 cursor-pointer hover:bg-[#F8FAFC] border-b border-[#F1F5F9] last:border-0"
+                    onClick={() => {
+                      navigate(`/c/${hit.classId}/post/${hit.postId}`);
+                      closeSearch();
+                    }}
+                  >
+                    <div className="w-7 h-7 rounded-full bg-[#F1F5F9] flex items-center justify-center shrink-0 mt-0.5">
+                      {searchPostTypeIcon(hit.type)}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-xs font-medium text-[#1E293B] truncate">
+                        {hit.highlights?.title ? (
+                          <span dangerouslySetInnerHTML={{ __html: sanitizeHighlight(hit.highlights.title[0]) }} />
+                        ) : (
+                          hit.title
+                        )}
+                      </p>
+                      {hit.highlights?.content && (
+                        <p
+                          className="text-[11px] text-[#64748B] truncate mt-0.5"
+                          dangerouslySetInnerHTML={{ __html: sanitizeHighlight(hit.highlights.content[0]) }}
+                        />
+                      )}
+                      <p className="text-[10px] text-[#94A3B8] mt-0.5">
+                        {classroomMap.get(hit.classId) ?? "Unknown class"} · {hit.type.replace("_", " ")}
+                      </p>
+                    </div>
+                  </div>
+                ))
+              )}
             </div>
-
-            {(searchResults.length > 0 || (searchQuery.trim().length >= 2 && !searching)) && (
-              <div
-                className="absolute top-full right-0 mt-1 w-80 rounded-lg shadow-lg overflow-hidden z-50"
-                style={{ background: "#eefaff", border: "1px solid #bbebff" }}
-              >
-                {searchResults.length === 0 ? (
-                  <div className="px-4 py-6 text-center text-xs" style={{ color: "#57ccff" }}>
-                    No results found
-                  </div>
-                ) : (
-                  <div className="max-h-72 overflow-y-auto">
-                    {searchResults.map((hit) => (
-                      <div
-                        key={hit.postId}
-                        className="flex items-start gap-3 px-4 py-2.5 cursor-pointer transition-colors hover:bg-[#d9f3ff]"
-                        style={{ borderBottom: "1px solid #d9f3ff" }}
-                        onClick={() => {
-                          navigate(`/c/${hit.classId}/post/${hit.postId}`);
-                          closeSearch();
-                        }}
-                      >
-                        <span className="mt-0.5 shrink-0">{postTypeIcon(hit.type)}</span>
-                        <div className="flex-1 min-w-0">
-                          <p className="text-[12px] font-medium text-[#133358] truncate">
-                            {hit.highlights?.title
-                              ? <span dangerouslySetInnerHTML={{ __html: sanitizeHighlight(hit.highlights.title[0]) }} />
-                              : hit.title}
-                          </p>
-                          <p className="text-[11px] text-[#5A6C84] truncate mt-0.5">
-                            {classroomMap().get(hit.classId) ?? "Classroom"}
-                            {" · "}
-                            {hit.type.replace("_", " ").toLowerCase()}
-                          </p>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-            )}
-          </div>
-        ) : (
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={() => setSearchOpen(true)}
-            className="h-8 w-8 rounded-lg transition-colors hover:bg-[#d9f3ff]"
-            style={{ color: "#57ccff" }}
-          >
-            <Search className="h-4 w-4" />
-          </Button>
-        )}
+          )}
+        </div>
       </div>
 
       {/* ── NOTIFICATIONS ── */}
@@ -556,11 +545,7 @@ export default function Navbar() {
           <div
             className="px-4 py-2.5 text-center cursor-pointer hover:bg-[#d9f3ff] transition-colors"
             style={{ borderTop: "1px solid #bbebff" }}
-            onClick={() =>
-              navigate("/settings/notifications", {
-                state: { tab: "notifications" },
-              })
-            }
+            onClick={() => navigate("/notifications")}
           >
             <span
               className="text-[11px] font-semibold"
@@ -686,7 +671,8 @@ export default function Navbar() {
             borderRight: "1px solid #bbebff",
           }}
         >
-          <div
+          <Link
+            to="/"
             className="flex h-15 items-center gap-2.5 px-4"
             style={{ borderBottom: "1px solid #bbebff" }}
           >
@@ -702,7 +688,7 @@ export default function Navbar() {
             <span className="text-[17px] font-extrabold tracking-tight text-[#133358]">
               EduSpace
             </span>
-          </div>
+          </Link>
         </SheetContent>
       </Sheet>
     </div>

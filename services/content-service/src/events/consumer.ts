@@ -4,7 +4,7 @@ import { prisma } from "../db/prisma";
 export async function startConsumers(): Promise<void> {
   await subscribeToEvents(
     "content-service",
-    [Events.CHAPTER_DELETED, Events.CLASSROOM_DELETED],
+    [Events.CHAPTER_DELETED, Events.CLASSROOM_DELETED, Events.USER_DELETED],
     async (event, payload) => {
       switch (event) {
         case Events.CHAPTER_DELETED: {
@@ -26,6 +26,21 @@ export async function startConsumers(): Promise<void> {
           if (result.count > 0) {
             console.log(`[Event] Deleted ${result.count} posts for classroom ${payload.classId}`);
           }
+          break;
+        }
+
+        case Events.USER_DELETED: {
+          const { userId } = payload;
+          const comments = await prisma.comment.deleteMany({
+            where: { authorId: userId },
+          });
+          const submissions = await prisma.submission.deleteMany({
+            where: { studentId: userId },
+          });
+          console.log(
+            `[Event] Cleaned up content for deleted user ${userId}: ` +
+              `${comments.count} comments, ${submissions.count} submissions deleted`,
+          );
           break;
         }
       }

@@ -8,10 +8,10 @@ export default function Login() {
   const navigate = useNavigate();
   const [error, setError] = useState("");
 
-  const handleLogin = async (data: { email: string; password: string }) => {
+  const handleLogin = async (data: { email: string; password: string; rememberMe?: boolean }) => {
     try {
       setError("");
-      const res = await login(data);
+      const res = await login(data, data.rememberMe);
       if (res.token) {
         navigate("/");
       }

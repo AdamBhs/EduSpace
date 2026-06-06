@@ -400,10 +400,17 @@ const Chat = () => {
 
             {/* Typing indicator */}
             {typingNames.length > 0 && (
-              <div className="px-5 py-1 text-xs text-[#94A3B8]">
-                {typingNames.length === 1
-                  ? `${typingNames[0]} is typing...`
-                  : `${typingNames.join(", ")} are typing...`}
+              <div className="px-5 py-1.5 flex items-center gap-1.5 text-xs text-[#94A3B8]">
+                <span>
+                  {typingNames.length === 1
+                    ? `${typingNames[0]} is typing`
+                    : `${typingNames.join(", ")} are typing`}
+                </span>
+                <span className="flex items-end gap-[3px] h-4">
+                  <span className="w-1 h-1 rounded-full bg-[#94A3B8]" style={{ animation: "typing-dot 1.2s infinite 0ms" }} />
+                  <span className="w-1 h-1 rounded-full bg-[#94A3B8]" style={{ animation: "typing-dot 1.2s infinite 200ms" }} />
+                  <span className="w-1 h-1 rounded-full bg-[#94A3B8]" style={{ animation: "typing-dot 1.2s infinite 400ms" }} />
+                </span>
               </div>
             )}
 

@@ -16,11 +16,11 @@ import Stream from "@/features/classes/subPages/Stream";
 import Grades from "@/features/classes/subPages/Grades";
 import Chat from "@/features/classes/subPages/Chat";
 import PostDetail from "@/features/classes/subPages/PostDetail";
-import Assignments from "@/features/classes/subPages/Assignments";
 import ForgotPassword from "@/features/auth/ForgotPassword";
 import ResetPassword from "@/features/auth/ResetPassword";
 import ClassSettings from "@/features/classes/subPages/ClassSettings";
 import Landing from "@/features/landing/Landing";
+import Notifications from "@/features/notifications/Notifications";
 
 export const router = createBrowserRouter([
   {
@@ -91,13 +91,13 @@ export const router = createBrowserRouter([
           { path: "materials", element: <Class /> },
           { path: "people", element: <People /> },
           { path: "stream", element: <Stream /> },
-          { path: "assignments", element: <Assignments /> },
           { path: "grades", element: <Grades /> },
           { path: "chat", element: <Chat /> },
           { path: "post/:postId", element: <PostDetail /> },
           { path: "settings", element: <ClassSettings /> },
         ],
       },
+      { path: "notifications", element: <Notifications /> },
       {
         path: "settings",
         children: [
