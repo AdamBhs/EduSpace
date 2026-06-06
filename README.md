@@ -16,12 +16,12 @@ A classroom management platform built as a microservices monorepo. Create teachi
 ## Screenshots
 
 <p>
-  <img src="mystuff/report-resources/user-interfaces-screenshots/dashboard.png" width="400" alt="Dashboard" />
-  <img src="mystuff/report-resources/user-interfaces-screenshots/grades-tab.png" width="400" alt="Grades" />
+  <img src="docs/screenshots/dashboard.png" width="400" alt="Dashboard" />
+  <img src="docs/screenshots/stream.png" width="400" alt="Stream" />
 </p>
 <p>
-  <img src="mystuff/report-resources/user-interfaces-screenshots/chat-tab.png" width="400" alt="Chat" />
-  <img src="mystuff/report-resources/user-interfaces-screenshots/people-tab.png" width="400" alt="People" />
+  <img src="docs/screenshots/classwork.png" width="400" alt="Classwork" />
+  <img src="docs/screenshots/chat.png" width="400" alt="Chat" />
 </p>
 
 ## Architecture
