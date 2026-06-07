@@ -24,7 +24,6 @@ router.delete("/me", authenticate, UserController.deleteAccount);
 
 router.post(
   "/getUsers",
-  authenticate,
   validate(batchUsersSchema),
   UserController.getUsers,
 );

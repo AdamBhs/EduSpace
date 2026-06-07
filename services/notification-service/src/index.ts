@@ -39,6 +39,7 @@ app.use(errorHandler);
 const PORT = process.env.PORT || 3006;
 app.listen(PORT, () => {
   console.log(`Notification service running on http://localhost:${PORT}`);
+  console.log(`[SMTP] configured: ${process.env.SMTP_USER ? "YES — " + process.env.SMTP_USER : "NO"}`);
   startConsumers().catch((err) => {
     console.error("Failed to start RabbitMQ consumers:", err.message);
   });
