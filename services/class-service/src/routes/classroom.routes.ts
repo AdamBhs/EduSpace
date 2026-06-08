@@ -50,6 +50,8 @@ router.post("/:classId/leave", authenticate, ClassroomController.leave);
 // ─── Internal (service-to-service, no auth) ────────────────
 
 router.get("/internal/:classId/member-ids", MemberController.getMemberIds);
+router.get("/internal/shared-members/:userId", MemberController.getSharedMembers);
+router.get("/internal/check-friendship/:userId1/:userId2", MemberController.checkFriendship);
 
 // ─── Members ────────────────────────────────────────────────
 

@@ -156,6 +156,68 @@ export class MemberController {
     }
   }
 
+  static async getSharedMembers(req: Request, res: Response) {
+    try {
+      const userId = req.params.userId as string;
+
+      const userClasses = await prisma.member.findMany({
+        where: { userId },
+        select: { classId: true },
+      });
+
+      if (userClasses.length === 0) {
+        return sendSuccess(res, [], "Shared members retrieved");
+      }
+
+      const classIds = userClasses.map((m: any) => m.classId);
+
+      const coMembers = await prisma.member.findMany({
+        where: {
+          classId: { in: classIds },
+          userId: { not: userId },
+        },
+        select: { userId: true },
+        distinct: ["userId"],
+      });
+
+      const userIds = coMembers.map((m: any) => m.userId);
+      sendSuccess(res, userIds, "Shared members retrieved");
+    } catch (error) {
+      console.error("Error getting shared members:", error);
+      sendError(res, "Failed to get shared members", 500);
+    }
+  }
+
+  static async checkFriendship(req: Request, res: Response) {
+    try {
+      const userId1 = req.params.userId1 as string;
+      const userId2 = req.params.userId2 as string;
+
+      const user1Classes = await prisma.member.findMany({
+        where: { userId: userId1 },
+        select: { classId: true },
+      });
+
+      if (user1Classes.length === 0) {
+        return sendSuccess(res, { isFriend: false }, "Friendship checked");
+      }
+
+      const classIds = user1Classes.map((m: any) => m.classId);
+
+      const shared = await prisma.member.findFirst({
+        where: {
+          classId: { in: classIds },
+          userId: userId2,
+        },
+      });
+
+      sendSuccess(res, { isFriend: !!shared }, "Friendship checked");
+    } catch (error) {
+      console.error("Error checking friendship:", error);
+      sendError(res, "Failed to check friendship", 500);
+    }
+  }
+
   static async checkMembership(req: Request, res: Response) {
     try {
       const classId = req.params.classId as string;

@@ -1,0 +1,138 @@
+import { Request, Response } from "express";
+import { prisma } from "../db/prisma";
+import { sendSuccess, sendError } from "../../../../shared/src/utils/response";
+import { checkFriendship, getSharedMembers } from "../utils/classService";
+
+export class DmController {
+  static async getConversations(req: Request, res: Response) {
+    try {
+      const userId = req.user!.userId;
+
+      const conversations = await prisma.directConversation.findMany({
+        where: {
+          OR: [{ participant1Id: userId }, { participant2Id: userId }],
+        },
+        include: {
+          messages: {
+            orderBy: { createdAt: "desc" },
+            take: 1,
+          },
+        },
+        orderBy: { updatedAt: "desc" },
+      });
+
+      const result = conversations.map((c: any) => ({
+        id: c.id,
+        otherUserId: c.participant1Id === userId ? c.participant2Id : c.participant1Id,
+        lastMessage: c.messages[0] ?? null,
+        createdAt: c.createdAt,
+        updatedAt: c.updatedAt,
+      }));
+
+      sendSuccess(res, result, "Conversations retrieved");
+    } catch (error) {
+      console.error("Error getting DM conversations:", error);
+      sendError(res, "Failed to get conversations", 500);
+    }
+  }
+
+  static async createConversation(req: Request, res: Response) {
+    try {
+      const userId = req.user!.userId;
+      const { otherUserId } = req.body;
+
+      if (!otherUserId) {
+        return sendError(res, "otherUserId is required", 400);
+      }
+
+      if (otherUserId === userId) {
+        return sendError(res, "Cannot start a conversation with yourself", 400);
+      }
+
+      const isFriend = await checkFriendship(userId, otherUserId);
+      if (!isFriend) {
+        return sendError(res, "You can only message users who share a classroom with you", 403);
+      }
+
+      const [p1, p2] = [userId, otherUserId].sort();
+
+      const existing = await prisma.directConversation.findUnique({
+        where: { participant1Id_participant2Id: { participant1Id: p1, participant2Id: p2 } },
+      });
+
+      if (existing) {
+        return sendSuccess(res, {
+          id: existing.id,
+          otherUserId,
+          createdAt: existing.createdAt,
+          updatedAt: existing.updatedAt,
+        }, "Conversation already exists");
+      }
+
+      const conversation = await prisma.directConversation.create({
+        data: { participant1Id: p1, participant2Id: p2 },
+      });
+
+      sendSuccess(res, {
+        id: conversation.id,
+        otherUserId,
+        createdAt: conversation.createdAt,
+        updatedAt: conversation.updatedAt,
+      }, "Conversation created", 201);
+    } catch (error) {
+      console.error("Error creating DM conversation:", error);
+      sendError(res, "Failed to create conversation", 500);
+    }
+  }
+
+  static async getMessages(req: Request, res: Response) {
+    try {
+      const userId = req.user!.userId;
+      const conversationId = req.params.conversationId as string;
+      const cursor = req.query.cursor as string | undefined;
+      const limit = Math.min(parseInt(req.query.limit as string) || 50, 100);
+
+      const conversation = await prisma.directConversation.findUnique({
+        where: { id: conversationId },
+      });
+
+      if (!conversation) {
+        return sendError(res, "Conversation not found", 404);
+      }
+
+      if (conversation.participant1Id !== userId && conversation.participant2Id !== userId) {
+        return sendError(res, "Not a participant in this conversation", 403);
+      }
+
+      const messages = await prisma.directMessage.findMany({
+        where: {
+          conversationId,
+          ...(cursor ? { createdAt: { lt: new Date(cursor) } } : {}),
+        },
+        orderBy: { createdAt: "desc" },
+        take: limit,
+      });
+
+      const nextCursor =
+        messages.length === limit
+          ? messages[messages.length - 1].createdAt.toISOString()
+          : null;
+
+      sendSuccess(res, { messages: messages.reverse(), nextCursor }, "Messages retrieved");
+    } catch (error) {
+      console.error("Error getting DM messages:", error);
+      sendError(res, "Failed to get messages", 500);
+    }
+  }
+
+  static async getFriends(req: Request, res: Response) {
+    try {
+      const userId = req.user!.userId;
+      const friendIds = await getSharedMembers(userId);
+      sendSuccess(res, friendIds, "Friends retrieved");
+    } catch (error) {
+      console.error("Error getting friends:", error);
+      sendError(res, "Failed to get friends", 500);
+    }
+  }
+}

@@ -28,6 +28,33 @@ export async function checkMembership(
   }
 }
 
+export async function checkFriendship(
+  userId1: string,
+  userId2: string,
+): Promise<boolean> {
+  try {
+    const response = await axios.get(
+      `${CLASS_SERVICE_URL}/api/classroom/internal/check-friendship/${userId1}/${userId2}`,
+    );
+    return response.data?.data?.isFriend ?? false;
+  } catch (error) {
+    console.error("[classService] Failed to check friendship:", error instanceof Error ? error.message : error);
+    return false;
+  }
+}
+
+export async function getSharedMembers(userId: string): Promise<string[]> {
+  try {
+    const response = await axios.get(
+      `${CLASS_SERVICE_URL}/api/classroom/internal/shared-members/${userId}`,
+    );
+    return response.data?.data ?? [];
+  } catch (error) {
+    console.error("[classService] Failed to get shared members:", error instanceof Error ? error.message : error);
+    return [];
+  }
+}
+
 export async function fetchMemberIds(classId: string): Promise<string[]> {
   try {
     const response = await axios.get(

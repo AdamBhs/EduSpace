@@ -9,6 +9,7 @@ import morgan from "morgan";
 import { errorHandler } from "../../../shared/src/middleware/errorHandler";
 import { setupSocket } from "./socket/handler";
 import chatRoutes from "./routes/chat.routes";
+import dmRoutes from "./routes/dm.routes";
 import { startConsumers } from "./events/consumer";
 
 const app: Application = express();
@@ -39,6 +40,7 @@ app.get("/", (req: Request, res: Response) => {
 });
 
 app.use("/api/chat", chatRoutes);
+app.use("/api/dm", dmRoutes);
 
 app.use((req: Request, res: Response) => {
   res.status(404).json({ success: false, error: "Route not found" });
