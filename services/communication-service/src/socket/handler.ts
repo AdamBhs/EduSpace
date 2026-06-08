@@ -3,6 +3,7 @@ import { verifyToken } from "../../../../shared/src/utils/jwt";
 import { publishEvent, Events } from "../../../../shared/src";
 import { prisma } from "../db/prisma";
 import { setOnline, setOffline, refreshPresence, getOnlineUsers } from "../utils/redis";
+import { checkFriendship } from "../utils/classService";
 
 interface AuthSocket extends Socket {
   userId?: string;
@@ -96,6 +97,80 @@ export function setupSocket(io: Server): void {
       socket.to(`chat:${classId}`).emit("user-stop-typing", {
         userId,
         classId,
+      });
+    });
+
+    // ─── Direct Messages ─────────────────────────────────────
+
+    socket.on("join-dm", async (conversationId: string) => {
+      const conversation = await prisma.directConversation.findUnique({
+        where: { id: conversationId },
+      });
+      if (!conversation) return;
+      if (conversation.participant1Id !== userId && conversation.participant2Id !== userId) return;
+
+      socket.join(`dm:${conversationId}`);
+    });
+
+    socket.on("leave-dm", (conversationId: string) => {
+      socket.leave(`dm:${conversationId}`);
+    });
+
+    socket.on("send-dm", async (data: {
+      conversationId: string;
+      content?: string;
+      fileKey?: string;
+      fileName?: string;
+    }) => {
+      const { conversationId, content, fileKey, fileName } = data;
+
+      if (!content && !fileKey) return;
+
+      const conversation = await prisma.directConversation.findUnique({
+        where: { id: conversationId },
+      });
+      if (!conversation) return;
+      if (conversation.participant1Id !== userId && conversation.participant2Id !== userId) return;
+
+      const otherUserId = conversation.participant1Id === userId
+        ? conversation.participant2Id
+        : conversation.participant1Id;
+
+      const isFriend = await checkFriendship(userId, otherUserId);
+      if (!isFriend) return;
+
+      const message = await prisma.directMessage.create({
+        data: {
+          conversationId,
+          senderId: userId,
+          content: content || null,
+          fileKey: fileKey || null,
+          fileName: fileName || null,
+        },
+      });
+
+      await prisma.directConversation.update({
+        where: { id: conversationId },
+        data: { updatedAt: new Date() },
+      });
+
+      io.to(`dm:${conversationId}`).emit("new-dm", {
+        ...message,
+        conversationId,
+      });
+    });
+
+    socket.on("dm-typing", (conversationId: string) => {
+      socket.to(`dm:${conversationId}`).emit("dm-user-typing", {
+        userId,
+        conversationId,
+      });
+    });
+
+    socket.on("dm-stop-typing", (conversationId: string) => {
+      socket.to(`dm:${conversationId}`).emit("dm-user-stop-typing", {
+        userId,
+        conversationId,
       });
     });
 

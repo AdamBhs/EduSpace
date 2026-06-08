@@ -29,6 +29,11 @@ const routes: RouteConfig[] = [
     pathRewrite: { "^/chat": "" },
   },
   {
+    prefix: "/dm",
+    target: process.env.COMMUNICATION_SERVICE_URL || "http://localhost:3005",
+    pathRewrite: { "^/dm": "" },
+  },
+  {
     prefix: "/notifications",
     target: process.env.NOTIFICATION_SERVICE_URL || "http://localhost:3006",
     pathRewrite: { "^/notifications": "" },
