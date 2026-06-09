@@ -4,7 +4,7 @@ import { prisma } from "../db/prisma";
 export async function startConsumers(): Promise<void> {
   await subscribeToEvents(
     "communication-service",
-    [Events.CLASSROOM_CREATED, Events.CLASSROOM_DELETED, Events.CHAT_TOGGLED],
+    [Events.CLASSROOM_CREATED, Events.CLASSROOM_DELETED, Events.CHAT_TOGGLED, Events.USER_DELETED],
     async (event, payload) => {
       switch (event) {
         case Events.CLASSROOM_CREATED: {
@@ -36,6 +36,14 @@ export async function startConsumers(): Promise<void> {
             create: { classId: payload.classId, enabled: payload.enabled },
           });
           console.log(`[Event] Chat ${payload.enabled ? "enabled" : "disabled"} for ${payload.classId}`);
+          break;
+        }
+
+        case Events.USER_DELETED: {
+          const result = await prisma.message.deleteMany({
+            where: { senderId: payload.userId },
+          });
+          console.log(`[Event] Deleted ${result.count} messages for deleted user ${payload.userId}`);
           break;
         }
       }

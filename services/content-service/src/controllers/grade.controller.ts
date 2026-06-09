@@ -139,7 +139,7 @@ export class GradeController {
       }
 
       const assignments = await prisma.post.findMany({
-        where: { classId, type: "ASSIGNMENT" },
+        where: { classId, type: { in: ["ASSIGNMENT", "QUIZ", "QUESTION"] } },
         include: {
           submissions: {
             ...(membership.role === "MEMBER"
@@ -156,12 +156,20 @@ export class GradeController {
         orderBy: { createdAt: "asc" },
       });
 
+      const visibleAssignments = membership.role === "MEMBER"
+        ? assignments.filter((p: any) => {
+            if (!p.assignedTo) return true;
+            const assigned = p.assignedTo as string[];
+            return assigned.includes(userId);
+          })
+        : assignments;
+
       const categories = await prisma.gradeCategory.findMany({
         where: { classId },
         orderBy: { position: "asc" },
       });
 
-      sendSuccess(res, { assignments, categories }, "Grade table retrieved");
+      sendSuccess(res, { assignments: visibleAssignments, categories }, "Grade table retrieved");
     } catch (error) {
       console.error("Error getting grade table:", error);
       sendError(res, "Failed to get grade table", 500);

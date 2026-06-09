@@ -6,7 +6,7 @@ const SOCKET_URL = import.meta.env.VITE_API_URL?.replace(/\/+$/, "") || "http://
 
 export function getSocket(): Socket {
   if (!socket) {
-    const token = localStorage.getItem("token");
+    const token = localStorage.getItem("token") || sessionStorage.getItem("token");
     socket = io(SOCKET_URL, {
       auth: { token },
       transports: ["websocket", "polling"],

@@ -4,9 +4,6 @@ import {
   FileText,
   CalendarClock,
   Award,
-  UserPlus,
-  UserMinus,
-  Shield,
   MessageSquare,
 } from "lucide-react";
 
@@ -33,27 +30,6 @@ const NOTIFICATION_TYPES = [
     description: "When your submission has been graded",
     icon: Award,
     color: "#16a34a",
-  },
-  {
-    key: "MEMBER_JOINED",
-    label: "Member Joined",
-    description: "When a new member joins your classroom",
-    icon: UserPlus,
-    color: "#8b5cf6",
-  },
-  {
-    key: "MEMBER_REMOVED",
-    label: "Member Removed",
-    description: "When a member is removed from your classroom",
-    icon: UserMinus,
-    color: "#ef4444",
-  },
-  {
-    key: "ROLE_CHANGED",
-    label: "Role Changes",
-    description: "When your role is changed in a classroom",
-    icon: Shield,
-    color: "#0891b2",
   },
   {
     key: "CHAT_MESSAGE",

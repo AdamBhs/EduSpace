@@ -28,6 +28,17 @@ app.get("/health", (req: Request, res: Response) => {
 
 app.use(rateLimiter);
 app.use(authenticate);
+
+app.use((req: Request, res: Response, next) => {
+  if (/\/internal(\/|$)/.test(req.path)) {
+    return res.status(403).json({ success: false, error: "Forbidden" });
+  }
+  if (/^\/chat\/api\/chat\/rooms(\/|$)/.test(req.path)) {
+    return res.status(403).json({ success: false, error: "Forbidden" });
+  }
+  next();
+});
+
 setupProxies(app);
 
 const PORT = process.env.PORT || 3001;

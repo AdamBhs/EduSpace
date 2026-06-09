@@ -33,27 +33,26 @@ const TermsDialog = ({ open, onOpenChange, onAccept }: TermsDialogProps) => {
       <DialogContent className="sm:max-w-[470px]" showCloseButton={false}>
         <DialogHeader>
           <DialogTitle className="text-xl font-semibold">
-            Using EduSpace at a school with students?
+            Before you create a classroom
           </DialogTitle>
           <DialogDescription className="sr-only">
-            Terms and conditions for creating a classroom
+            Guidelines for creating a classroom on EduSpace
           </DialogDescription>
         </DialogHeader>
 
-        <p className="text-sm text-muted-foreground leading-relaxed">
-          If so, your school must sign up for an{" "}
-          <span className="text-blue-500 font-medium cursor-pointer hover:underline">
-            EduSpace for Education
-          </span>{" "}
-          account before you can use Classroom.{" "}
-          <span className="text-blue-500 font-medium cursor-pointer hover:underline">
-            Learn More
-          </span>
-          . EduSpace for Education lets schools decide which EduSpace services their
-          students can use, and provides additional privacy and security protections
-          that are important in a school setting. Students cannot use EduSpace at a
-          school with personal accounts.
-        </p>
+        <div className="text-sm text-muted-foreground leading-relaxed space-y-3">
+          <p>
+            As the creator of a classroom, you are responsible for the content shared
+            within it. You will have full admin privileges, including managing members,
+            posts, chapters, and grades.
+          </p>
+          <p>
+            Choose <span className="font-medium text-[#334155]">Teaching</span> if
+            you need assignments, quizzes, grading, and a teacher-student structure.
+            Choose <span className="font-medium text-[#334155]">Friendly</span> for
+            casual collaboration without grading.
+          </p>
+        </div>
 
         <label className="flex items-start gap-3 rounded-lg bg-[#f5f7fa] p-3 cursor-pointer select-none">
           <input
@@ -63,8 +62,7 @@ const TermsDialog = ({ open, onOpenChange, onAccept }: TermsDialogProps) => {
             className="mt-0.5 size-4 rounded border-gray-300 accent-blue-500"
           />
           <span className="text-sm leading-snug">
-            I've read and understand the above notice, and I'm not using EduSpace at
-            a school with students
+            I understand that I am responsible for managing this classroom and its content
           </span>
         </label>
 

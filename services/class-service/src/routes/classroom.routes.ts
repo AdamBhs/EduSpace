@@ -18,6 +18,7 @@ const router = Router();
 // ─── Classrooms ─────────────────────────────────────────────
 
 router.get("/my", authenticate, ClassroomController.getMyClassrooms);
+router.get("/my/deletion-impact", authenticate, ClassroomController.getDeletionImpact);
 
 router.post(
   "/create",

@@ -11,7 +11,7 @@ const SearchInput = ({
   placeholder?: string;
 }) => {
   return (
-    <div className="flex items-center max-w-60 border-gray-200 border rounded-md pl-2 mt-4 ml-0.5 focus-within:shadow-[0_0px_4px_rgba(19,127,236,0.4)] transition-shadow duration-200">
+    <div className="flex items-center w-full border-gray-200 border rounded-lg pl-3 mt-4 focus-within:shadow-[0_0px_4px_rgba(19,127,236,0.4)] transition-shadow duration-200">
       <IoIosSearch size={22} className="cursor-pointer" />
       <Input
         className="border-none shadow-none"

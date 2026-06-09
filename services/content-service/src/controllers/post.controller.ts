@@ -16,6 +16,9 @@ export class PostController {
         content,
         type,
         studyMaterialType,
+        quizData,
+        questionData,
+        assignedTo,
         dueDate,
         maxPoints,
         attachments,
@@ -29,8 +32,8 @@ export class PostController {
         return sendError(res, "Only admins can create posts", 403);
       }
 
-      if (type === "ASSIGNMENT" && membership.classroomType === "FRIENDLY") {
-        return sendError(res, "Assignments are not available in friendly classrooms", 400);
+      if (membership.classroomType === "FRIENDLY" && (type === "ASSIGNMENT" || type === "QUIZ" || type === "QUESTION")) {
+        return sendError(res, `${type.replace("_", " ")} posts are not available in friendly classrooms`, 400);
       }
 
       const post = await prisma.post.create({
@@ -42,9 +45,18 @@ export class PostController {
           content,
           type,
           studyMaterialType: type === "STUDY_MATERIAL" ? studyMaterialType : null,
-          dueDate: dueDate ? new Date(dueDate) : null,
-          maxPoints: type === "ASSIGNMENT" ? maxPoints : null,
-          attachments: attachments?.length
+          quizData: type === "QUIZ" ? quizData
+                  : type === "QUESTION" ? questionData
+                  : undefined,
+          assignedTo: (type === "ASSIGNMENT" || type === "QUIZ" || type === "QUESTION") && assignedTo?.length
+            ? assignedTo
+            : undefined,
+          dueDate: (type === "ASSIGNMENT" || type === "QUIZ" || type === "QUESTION") && dueDate ? new Date(dueDate) : null,
+          maxPoints: type === "ASSIGNMENT" ? maxPoints
+                   : type === "QUIZ" ? quizData.questions.reduce((sum: number, q: any) => sum + q.points, 0)
+                   : type === "QUESTION" ? questionData.question.points
+                   : null,
+          attachments: type !== "QUIZ" && type !== "QUESTION" && attachments?.length
             ? {
                 create: attachments.map((a: any) => ({
                   fileKey: a.fileKey,
@@ -116,9 +128,17 @@ export class PostController {
         orderBy,
       });
 
+      const visiblePosts = membership.role === "MEMBER"
+        ? posts.filter((p: any) => {
+            if (!p.assignedTo) return true;
+            const assigned = p.assignedTo as string[];
+            return assigned.includes(userId);
+          })
+        : posts;
+
       await cacheSet(cacheKey, posts, 120);
 
-      sendSuccess(res, posts, "Posts retrieved");
+      sendSuccess(res, visiblePosts, "Posts retrieved");
     } catch (error) {
       console.error("Error getting posts:", error);
       sendError(res, "Failed to get posts", 500);
@@ -148,6 +168,45 @@ export class PostController {
         return sendError(res, "Not a member of this classroom", 403);
       }
 
+      if (membership.role === "MEMBER" && post.assignedTo) {
+        const assigned = post.assignedTo as string[];
+        if (!assigned.includes(userId)) {
+          return sendError(res, "You are not assigned to this post", 403);
+        }
+      }
+
+      if (post.quizData && membership.role !== "ADMIN") {
+        const studentSubmission = await prisma.submission.findUnique({
+          where: { postId_studentId: { postId, studentId: userId } },
+          select: { id: true },
+        });
+
+        if (!studentSubmission) {
+          const qd = post.quizData as any;
+          if (post.type === "QUESTION" && qd.answerType === "multiple_choice") {
+            (post as any).quizData = {
+              ...qd,
+              question: {
+                id: qd.question.id,
+                text: qd.question.text,
+                options: qd.question.options,
+                points: qd.question.points,
+              },
+            };
+          } else if (post.type === "QUIZ") {
+            (post as any).quizData = {
+              ...qd,
+              questions: qd.questions.map((q: any) => ({
+                id: q.id,
+                text: q.text,
+                options: q.options,
+                points: q.points,
+              })),
+            };
+          }
+        }
+      }
+
       sendSuccess(res, post, "Post retrieved");
     } catch (error) {
       console.error("Error getting post:", error);
@@ -159,7 +218,7 @@ export class PostController {
     try {
       const userId = req.user!.userId;
       const postId = req.params.postId as string;
-      const { title, content, chapterId, dueDate, maxPoints } = req.body;
+      const { title, content, chapterId, quizData, questionData, assignedTo, dueDate, maxPoints } = req.body;
 
       const post = await prisma.post.findUnique({ where: { id: postId } });
       if (!post) {
@@ -171,17 +230,95 @@ export class PostController {
         return sendError(res, "Only admins can update posts", 403);
       }
 
+      const newMaxPoints = quizData !== undefined && post.type === "QUIZ"
+        ? quizData.questions.reduce((sum: number, q: any) => sum + q.points, 0)
+        : questionData !== undefined && post.type === "QUESTION"
+          ? questionData.question.points
+          : maxPoints !== undefined && post.type !== "QUIZ" && post.type !== "QUESTION"
+            ? maxPoints
+            : undefined;
+
       const updated = await prisma.post.update({
         where: { id: postId },
         data: {
           ...(title !== undefined && { title }),
           ...(content !== undefined && { content }),
           ...(chapterId !== undefined && { chapterId }),
+          ...(assignedTo !== undefined && { assignedTo: assignedTo }),
+          ...(quizData !== undefined && post.type === "QUIZ" && {
+            quizData,
+            maxPoints: newMaxPoints,
+          }),
+          ...(questionData !== undefined && post.type === "QUESTION" && {
+            quizData: questionData,
+            maxPoints: newMaxPoints,
+          }),
           ...(dueDate !== undefined && { dueDate: dueDate ? new Date(dueDate) : null }),
-          ...(maxPoints !== undefined && { maxPoints }),
+          ...(maxPoints !== undefined && post.type !== "QUIZ" && post.type !== "QUESTION" && { maxPoints }),
         },
         include: { attachments: true },
       });
+
+      if (maxPoints !== undefined && post.type === "ASSIGNMENT" && maxPoints !== post.maxPoints) {
+        await prisma.submission.updateMany({
+          where: { postId, gradedAt: { not: null } },
+          data: { points: null, feedback: null, gradedAt: null },
+        });
+      }
+
+      const shouldRegradeQuiz = quizData !== undefined && post.type === "QUIZ";
+      const shouldRegradeQuestion = questionData !== undefined && post.type === "QUESTION"
+        && questionData.answerType === "multiple_choice";
+
+      if (shouldRegradeQuiz || shouldRegradeQuestion) {
+        const submissions = await prisma.submission.findMany({
+          where: { postId, gradedAt: { not: null } },
+        });
+
+        for (const sub of submissions) {
+          if (!sub.content) continue;
+          let answers: { answers: Record<string, number> };
+          try {
+            answers = typeof sub.content === "string" ? JSON.parse(sub.content) : sub.content;
+          } catch {
+            continue;
+          }
+          if (!answers.answers) continue;
+
+          let totalEarned = 0;
+          const results: { questionId: string; correct: boolean; earnedPoints: number }[] = [];
+
+          if (shouldRegradeQuiz) {
+            for (const question of quizData.questions) {
+              const selectedIndex = answers.answers[question.id];
+              const isCorrect = selectedIndex === question.correctIndex;
+              const earned = isCorrect ? question.points : 0;
+              totalEarned += earned;
+              results.push({ questionId: question.id, correct: isCorrect, earnedPoints: earned });
+            }
+          } else {
+            const q = questionData.question;
+            const selectedIndex = answers.answers[q.id];
+            const isCorrect = selectedIndex === q.correctIndex;
+            totalEarned = isCorrect ? q.points : 0;
+            results.push({ questionId: q.id, correct: isCorrect, earnedPoints: totalEarned });
+          }
+
+          await prisma.submission.update({
+            where: { id: sub.id },
+            data: {
+              points: totalEarned,
+              feedback: JSON.stringify({
+                autoGraded: true,
+                results,
+                totalEarned,
+                totalPossible: newMaxPoints,
+              }),
+              gradedAt: new Date(),
+            },
+          });
+        }
+      }
 
       await cacheDelPattern(`posts:${post.classId}:*`);
 
@@ -211,7 +348,7 @@ export class PostController {
 
       const posts = await prisma.post.findMany({
         where: {
-          type: "ASSIGNMENT",
+          type: { in: ["ASSIGNMENT", "QUIZ", "QUESTION"] },
           dueDate: { gte: now, lte: in24h },
         },
         select: {

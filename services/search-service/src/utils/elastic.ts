@@ -105,10 +105,24 @@ export async function searchPosts(params: SearchParams) {
   const must: any[] = [
     { term: { classId: params.classId } },
     {
-      multi_match: {
-        query: params.query,
-        fields: ["title^3", "content^2", "attachmentNames"],
-        fuzziness: "AUTO",
+      bool: {
+        should: [
+          {
+            multi_match: {
+              query: params.query,
+              fields: ["title^3", "content^2", "attachmentNames"],
+              fuzziness: "AUTO",
+            },
+          },
+          {
+            multi_match: {
+              query: params.query,
+              fields: ["title^3", "content^2", "attachmentNames"],
+              type: "phrase_prefix",
+            },
+          },
+        ],
+        minimum_should_match: 1,
       },
     },
   ];

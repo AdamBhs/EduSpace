@@ -135,3 +135,13 @@ export const reorderChapters = async (
   );
   return response.data;
 };
+
+export const getDeletionImpact = async (): Promise<{
+  transferable: { id: string; name: string }[];
+  deletable: { id: string; name: string }[];
+}> => {
+  const response = await api.get(
+    "/classroom/api/classroom/my/deletion-impact",
+  );
+  return response.data.data;
+};

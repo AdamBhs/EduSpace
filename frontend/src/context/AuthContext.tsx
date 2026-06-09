@@ -9,11 +9,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const navigate = useNavigate();
 
   const [token, setToken] = useState<string | null>(
-    localStorage.getItem("token"),
+    localStorage.getItem("token") || sessionStorage.getItem("token"),
   );
   const [user, setUser] = useState<AuthUser | null>(() => {
     try {
-      return JSON.parse(localStorage.getItem("user") || "null");
+      return JSON.parse(localStorage.getItem("user") || sessionStorage.getItem("user") || "null");
     } catch {
       return null;
     }
@@ -31,6 +31,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     setUser(null);
     localStorage.removeItem("token");
     localStorage.removeItem("user");
+    sessionStorage.removeItem("token");
+    sessionStorage.removeItem("user");
     navigate("/login");
   };
 

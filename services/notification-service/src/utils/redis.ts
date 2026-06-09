@@ -19,3 +19,11 @@ export async function pushNotification(userId: string, notification: any): Promi
     JSON.stringify(notification),
   );
 }
+
+export function createSubscriber(): Redis {
+  return new Redis(REDIS_URL, { maxRetriesPerRequest: 3 });
+}
+
+export function channelForUser(userId: string): string {
+  return `${CHANNEL}:${userId}`;
+}

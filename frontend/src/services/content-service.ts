@@ -1,5 +1,5 @@
 import { api } from "./axios";
-import type { PostType, StudyMaterialType } from "@/shared/types";
+import type { PostType, StudyMaterialType, QuizQuestion, QuestionData } from "@/shared/types";
 
 // ─── Posts ──────────────────────────────────────────────────
 
@@ -10,6 +10,9 @@ export const createPost = async (data: {
   content?: string;
   type: PostType;
   studyMaterialType?: StudyMaterialType;
+  quizData?: { questions: QuizQuestion[] };
+  questionData?: QuestionData;
+  assignedTo?: string[];
   dueDate?: string;
   maxPoints?: number;
   attachments?: { fileKey: string; fileName: string; fileSize: number; fileType: string }[];
@@ -44,6 +47,9 @@ export const updatePost = async (
     title?: string;
     content?: string;
     chapterId?: string;
+    quizData?: { questions: QuizQuestion[] };
+    questionData?: QuestionData;
+    assignedTo?: string[] | null;
     dueDate?: string;
     maxPoints?: number;
   },
@@ -57,6 +63,24 @@ export const deletePost = async (postId: string) => {
   return response.data;
 };
 
+// ─── Quiz ──────────────────────────────────────────────────
+
+export const submitQuiz = async (postId: string, answers: Record<string, number>) => {
+  const response = await api.post("/content/api/submissions", {
+    postId,
+    content: JSON.stringify({ answers }),
+  });
+  return response.data.data;
+};
+
+export const submitQuestion = async (postId: string, content: string) => {
+  const response = await api.post("/content/api/submissions", {
+    postId,
+    content,
+  });
+  return response.data.data;
+};
+
 // ─── Comments ───────────────────────────────────────────────
 
 export const getComments = async (postId: string) => {
@@ -66,6 +90,11 @@ export const getComments = async (postId: string) => {
 
 export const createComment = async (postId: string, content: string) => {
   const response = await api.post("/content/api/comments", { postId, content });
+  return response.data.data;
+};
+
+export const updateComment = async (commentId: string, content: string) => {
+  const response = await api.put(`/content/api/comments/${commentId}`, { content });
   return response.data.data;
 };
 

@@ -43,61 +43,40 @@ export async function startConsumers(): Promise<void> {
   await subscribeToEvents(
     "notification-service",
     [
-      Events.MEMBER_JOINED,
-      Events.MEMBER_REMOVED,
-      Events.MEMBER_ROLE_CHANGED,
       Events.POST_CREATED,
       Events.SUBMISSION_GRADED,
       Events.CHAT_MESSAGE,
+      Events.USER_DELETED,
     ],
     async (event, payload) => {
       switch (event) {
-        case Events.MEMBER_JOINED: {
-          const { adminIds } = await fetchMemberIds(payload.classId);
-          const adminsExceptJoiner = adminIds.filter((id: string) => id !== payload.userId);
-          await notifyMany(
-            adminsExceptJoiner,
-            "MEMBER_JOINED",
-            "New member joined",
-            `A new member joined "${payload.classroomName}"`,
-            payload.classId,
-          );
-          break;
-        }
-
-        case Events.MEMBER_REMOVED: {
-          await createAndPush({
-            userId: payload.userId,
-            type: "MEMBER_REMOVED",
-            title: "Removed from classroom",
-            body: `You were removed from "${payload.classroomName}"`,
-            classId: payload.classId,
-          });
-          break;
-        }
-
-        case Events.MEMBER_ROLE_CHANGED: {
-          await createAndPush({
-            userId: payload.userId,
-            type: "ROLE_CHANGED",
-            title: "Role updated",
-            body: `Your role in "${payload.classroomName}" was changed to ${payload.newRole}`,
-            classId: payload.classId,
-          });
-          break;
-        }
-
         case Events.POST_CREATED: {
           const { allIds } = await fetchMemberIds(payload.classId);
           const recipients = allIds.filter((id: string) => id !== payload.authorId);
+          const body = `A new ${payload.type.toLowerCase().replace("_", " ")} "${payload.title}" was posted`;
           await notifyMany(
             recipients,
             "POST_CREATED",
             "New post",
-            `A new ${payload.type.toLowerCase().replace("_", " ")} "${payload.title}" was posted`,
+            body,
             payload.classId,
             payload.postId,
           );
+
+          const emails = await fetchUserEmails(recipients);
+          for (const [userId, email] of emails) {
+            await sendEmail(
+              email,
+              `New post: "${payload.title}"`,
+              `
+              <h2>New Post in Your Classroom</h2>
+              <p>A new <strong>${payload.type.toLowerCase().replace("_", " ")}</strong> has been posted:</p>
+              <p style="font-size: 18px; font-weight: bold; color: #137FEC;">${payload.title}</p>
+              ${payload.content ? `<p>${payload.content.slice(0, 200)}${payload.content.length > 200 ? "..." : ""}</p>` : ""}
+              <p>Log in to EduSpace to view the full post.</p>
+              `,
+            );
+          }
           break;
         }
 
@@ -144,6 +123,14 @@ export async function startConsumers(): Promise<void> {
               : "A file was shared in the group chat",
             payload.classId,
           );
+          break;
+        }
+
+        case Events.USER_DELETED: {
+          const result = await prisma.notification.deleteMany({
+            where: { userId: payload.userId },
+          });
+          console.log(`[Event] Deleted ${result.count} notifications for deleted user ${payload.userId}`);
           break;
         }
       }

@@ -116,6 +116,38 @@ export class ClassroomController {
     }
   }
 
+  static async getDeletionImpact(req: Request, res: Response) {
+    try {
+      const userId = req.user!.userId;
+
+      const owned = await prisma.classroom.findMany({
+        where: { creatorId: userId },
+        include: {
+          members: { select: { userId: true, role: true } },
+        },
+      });
+
+      const transferable: { id: string; name: string }[] = [];
+      const deletable: { id: string; name: string }[] = [];
+
+      for (const c of owned) {
+        const hasOtherAdmin = c.members.some(
+          (m: any) => m.userId !== userId && m.role === "ADMIN",
+        );
+        if (hasOtherAdmin) {
+          transferable.push({ id: c.id, name: c.name });
+        } else {
+          deletable.push({ id: c.id, name: c.name });
+        }
+      }
+
+      sendSuccess(res, { transferable, deletable }, "Deletion impact retrieved");
+    } catch (error) {
+      console.error("Error getting deletion impact:", error);
+      sendError(res, "Failed to get deletion impact", 500);
+    }
+  }
+
   static async getMyClassrooms(req: Request, res: Response) {
     try {
       const userId = req.user!.userId;
@@ -180,12 +212,6 @@ export class ClassroomController {
 
       await cacheDel(`classroom:${classroom.id}`, `members:${classroom.id}`);
 
-      await publishEvent(Events.MEMBER_JOINED, {
-        classId: classroom.id,
-        userId,
-        classroomName: classroom.name,
-      });
-
       sendSuccess(res, { member, classroom }, "Joined classroom", 201);
     } catch (error) {
       console.error("Error joining classroom:", error);
@@ -227,6 +253,15 @@ export class ClassroomController {
           enabled: classroom.chatEnabled,
         });
       }
+
+      await publishEvent(Events.CLASSROOM_UPDATED, {
+        classId,
+        name: classroom.name,
+        description: classroom.description,
+        subject: classroom.subject,
+        section: classroom.section,
+        chatEnabled: classroom.chatEnabled,
+      });
 
       sendSuccess(res, classroom, "Classroom updated");
     } catch (error) {
@@ -295,12 +330,6 @@ export class ClassroomController {
       });
 
       await cacheDel(`classroom:${classId}`, `members:${classId}`);
-
-      await publishEvent(Events.MEMBER_REMOVED, {
-        classId,
-        userId,
-        classroomName: classroom.name,
-      });
 
       sendSuccess(res, null, "Left classroom");
     } catch (error) {

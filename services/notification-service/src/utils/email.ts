@@ -28,13 +28,15 @@ export async function sendEmail(
   }
 
   try {
-    await getTransporter().sendMail({
+    console.log(`[email] Sending to ${to}: "${subject}"`);
+    const info = await getTransporter().sendMail({
       from: process.env.SMTP_FROM || process.env.SMTP_USER,
       to,
       subject,
       html,
     });
+    console.log(`[email] Sent OK: ${info.messageId}`);
   } catch (error) {
-    console.error("Failed to send email:", error);
+    console.error("[email] Failed to send:", error);
   }
 }
