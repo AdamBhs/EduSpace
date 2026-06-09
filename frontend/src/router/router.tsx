@@ -22,6 +22,7 @@ import ClassSettings from "@/features/classes/subPages/ClassSettings";
 import Landing from "@/features/landing/Landing";
 import Notifications from "@/features/notifications/Notifications";
 import Messages from "@/features/messages/Messages";
+import DirectChat from "@/features/messages/DirectChat";
 
 export const router = createBrowserRouter([
   {
@@ -100,6 +101,7 @@ export const router = createBrowserRouter([
       },
       { path: "notifications", element: <Notifications /> },
       { path: "messages", element: <Messages /> },
+      { path: "messages/:conversationId", element: <DirectChat /> },
       {
         path: "settings",
         children: [

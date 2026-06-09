@@ -11,6 +11,7 @@ import {
 } from "@/shared/components/ui/dropdown-menu";
 import { HiOutlineDotsVertical } from "react-icons/hi";
 import { MdOutlineMailOutline } from "react-icons/md";
+import { MessageSquare } from "lucide-react";
 
 type Props = {
   user: {
@@ -29,6 +30,7 @@ type Props = {
   onRemove?: () => void;
   onPromote?: () => void;
   onDemote?: () => void;
+  onMessage?: () => void;
 };
 
 const PeopleCard = ({
@@ -41,6 +43,7 @@ const PeopleCard = ({
   onRemove,
   onPromote,
   onDemote,
+  onMessage,
 }: Props) => {
   const isAdmin = user.role === "ADMIN";
   const initials = `${user.userName?.[0] ?? ""}${user.userLastName?.[0] ?? ""}`.toUpperCase() || "?";
@@ -78,12 +81,24 @@ const PeopleCard = ({
       </div>
 
       {isAdmin && !viewerIsAdmin ? (
-        <button
-          onClick={handleEmail}
-          className="p-2 rounded-full hover:bg-[#dbedff] text-[#94A3B8] hover:text-[#137FEC] cursor-pointer transition duration-100"
-        >
-          <MdOutlineMailOutline size={22} />
-        </button>
+        <div className="flex items-center gap-1">
+          {!isSelf && onMessage && (
+            <button
+              onClick={onMessage}
+              className="p-2 rounded-full hover:bg-[#dbedff] text-[#94A3B8] hover:text-[#137FEC] cursor-pointer transition duration-100"
+              title="Send message"
+            >
+              <MessageSquare className="w-5 h-5" />
+            </button>
+          )}
+          <button
+            onClick={handleEmail}
+            className="p-2 rounded-full hover:bg-[#dbedff] text-[#94A3B8] hover:text-[#137FEC] cursor-pointer transition duration-100"
+            title="Send email"
+          >
+            <MdOutlineMailOutline size={22} />
+          </button>
+        </div>
       ) : viewerIsAdmin ? (
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
@@ -95,6 +110,11 @@ const PeopleCard = ({
             </div>
           </DropdownMenuTrigger>
           <DropdownMenuContent side="right" align="start" className="w-48">
+            {!isSelf && onMessage && (
+              <DropdownMenuItem className="cursor-pointer" onClick={onMessage}>
+                Send message
+              </DropdownMenuItem>
+            )}
             <DropdownMenuItem className="cursor-pointer" onClick={handleEmail}>
               Send email
             </DropdownMenuItem>
@@ -126,6 +146,11 @@ const PeopleCard = ({
             </div>
           </DropdownMenuTrigger>
           <DropdownMenuContent side="right" align="start" className="w-40">
+            {!isSelf && onMessage && (
+              <DropdownMenuItem className="cursor-pointer" onClick={onMessage}>
+                Send message
+              </DropdownMenuItem>
+            )}
             <DropdownMenuItem className="cursor-pointer" onClick={handleEmail}>
               Send email
             </DropdownMenuItem>

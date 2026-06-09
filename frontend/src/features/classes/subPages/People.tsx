@@ -8,7 +8,7 @@ import {
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { IoMdPersonAdd } from "react-icons/io";
 import { IoIosSearch } from "react-icons/io";
-import { useParams } from "react-router-dom";
+import { useParams, useNavigate } from "react-router-dom";
 import PeopleCard from "../components/PeopleCard";
 import PeopleSkeleton from "../ui/PeopleSkeleton";
 import NavLinksClass from "../components/NavLinksClass";
@@ -23,9 +23,11 @@ import {
 import { Button } from "@/shared/components/ui/button";
 import type { Classroom, Member } from "@/shared/types";
 import { useAuth } from "@/context/AuthContext";
+import { createConversation } from "@/services/dm-service";
 
 const People = () => {
   const { classId } = useParams<{ classId: string }>();
+  const navigate = useNavigate();
   const { user } = useAuth();
   const queryClient = useQueryClient();
   const [search, setSearch] = useState("");
@@ -74,6 +76,11 @@ const People = () => {
   const classroomType = membersData?.classroomType ?? classroom?.type ?? "TEACHING";
   const isTeaching = classroomType === "TEACHING";
   const isAdmin = classroom?.userRole === "ADMIN";
+
+  const handleMessage = async (userId: string) => {
+    const conv = await createConversation(userId);
+    navigate(`/messages/${conv.id}`);
+  };
 
   const adminLabel = isTeaching ? "Teachers" : "Admins";
   const memberLabel = isTeaching ? "Students" : "Members";
@@ -180,6 +187,7 @@ const People = () => {
                 classroomType={classroomType}
                 onDemote={() => changeRole.mutate({ memberId: member.id, role: "MEMBER" })}
                 onRemove={() => remove.mutate(member.id)}
+                onMessage={() => handleMessage(member.userId)}
               />
             ))}
           </div>
@@ -213,6 +221,7 @@ const People = () => {
                   classroomType={classroomType}
                   onPromote={() => changeRole.mutate({ memberId: member.id, role: "ADMIN" })}
                   onRemove={() => remove.mutate(member.id)}
+                  onMessage={() => handleMessage(member.userId)}
                 />
               ))
             ) : (
