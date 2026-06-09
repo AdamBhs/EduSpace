@@ -21,6 +21,7 @@ import ResetPassword from "@/features/auth/ResetPassword";
 import ClassSettings from "@/features/classes/subPages/ClassSettings";
 import Landing from "@/features/landing/Landing";
 import Notifications from "@/features/notifications/Notifications";
+import Messages from "@/features/messages/Messages";
 
 export const router = createBrowserRouter([
   {
@@ -98,6 +99,7 @@ export const router = createBrowserRouter([
         ],
       },
       { path: "notifications", element: <Notifications /> },
+      { path: "messages", element: <Messages /> },
       {
         path: "settings",
         children: [

@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { CalendarDays, Settings } from "lucide-react";
+import { CalendarDays, MessageSquare, Settings } from "lucide-react";
 import { GoHomeFill } from "react-icons/go";
 import { Badge } from "@/shared/components/ui/badge";
 import { Separator } from "@/shared/components/ui/separator";
@@ -29,6 +29,12 @@ const navSections = [
         icon: LuListTodo,
         label: "To-do",
         path: "/todo",
+        badge: null,
+      },
+      {
+        icon: MessageSquare,
+        label: "Messages",
+        path: "/messages",
         badge: null,
       },
     ],

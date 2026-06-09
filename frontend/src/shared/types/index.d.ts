@@ -235,3 +235,23 @@ export type ChatMessage = {
   createdAt: string;
   classId?: string;
 };
+
+// ─── Direct Messages ────────────────────────────────────────
+
+export type DirectMessage = {
+  id: string;
+  conversationId: string;
+  senderId: string;
+  content: string | null;
+  fileKey: string | null;
+  fileName: string | null;
+  createdAt: string;
+};
+
+export type DirectConversation = {
+  id: string;
+  otherUserId: string;
+  lastMessage: DirectMessage | null;
+  createdAt: string;
+  updatedAt: string;
+};
