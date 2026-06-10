@@ -2,6 +2,7 @@ import { Request, Response } from "express";
 import { prisma } from "../db/prisma";
 import { sendSuccess, sendError } from "../../../../shared/src/utils/response";
 import { checkFriendship, getSharedMembers } from "../utils/classService";
+import { getOnlineUsers } from "../utils/redis";
 
 export class DmController {
   static async getConversations(req: Request, res: Response) {
@@ -133,6 +134,27 @@ export class DmController {
     } catch (error) {
       console.error("Error getting friends:", error);
       sendError(res, "Failed to get friends", 500);
+    }
+  }
+
+  static async getFriendsWithStatus(req: Request, res: Response) {
+    try {
+      const userId = req.user!.userId;
+      const friendIds = await getSharedMembers(userId);
+      const onlineIds = await getOnlineUsers(friendIds);
+      const onlineSet = new Set(onlineIds);
+
+      const friends = friendIds.map((id) => ({
+        userId: id,
+        online: onlineSet.has(id),
+      }));
+
+      friends.sort((a, b) => (a.online === b.online ? 0 : a.online ? -1 : 1));
+
+      sendSuccess(res, friends, "Friends with status retrieved");
+    } catch (error) {
+      console.error("Error getting friends with status:", error);
+      sendError(res, "Failed to get friends with status", 500);
     }
   }
 }

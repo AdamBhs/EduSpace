@@ -29,3 +29,10 @@ export const getFriends = async (): Promise<string[]> => {
   const response = await api.get("/dm/api/dm/friends");
   return response.data.data;
 };
+
+export const getFriendsWithStatus = async (): Promise<
+  { userId: string; online: boolean }[]
+> => {
+  const response = await api.get("/dm/api/dm/friends/status");
+  return response.data.data;
+};

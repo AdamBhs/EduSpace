@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect, useCallback } from "react";
-import { useParams } from "react-router-dom";
+import { useParams, useNavigate } from "react-router-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { getClassroomById, getMembers } from "@/services/classroom-service";
 import { getMessages } from "@/services/chat-service";
@@ -18,12 +18,22 @@ import {
   Send,
   Download,
   Loader2,
+  MessageSquare,
+  MoreVertical,
 } from "lucide-react";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/shared/components/ui/dropdown-menu";
 import type { Classroom, ChatMessage, Member, UserSummary } from "@/shared/types";
 import { useAuth } from "@/context/AuthContext";
+import { createConversation } from "@/services/dm-service";
 
 const Chat = () => {
   const { classId } = useParams<{ classId: string }>();
+  const navigate = useNavigate();
   const { user } = useAuth();
   const queryClient = useQueryClient();
   const [message, setMessage] = useState("");
@@ -260,6 +270,11 @@ const Chat = () => {
     ? `${user.profile.firstName?.[0] ?? ""}${user.profile.lastName?.[0] ?? ""}`.toUpperCase()
     : "?";
 
+  const handleDirectMessage = async (memberId: string) => {
+    const conv = await createConversation(memberId);
+    navigate(`/messages/${conv.id}`);
+  };
+
   const onlineSet = new Set(onlineUserIds);
 
   const typingNames = [...typingUsers]
@@ -472,10 +487,11 @@ const Chat = () => {
                     })
                     .map((member) => {
                       const isOnline = onlineSet.has(member.userId);
+                      const isSelf = member.userId === user?.userId;
                       return (
                         <div
                           key={member.id}
-                          className="flex items-center gap-2.5 rounded-lg px-2 py-1.5"
+                          className="group flex items-center gap-2.5 rounded-lg px-2 py-1.5 hover:bg-[#F1F5F9]"
                         >
                           <div className="relative">
                             <Avatar className="w-7 h-7">
@@ -497,7 +513,7 @@ const Chat = () => {
                           </div>
                           <div className="flex-1 min-w-0">
                             <p className={`text-xs font-medium truncate ${isOnline ? "text-[#0F172A]" : "text-[#94A3B8]"}`}>
-                              {member.userId === user?.userId ? "You" : userName(member.userId)}
+                              {isSelf ? "You" : userName(member.userId)}
                             </p>
                             <p className="text-[10px] text-[#94A3B8]">
                               {member.role === "ADMIN"
@@ -505,6 +521,24 @@ const Chat = () => {
                                 : classroom?.type === "TEACHING" ? "Student" : "Member"}
                             </p>
                           </div>
+                          {!isSelf && (
+                            <DropdownMenu>
+                              <DropdownMenuTrigger asChild>
+                                <button className="opacity-0 group-hover:opacity-100 p-0.5 rounded hover:bg-[#E2E8F0] cursor-pointer">
+                                  <MoreVertical className="w-3.5 h-3.5 text-[#64748B]" />
+                                </button>
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent align="end" className="min-w-[140px]">
+                                <DropdownMenuItem
+                                  onClick={() => handleDirectMessage(member.userId)}
+                                  className="text-xs cursor-pointer"
+                                >
+                                  <MessageSquare className="w-3.5 h-3.5 mr-2" />
+                                  Direct message
+                                </DropdownMenuItem>
+                              </DropdownMenuContent>
+                            </DropdownMenu>
+                          )}
                         </div>
                       );
                     })}
