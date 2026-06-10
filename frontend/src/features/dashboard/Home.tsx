@@ -1,7 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import Card from "./components/card";
 import ClassActionButton from "./components/ClassActionButton";
-import ActiveStatus from "./components/ActiveStatus";
 import { getClassrooms } from "@/services/classroom-service";
 import type { EnrolledClassroom } from "@/shared/types";
 import NoClassroomFound from "./components/NoClassroomFound";
@@ -19,7 +18,6 @@ const Home = () => {
 
   return (
     <>
-      <ActiveStatus />
       {data?.length === 0 ? (
         <NoClassroomFound />
       ) : (

@@ -33,7 +33,7 @@ const navSections = [
       },
       {
         icon: MessageSquare,
-        label: "Messages",
+        label: "Messenger",
         path: "/messages",
         badge: null,
       },

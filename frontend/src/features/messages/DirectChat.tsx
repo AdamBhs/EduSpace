@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect, useCallback } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import { useParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { getDmMessages } from "@/services/dm-service";
 import { getUsers } from "@/services/user-service";
@@ -11,7 +11,6 @@ import {
 } from "@/shared/components/ui/avatar";
 import { ScrollArea } from "@/shared/components/ui/scroll-area";
 import {
-  ArrowLeft,
   Paperclip,
   Send,
   Download,
@@ -22,7 +21,6 @@ import { useAuth } from "@/context/AuthContext";
 
 const DirectChat = () => {
   const { conversationId } = useParams<{ conversationId: string }>();
-  const navigate = useNavigate();
   const { user } = useAuth();
   const [message, setMessage] = useState("");
   const [messages, setMessages] = useState<DirectMessage[]>([]);
@@ -217,15 +215,9 @@ const DirectChat = () => {
     .map(() => otherName.split(" ")[0]);
 
   return (
-    <div className="max-w-2xl mx-auto flex flex-col h-[calc(100vh-60px-16px)] -my-5">
+    <div className="flex flex-col h-full">
       {/* Header */}
-      <div className="flex items-center gap-3 px-2 py-3 border-b border-[#E2E8F0]">
-        <button
-          onClick={() => navigate("/messages")}
-          className="p-1.5 rounded-full hover:bg-[#F1F5F9] cursor-pointer transition-colors"
-        >
-          <ArrowLeft className="w-5 h-5 text-[#475569]" />
-        </button>
+      <div className="flex items-center gap-3 px-4 py-3 border-b border-[#E2E8F0]">
         <Avatar className="w-9 h-9">
           <AvatarFallback className="bg-blue-100 text-blue-700 text-xs font-semibold">
             {otherInitials}
