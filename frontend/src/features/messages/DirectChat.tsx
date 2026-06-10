@@ -3,7 +3,7 @@ import { useParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { getDmMessages } from "@/services/dm-service";
 import { getUsers } from "@/services/user-service";
-import { getFileUrl, uploadFile } from "@/services/file-service";
+import { uploadFile } from "@/services/file-service";
 import { connectSocket, disconnectSocket } from "@/services/websocket";
 import {
   Avatar,
@@ -13,9 +13,9 @@ import { ScrollArea } from "@/shared/components/ui/scroll-area";
 import {
   Paperclip,
   Send,
-  Download,
   Loader2,
 } from "lucide-react";
+import FileAttachment from "@/shared/components/FileAttachment";
 import type { DirectMessage, UserSummary } from "@/shared/types";
 import { useAuth } from "@/context/AuthContext";
 
@@ -172,16 +172,6 @@ const DirectChat = () => {
     }
   };
 
-  const handleDownload = async (fileKey: string, fileName: string) => {
-    const url = await getFileUrl(fileKey);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = fileName;
-    a.target = "_blank";
-    a.rel = "noopener noreferrer";
-    a.click();
-  };
-
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
@@ -296,13 +286,7 @@ const DirectChat = () => {
                     <p className="text-sm text-[#334155] break-words">{msg.content}</p>
                   )}
                   {msg.fileKey && msg.fileName && (
-                    <button
-                      onClick={() => handleDownload(msg.fileKey!, msg.fileName!)}
-                      className="mt-1 flex items-center gap-2 rounded-lg border border-[#E2E8F0] px-3 py-2 text-sm hover:bg-[#F8FAFC] hover:border-[#137FEC]/40 transition-colors cursor-pointer"
-                    >
-                      <Download className="w-3.5 h-3.5 text-[#137FEC]" />
-                      <span className="truncate text-[#334155]">{msg.fileName}</span>
-                    </button>
+                    <FileAttachment fileKey={msg.fileKey} fileName={msg.fileName} />
                   )}
                 </div>
               </div>
