@@ -34,6 +34,15 @@ export const getDmSharedFiles = async (
   return response.data.data;
 };
 
+export const getDmSharedLinks = async (
+  conversationId: string,
+): Promise<{ id: string; senderId: string; url: string; createdAt: string }[]> => {
+  const response = await api.get(
+    `/dm/api/dm/conversations/${conversationId}/links`,
+  );
+  return response.data.data;
+};
+
 export const getFriends = async (): Promise<string[]> => {
   const response = await api.get("/dm/api/dm/friends");
   return response.data.data;

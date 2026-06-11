@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import { useParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
-import { getDmMessages, getDmSharedFiles } from "@/services/dm-service";
+import { getDmMessages, getDmSharedFiles, getDmSharedLinks } from "@/services/dm-service";
 import { getUsers } from "@/services/user-service";
 import { uploadFile } from "@/services/file-service";
 import { connectSocket, disconnectSocket } from "@/services/websocket";
@@ -14,7 +14,7 @@ import {
   Paperclip,
   Send,
   Loader2,
-  FolderOpen,
+  Info,
 } from "lucide-react";
 import FileAttachment from "@/shared/components/FileAttachment";
 import MediaFilesPanel from "@/shared/components/MediaFilesPanel";
@@ -29,7 +29,7 @@ const DirectChat = () => {
   const [typingUsers, setTypingUsers] = useState<Set<string>>(new Set());
   const [connected, setConnected] = useState(false);
   const [loadingMore, setLoadingMore] = useState(false);
-  const [showFiles, setShowFiles] = useState(false);
+  const [showInfo, setShowInfo] = useState(false);
   const [nextCursor, setNextCursor] = useState<string | null>(null);
   const [otherUserId, setOtherUserId] = useState<string | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -224,15 +224,15 @@ const DirectChat = () => {
           </p>
         </div>
         <button
-          onClick={() => setShowFiles((p) => !p)}
+          onClick={() => setShowInfo((p) => !p)}
           className={`w-8 h-8 flex items-center justify-center rounded-full cursor-pointer transition-colors ${
-            showFiles
+            showInfo
               ? "bg-[#137FEC]/10 text-[#137FEC]"
               : "hover:bg-[#F1F5F9] text-[#94A3B8]"
           }`}
-          title="Media & Files"
+          title="Conversation info"
         >
-          <FolderOpen className="w-4.5 h-4.5" />
+          <Info className="w-4.5 h-4.5" />
         </button>
       </div>
 
@@ -363,12 +363,28 @@ const DirectChat = () => {
       </div>
       </div>
 
-      {showFiles && conversationId && (
-        <MediaFilesPanel
-          queryKey={["dm-shared-files", conversationId]}
-          queryFn={() => getDmSharedFiles(conversationId)}
-          onClose={() => setShowFiles(false)}
-        />
+      {showInfo && conversationId && (
+        <div className="w-56 border-l border-[#E2E8F0] flex flex-col bg-white shrink-0 h-full">
+          <div className="flex flex-col items-center py-5 px-3 border-b border-[#E2E8F0]">
+            <Avatar className="w-14 h-14 mb-2">
+              <AvatarFallback className="bg-blue-100 text-blue-700 text-lg font-semibold">
+                {otherInitials}
+              </AvatarFallback>
+            </Avatar>
+            <p className="text-sm font-bold text-[#0F172A]">{otherName}</p>
+            <p className="text-[11px] text-[#94A3B8]">
+              {connected ? "Online" : "Offline"}
+            </p>
+          </div>
+          <ScrollArea className="flex-1 overflow-hidden">
+            <MediaFilesPanel
+              filesQueryKey={["dm-shared-files", conversationId]}
+              filesQueryFn={() => getDmSharedFiles(conversationId)}
+              linksQueryKey={["dm-shared-links", conversationId]}
+              linksQueryFn={() => getDmSharedLinks(conversationId)}
+            />
+          </ScrollArea>
+        </div>
       )}
     </div>
   );

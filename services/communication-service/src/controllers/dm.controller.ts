@@ -165,6 +165,55 @@ export class DmController {
     }
   }
 
+  static async getSharedLinks(req: Request, res: Response) {
+    try {
+      const userId = req.user!.userId;
+      const conversationId = req.params.conversationId as string;
+
+      const conversation = await prisma.directConversation.findUnique({
+        where: { id: conversationId },
+      });
+
+      if (!conversation) {
+        return sendError(res, "Conversation not found", 404);
+      }
+
+      if (conversation.participant1Id !== userId && conversation.participant2Id !== userId) {
+        return sendError(res, "Not a participant in this conversation", 403);
+      }
+
+      const messages = await prisma.directMessage.findMany({
+        where: {
+          conversationId,
+          content: { contains: "http" },
+        },
+        orderBy: { createdAt: "desc" },
+        select: {
+          id: true,
+          senderId: true,
+          content: true,
+          createdAt: true,
+        },
+      });
+
+      const urlRegex = /https?:\/\/[^\s]+/g;
+      const links = messages.flatMap((msg) => {
+        const urls = msg.content?.match(urlRegex) ?? [];
+        return urls.map((url) => ({
+          id: msg.id,
+          senderId: msg.senderId,
+          url,
+          createdAt: msg.createdAt,
+        }));
+      });
+
+      sendSuccess(res, links, "Shared links retrieved");
+    } catch (error) {
+      console.error("Error getting shared links:", error);
+      sendError(res, "Failed to get shared links", 500);
+    }
+  }
+
   static async getFriends(req: Request, res: Response) {
     try {
       const userId = req.user!.userId;

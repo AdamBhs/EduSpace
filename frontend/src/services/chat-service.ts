@@ -19,6 +19,13 @@ export const getChatSharedFiles = async (
   return response.data.data;
 };
 
+export const getChatSharedLinks = async (
+  classId: string,
+): Promise<{ id: string; senderId: string; url: string; createdAt: string }[]> => {
+  const response = await api.get(`/chat/api/chat/${classId}/links`);
+  return response.data.data;
+};
+
 export const getChatInfo = async (classId: string) => {
   const response = await api.get(`/chat/api/chat/${classId}/info`);
   return response.data.data;

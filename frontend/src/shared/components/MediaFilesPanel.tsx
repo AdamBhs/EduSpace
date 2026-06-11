@@ -1,8 +1,7 @@
 import { useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { getFileUrl } from "@/services/file-service";
-import { ScrollArea } from "@/shared/components/ui/scroll-area";
-import { Download, Image, FileText, X, Play } from "lucide-react";
+import { Image, FileText, Link2, ChevronUp, ChevronDown, Download, Play } from "lucide-react";
 import { isImage, isVideo, isMedia } from "@/shared/utils/media";
 
 type SharedFile = {
@@ -13,11 +12,21 @@ type SharedFile = {
   createdAt: string;
 };
 
-type Props = {
-  queryKey: string[];
-  queryFn: () => Promise<SharedFile[]>;
-  onClose: () => void;
+type SharedLink = {
+  id: string;
+  senderId: string;
+  url: string;
+  createdAt: string;
 };
+
+type Props = {
+  filesQueryKey: string[];
+  filesQueryFn: () => Promise<SharedFile[]>;
+  linksQueryKey: string[];
+  linksQueryFn: () => Promise<SharedLink[]>;
+};
+
+type SubView = null | "media" | "files" | "links";
 
 function MediaThumbnail({ fileKey, fileName }: { fileKey: string; fileName: string }) {
   const [url, setUrl] = useState<string | null>(null);
@@ -36,14 +45,9 @@ function MediaThumbnail({ fileKey, fileName }: { fileKey: string; fileName: stri
         className="relative w-full aspect-square rounded-lg overflow-hidden cursor-pointer group"
         onClick={() => window.open(url, "_blank")}
       >
-        <video
-          src={url}
-          preload="metadata"
-          muted
-          className="w-full h-full object-cover"
-        />
+        <video src={url} preload="metadata" muted className="w-full h-full object-cover" />
         <div className="absolute inset-0 bg-black/30 flex items-center justify-center group-hover:bg-black/40 transition-colors">
-          <Play className="w-6 h-6 text-white fill-white" />
+          <Play className="w-5 h-5 text-white fill-white" />
         </div>
       </div>
     );
@@ -58,6 +62,149 @@ function MediaThumbnail({ fileKey, fileName }: { fileKey: string; fileName: stri
     />
   );
 }
+
+const MediaFilesPanel = ({ filesQueryKey, filesQueryFn, linksQueryKey, linksQueryFn }: Props) => {
+  const [expanded, setExpanded] = useState(true);
+  const [subView, setSubView] = useState<SubView>(null);
+
+  const { data: allFiles } = useQuery<SharedFile[]>({
+    queryKey: filesQueryKey,
+    queryFn: filesQueryFn,
+  });
+
+  const { data: allLinks } = useQuery<SharedLink[]>({
+    queryKey: linksQueryKey,
+    queryFn: linksQueryFn,
+  });
+
+  const mediaItems = allFiles?.filter((f) => isMedia(f.fileName)) ?? [];
+  const fileItems = allFiles?.filter((f) => !isMedia(f.fileName)) ?? [];
+  const linkItems = allLinks ?? [];
+
+  const handleItemClick = (view: SubView) => {
+    setSubView(subView === view ? null : view);
+  };
+
+  if (subView === "media") {
+    return (
+      <div className="border-t border-[#E2E8F0]">
+        <button
+          onClick={() => setSubView(null)}
+          className="flex items-center gap-2 px-4 py-2.5 w-full text-left cursor-pointer hover:bg-[#F1F5F9]"
+        >
+          <ChevronDown className="w-3.5 h-3.5 text-[#94A3B8] rotate-90" />
+          <span className="text-xs font-semibold text-[#137FEC]">Media</span>
+        </button>
+        {mediaItems.length === 0 ? (
+          <div className="text-center py-6 px-4">
+            <Image className="w-7 h-7 text-gray-200 mx-auto mb-1.5" />
+            <p className="text-[11px] text-[#94A3B8]">No shared media</p>
+          </div>
+        ) : (
+          <div className="grid grid-cols-3 gap-1 px-3 pb-3">
+            {mediaItems.map((f) => (
+              <MediaThumbnail key={f.id} fileKey={f.fileKey} fileName={f.fileName} />
+            ))}
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  if (subView === "files") {
+    return (
+      <div className="border-t border-[#E2E8F0]">
+        <button
+          onClick={() => setSubView(null)}
+          className="flex items-center gap-2 px-4 py-2.5 w-full text-left cursor-pointer hover:bg-[#F1F5F9]"
+        >
+          <ChevronDown className="w-3.5 h-3.5 text-[#94A3B8] rotate-90" />
+          <span className="text-xs font-semibold text-[#137FEC]">Files</span>
+        </button>
+        {fileItems.length === 0 ? (
+          <div className="text-center py-6 px-4">
+            <FileText className="w-7 h-7 text-gray-200 mx-auto mb-1.5" />
+            <p className="text-[11px] text-[#94A3B8]">No shared files</p>
+          </div>
+        ) : (
+          <div className="px-2 pb-2 space-y-0.5">
+            {fileItems.map((f) => (
+              <FileRow key={f.id} file={f} />
+            ))}
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  if (subView === "links") {
+    return (
+      <div className="border-t border-[#E2E8F0]">
+        <button
+          onClick={() => setSubView(null)}
+          className="flex items-center gap-2 px-4 py-2.5 w-full text-left cursor-pointer hover:bg-[#F1F5F9]"
+        >
+          <ChevronDown className="w-3.5 h-3.5 text-[#94A3B8] rotate-90" />
+          <span className="text-xs font-semibold text-[#137FEC]">Links</span>
+        </button>
+        {linkItems.length === 0 ? (
+          <div className="text-center py-6 px-4">
+            <Link2 className="w-7 h-7 text-gray-200 mx-auto mb-1.5" />
+            <p className="text-[11px] text-[#94A3B8]">No shared links</p>
+          </div>
+        ) : (
+          <div className="px-2 pb-2 space-y-0.5">
+            {linkItems.map((l, i) => (
+              <LinkRow key={`${l.id}-${i}`} link={l} />
+            ))}
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  return (
+    <div className="border-t border-[#E2E8F0]">
+      <button
+        onClick={() => setExpanded(!expanded)}
+        className="flex items-center justify-between px-4 py-2.5 w-full cursor-pointer hover:bg-[#F1F5F9]"
+      >
+        <span className="text-xs font-semibold text-[#0F172A]">Media, files and links</span>
+        {expanded ? (
+          <ChevronUp className="w-3.5 h-3.5 text-[#94A3B8]" />
+        ) : (
+          <ChevronDown className="w-3.5 h-3.5 text-[#94A3B8]" />
+        )}
+      </button>
+
+      {expanded && (
+        <div className="pb-2">
+          <button
+            onClick={() => handleItemClick("media")}
+            className="flex items-center gap-3 px-4 py-2 w-full text-left cursor-pointer hover:bg-[#F1F5F9] transition-colors"
+          >
+            <Image className="w-4 h-4 text-[#64748B]" />
+            <span className="text-xs font-medium text-[#0F172A]">Media</span>
+          </button>
+          <button
+            onClick={() => handleItemClick("files")}
+            className="flex items-center gap-3 px-4 py-2 w-full text-left cursor-pointer hover:bg-[#F1F5F9] transition-colors"
+          >
+            <FileText className="w-4 h-4 text-[#64748B]" />
+            <span className="text-xs font-medium text-[#0F172A]">Files</span>
+          </button>
+          <button
+            onClick={() => handleItemClick("links")}
+            className="flex items-center gap-3 px-4 py-2 w-full text-left cursor-pointer hover:bg-[#F1F5F9] transition-colors"
+          >
+            <Link2 className="w-4 h-4 text-[#64748B]" />
+            <span className="text-xs font-medium text-[#0F172A]">Links</span>
+          </button>
+        </div>
+      )}
+    </div>
+  );
+};
 
 function FileRow({ file }: { file: SharedFile }) {
   const handleDownload = async () => {
@@ -79,103 +226,48 @@ function FileRow({ file }: { file: SharedFile }) {
   return (
     <button
       onClick={handleDownload}
-      className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-[#F1F5F9] cursor-pointer transition-colors text-left"
+      className="w-full flex items-center gap-2.5 px-2 py-2 rounded-lg hover:bg-[#F1F5F9] cursor-pointer transition-colors text-left"
     >
-      <div className="w-9 h-9 rounded-lg bg-[#EFF6FF] flex items-center justify-center shrink-0">
-        <FileText className="w-4 h-4 text-[#137FEC]" />
+      <div className="w-8 h-8 rounded-lg bg-[#EFF6FF] flex items-center justify-center shrink-0">
+        <FileText className="w-3.5 h-3.5 text-[#137FEC]" />
       </div>
       <div className="flex-1 min-w-0">
-        <p className="text-sm font-medium text-[#0F172A] truncate">{file.fileName}</p>
-        <p className="text-[11px] text-[#94A3B8]">{ext} &middot; {date}</p>
+        <p className="text-[11px] font-medium text-[#0F172A] truncate">{file.fileName}</p>
+        <p className="text-[10px] text-[#94A3B8]">{ext} &middot; {date}</p>
       </div>
-      <Download className="w-3.5 h-3.5 text-[#94A3B8] shrink-0" />
+      <Download className="w-3 h-3 text-[#94A3B8] shrink-0" />
     </button>
   );
 }
 
-const MediaFilesPanel = ({ queryKey, queryFn, onClose }: Props) => {
-  const [tab, setTab] = useState<"media" | "files">("media");
+function LinkRow({ link }: { link: SharedLink }) {
+  let displayUrl = link.url;
+  try {
+    const parsed = new URL(link.url);
+    displayUrl = parsed.hostname + (parsed.pathname !== "/" ? parsed.pathname : "");
+  } catch {}
 
-  const { data: allFiles, isLoading } = useQuery<SharedFile[]>({
-    queryKey,
-    queryFn,
+  const date = new Date(link.createdAt).toLocaleDateString([], {
+    month: "short",
+    day: "numeric",
   });
 
-  const media = allFiles?.filter((f) => isMedia(f.fileName)) ?? [];
-  const files = allFiles?.filter((f) => !isMedia(f.fileName)) ?? [];
-
   return (
-    <div className="w-64 border-l border-[#E2E8F0] flex flex-col bg-white shrink-0 h-full">
-      <div className="flex items-center justify-between px-4 py-3 border-b border-[#E2E8F0]">
-        <h3 className="text-sm font-bold text-[#0F172A]">Shared</h3>
-        <button
-          onClick={onClose}
-          className="p-1 rounded-full hover:bg-[#F1F5F9] cursor-pointer transition-colors"
-        >
-          <X className="w-4 h-4 text-[#64748B]" />
-        </button>
+    <a
+      href={link.url}
+      target="_blank"
+      rel="noopener noreferrer"
+      className="flex items-center gap-2.5 px-2 py-2 rounded-lg hover:bg-[#F1F5F9] transition-colors text-left"
+    >
+      <div className="w-8 h-8 rounded-lg bg-[#F0FDF4] flex items-center justify-center shrink-0">
+        <Link2 className="w-3.5 h-3.5 text-green-600" />
       </div>
-
-      <div className="flex border-b border-[#E2E8F0]">
-        <button
-          onClick={() => setTab("media")}
-          className={`flex-1 py-2.5 text-xs font-semibold tracking-wide text-center cursor-pointer transition-colors ${
-            tab === "media"
-              ? "text-[#137FEC] border-b-2 border-[#137FEC]"
-              : "text-[#94A3B8] hover:text-[#64748B]"
-          }`}
-        >
-          <span className="flex items-center justify-center gap-1.5">
-            <Image className="w-3.5 h-3.5" />
-            Media ({media.length})
-          </span>
-        </button>
-        <button
-          onClick={() => setTab("files")}
-          className={`flex-1 py-2.5 text-xs font-semibold tracking-wide text-center cursor-pointer transition-colors ${
-            tab === "files"
-              ? "text-[#137FEC] border-b-2 border-[#137FEC]"
-              : "text-[#94A3B8] hover:text-[#64748B]"
-          }`}
-        >
-          <span className="flex items-center justify-center gap-1.5">
-            <FileText className="w-3.5 h-3.5" />
-            Files ({files.length})
-          </span>
-        </button>
+      <div className="flex-1 min-w-0">
+        <p className="text-[11px] font-medium text-[#137FEC] truncate hover:underline">{displayUrl}</p>
+        <p className="text-[10px] text-[#94A3B8]">{date}</p>
       </div>
-
-      <ScrollArea className="flex-1">
-        {isLoading ? (
-          <p className="text-xs text-gray-400 text-center py-8">Loading...</p>
-        ) : tab === "media" ? (
-          media.length === 0 ? (
-            <div className="text-center py-10 px-4">
-              <Image className="w-8 h-8 text-gray-200 mx-auto mb-2" />
-              <p className="text-xs text-[#94A3B8]">No shared media yet</p>
-            </div>
-          ) : (
-            <div className="grid grid-cols-3 gap-1 p-2">
-              {media.map((f) => (
-                <MediaThumbnail key={f.id} fileKey={f.fileKey} fileName={f.fileName} />
-              ))}
-            </div>
-          )
-        ) : files.length === 0 ? (
-          <div className="text-center py-10 px-4">
-            <FileText className="w-8 h-8 text-gray-200 mx-auto mb-2" />
-            <p className="text-xs text-[#94A3B8]">No shared files yet</p>
-          </div>
-        ) : (
-          <div className="py-1">
-            {files.map((f) => (
-              <FileRow key={f.id} file={f} />
-            ))}
-          </div>
-        )}
-      </ScrollArea>
-    </div>
+    </a>
   );
-};
+}
 
 export default MediaFilesPanel;

@@ -9,6 +9,7 @@ router.get("/:classId/messages", authenticate, ChatController.getMessages);
 router.get("/:classId/info", authenticate, ChatController.getRoomInfo);
 router.get("/:classId/online", authenticate, ChatController.getOnlineMembers);
 router.get("/:classId/files", authenticate, ChatController.getSharedFiles);
+router.get("/:classId/links", authenticate, ChatController.getSharedLinks);
 
 // Internal (called by other services or RabbitMQ consumers)
 router.post("/rooms", ChatController.createRoom);
