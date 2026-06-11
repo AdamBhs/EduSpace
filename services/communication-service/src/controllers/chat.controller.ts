@@ -97,6 +97,43 @@ export class ChatController {
     }
   }
 
+  static async getSharedFiles(req: Request, res: Response) {
+    try {
+      const userId = req.user!.userId;
+      const classId = req.params.classId as string;
+
+      const membership = await checkMembership(classId, userId, req.headers.authorization);
+      if (!membership) {
+        return sendError(res, "Not a member of this classroom", 403);
+      }
+
+      const room = await prisma.chatRoom.findUnique({ where: { classId } });
+      if (!room) {
+        return sendError(res, "Chat room not found", 404);
+      }
+
+      const files = await prisma.message.findMany({
+        where: {
+          chatRoomId: room.id,
+          fileKey: { not: null },
+        },
+        orderBy: { createdAt: "desc" },
+        select: {
+          id: true,
+          senderId: true,
+          fileKey: true,
+          fileName: true,
+          createdAt: true,
+        },
+      });
+
+      sendSuccess(res, files, "Shared files retrieved");
+    } catch (error) {
+      console.error("Error getting shared files:", error);
+      sendError(res, "Failed to get shared files", 500);
+    }
+  }
+
   static async createRoom(req: Request, res: Response) {
     try {
       const { classId, enabled } = req.body;

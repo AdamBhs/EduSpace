@@ -2,7 +2,7 @@ import { useState, useRef, useEffect, useCallback } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { getClassroomById, getMembers } from "@/services/classroom-service";
-import { getMessages } from "@/services/chat-service";
+import { getMessages, getChatSharedFiles } from "@/services/chat-service";
 import { getUsers } from "@/services/user-service";
 import { uploadFile } from "@/services/file-service";
 import { connectSocket, disconnectSocket } from "@/services/websocket";
@@ -19,8 +19,10 @@ import {
   Loader2,
   MessageSquare,
   MoreVertical,
+  FolderOpen,
 } from "lucide-react";
 import FileAttachment from "@/shared/components/FileAttachment";
+import MediaFilesPanel from "@/shared/components/MediaFilesPanel";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -38,6 +40,7 @@ const Chat = () => {
   const queryClient = useQueryClient();
   const [message, setMessage] = useState("");
   const [showMembers, setShowMembers] = useState(true);
+  const [showFiles, setShowFiles] = useState(false);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [onlineUserIds, setOnlineUserIds] = useState<string[]>([]);
   const [typingUsers, setTypingUsers] = useState<Set<string>>(new Set());
@@ -306,23 +309,36 @@ const Chat = () => {
                   </p>
                 </div>
               </div>
-              <button
-                onClick={() => setShowMembers((p) => !p)}
-                className={`w-8 h-8 flex items-center justify-center rounded-full cursor-pointer transition-colors ${
-                  showMembers
-                    ? "bg-[#137FEC]/10 text-[#137FEC]"
-                    : "hover:bg-[#F1F5F9] text-[#94A3B8]"
-                }`}
-                title="Toggle members"
-              >
-                <Info className="w-4.5 h-4.5" />
-              </button>
+              <div className="flex items-center gap-1">
+                <button
+                  onClick={() => setShowFiles((p) => !p)}
+                  className={`w-8 h-8 flex items-center justify-center rounded-full cursor-pointer transition-colors ${
+                    showFiles
+                      ? "bg-[#137FEC]/10 text-[#137FEC]"
+                      : "hover:bg-[#F1F5F9] text-[#94A3B8]"
+                  }`}
+                  title="Media & Files"
+                >
+                  <FolderOpen className="w-4.5 h-4.5" />
+                </button>
+                <button
+                  onClick={() => setShowMembers((p) => !p)}
+                  className={`w-8 h-8 flex items-center justify-center rounded-full cursor-pointer transition-colors ${
+                    showMembers
+                      ? "bg-[#137FEC]/10 text-[#137FEC]"
+                      : "hover:bg-[#F1F5F9] text-[#94A3B8]"
+                  }`}
+                  title="Toggle members"
+                >
+                  <Info className="w-4.5 h-4.5" />
+                </button>
+              </div>
             </div>
 
             {/* Messages area */}
             <ScrollArea
               ref={scrollAreaRef}
-              className="flex-1"
+              className="flex-1 overflow-hidden"
               onScrollCapture={handleScroll}
             >
               <div className="px-5 py-4 flex flex-col gap-1">
@@ -529,6 +545,14 @@ const Chat = () => {
                 </div>
               </ScrollArea>
             </div>
+          )}
+
+          {showFiles && classId && (
+            <MediaFilesPanel
+              queryKey={["chat-shared-files", classId]}
+              queryFn={() => getChatSharedFiles(classId)}
+              onClose={() => setShowFiles(false)}
+            />
           )}
         </div>
       </section>

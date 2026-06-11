@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import { useParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
-import { getDmMessages } from "@/services/dm-service";
+import { getDmMessages, getDmSharedFiles } from "@/services/dm-service";
 import { getUsers } from "@/services/user-service";
 import { uploadFile } from "@/services/file-service";
 import { connectSocket, disconnectSocket } from "@/services/websocket";
@@ -14,8 +14,10 @@ import {
   Paperclip,
   Send,
   Loader2,
+  FolderOpen,
 } from "lucide-react";
 import FileAttachment from "@/shared/components/FileAttachment";
+import MediaFilesPanel from "@/shared/components/MediaFilesPanel";
 import type { DirectMessage, UserSummary } from "@/shared/types";
 import { useAuth } from "@/context/AuthContext";
 
@@ -27,6 +29,7 @@ const DirectChat = () => {
   const [typingUsers, setTypingUsers] = useState<Set<string>>(new Set());
   const [connected, setConnected] = useState(false);
   const [loadingMore, setLoadingMore] = useState(false);
+  const [showFiles, setShowFiles] = useState(false);
   const [nextCursor, setNextCursor] = useState<string | null>(null);
   const [otherUserId, setOtherUserId] = useState<string | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -205,7 +208,8 @@ const DirectChat = () => {
     .map(() => otherName.split(" ")[0]);
 
   return (
-    <div className="flex flex-col h-full">
+    <div className="flex h-full">
+      <div className="flex flex-col flex-1 min-w-0 min-h-0">
       {/* Header */}
       <div className="flex items-center gap-3 px-4 py-3 border-b border-[#E2E8F0]">
         <Avatar className="w-9 h-9">
@@ -213,18 +217,29 @@ const DirectChat = () => {
             {otherInitials}
           </AvatarFallback>
         </Avatar>
-        <div>
+        <div className="flex-1">
           <h2 className="text-sm font-bold text-[#0F172A] leading-tight">{otherName}</h2>
           <p className="text-[11px] text-[#94A3B8]">
             {connected ? "Online" : "Connecting..."}
           </p>
         </div>
+        <button
+          onClick={() => setShowFiles((p) => !p)}
+          className={`w-8 h-8 flex items-center justify-center rounded-full cursor-pointer transition-colors ${
+            showFiles
+              ? "bg-[#137FEC]/10 text-[#137FEC]"
+              : "hover:bg-[#F1F5F9] text-[#94A3B8]"
+          }`}
+          title="Media & Files"
+        >
+          <FolderOpen className="w-4.5 h-4.5" />
+        </button>
       </div>
 
       {/* Messages */}
       <ScrollArea
         ref={scrollAreaRef}
-        className="flex-1"
+        className="flex-1 overflow-hidden"
         onScrollCapture={handleScroll}
       >
         <div className="px-5 py-4 flex flex-col gap-1">
@@ -346,6 +361,15 @@ const DirectChat = () => {
           </button>
         </div>
       </div>
+      </div>
+
+      {showFiles && conversationId && (
+        <MediaFilesPanel
+          queryKey={["dm-shared-files", conversationId]}
+          queryFn={() => getDmSharedFiles(conversationId)}
+          onClose={() => setShowFiles(false)}
+        />
+      )}
     </div>
   );
 };

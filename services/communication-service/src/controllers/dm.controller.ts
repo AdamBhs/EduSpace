@@ -126,6 +126,45 @@ export class DmController {
     }
   }
 
+  static async getSharedFiles(req: Request, res: Response) {
+    try {
+      const userId = req.user!.userId;
+      const conversationId = req.params.conversationId as string;
+
+      const conversation = await prisma.directConversation.findUnique({
+        where: { id: conversationId },
+      });
+
+      if (!conversation) {
+        return sendError(res, "Conversation not found", 404);
+      }
+
+      if (conversation.participant1Id !== userId && conversation.participant2Id !== userId) {
+        return sendError(res, "Not a participant in this conversation", 403);
+      }
+
+      const files = await prisma.directMessage.findMany({
+        where: {
+          conversationId,
+          fileKey: { not: null },
+        },
+        orderBy: { createdAt: "desc" },
+        select: {
+          id: true,
+          senderId: true,
+          fileKey: true,
+          fileName: true,
+          createdAt: true,
+        },
+      });
+
+      sendSuccess(res, files, "Shared files retrieved");
+    } catch (error) {
+      console.error("Error getting shared files:", error);
+      sendError(res, "Failed to get shared files", 500);
+    }
+  }
+
   static async getFriends(req: Request, res: Response) {
     try {
       const userId = req.user!.userId;
