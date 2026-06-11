@@ -2,14 +2,8 @@ import { useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { getFileUrl } from "@/services/file-service";
 import { ScrollArea } from "@/shared/components/ui/scroll-area";
-import { Download, Image, FileText, X } from "lucide-react";
-
-const IMAGE_EXTS = new Set(["jpg", "jpeg", "png", "gif", "webp", "svg", "bmp", "ico"]);
-
-function isImage(fileName: string) {
-  const ext = fileName.split(".").pop()?.toLowerCase() ?? "";
-  return IMAGE_EXTS.has(ext);
-}
+import { Download, Image, FileText, X, Play } from "lucide-react";
+import { isImage, isVideo, isMedia } from "@/shared/utils/media";
 
 type SharedFile = {
   id: string;
@@ -34,6 +28,25 @@ function MediaThumbnail({ fileKey, fileName }: { fileKey: string; fileName: stri
 
   if (!url) {
     return <div className="w-full aspect-square rounded-lg bg-[#F1F5F9] animate-pulse" />;
+  }
+
+  if (isVideo(fileName)) {
+    return (
+      <div
+        className="relative w-full aspect-square rounded-lg overflow-hidden cursor-pointer group"
+        onClick={() => window.open(url, "_blank")}
+      >
+        <video
+          src={url}
+          preload="metadata"
+          muted
+          className="w-full h-full object-cover"
+        />
+        <div className="absolute inset-0 bg-black/30 flex items-center justify-center group-hover:bg-black/40 transition-colors">
+          <Play className="w-6 h-6 text-white fill-white" />
+        </div>
+      </div>
+    );
   }
 
   return (
@@ -88,8 +101,8 @@ const MediaFilesPanel = ({ queryKey, queryFn, onClose }: Props) => {
     queryFn,
   });
 
-  const media = allFiles?.filter((f) => isImage(f.fileName)) ?? [];
-  const files = allFiles?.filter((f) => !isImage(f.fileName)) ?? [];
+  const media = allFiles?.filter((f) => isMedia(f.fileName)) ?? [];
+  const files = allFiles?.filter((f) => !isMedia(f.fileName)) ?? [];
 
   return (
     <div className="w-64 border-l border-[#E2E8F0] flex flex-col bg-white shrink-0 h-full">

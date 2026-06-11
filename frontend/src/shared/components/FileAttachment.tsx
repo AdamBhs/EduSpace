@@ -1,13 +1,7 @@
 import { useState, useEffect } from "react";
 import { getFileUrl } from "@/services/file-service";
 import { Download } from "lucide-react";
-
-const IMAGE_EXTS = new Set(["jpg", "jpeg", "png", "gif", "webp", "svg", "bmp", "ico"]);
-
-function isImage(fileName: string) {
-  const ext = fileName.split(".").pop()?.toLowerCase() ?? "";
-  return IMAGE_EXTS.has(ext);
-}
+import { isImage, isVideo } from "@/shared/utils/media";
 
 type Props = {
   fileKey: string;
@@ -16,7 +10,6 @@ type Props = {
 
 const FileAttachment = ({ fileKey, fileName }: Props) => {
   const [url, setUrl] = useState<string | null>(null);
-  const showPreview = isImage(fileName);
 
   useEffect(() => {
     getFileUrl(fileKey).then(setUrl);
@@ -32,7 +25,7 @@ const FileAttachment = ({ fileKey, fileName }: Props) => {
     a.click();
   };
 
-  if (showPreview) {
+  if (isImage(fileName)) {
     return (
       <div className="mt-1">
         {url ? (
@@ -41,6 +34,30 @@ const FileAttachment = ({ fileKey, fileName }: Props) => {
             alt={fileName}
             className="max-w-xs max-h-60 rounded-lg object-contain cursor-pointer hover:opacity-90 transition-opacity"
             onClick={() => window.open(url, "_blank")}
+          />
+        ) : (
+          <div className="w-48 h-32 rounded-lg bg-[#F1F5F9] animate-pulse" />
+        )}
+        <button
+          onClick={handleDownload}
+          className="mt-1 flex items-center gap-1.5 text-[11px] text-[#64748B] hover:text-[#137FEC] cursor-pointer transition-colors"
+        >
+          <Download className="w-3 h-3" />
+          {fileName}
+        </button>
+      </div>
+    );
+  }
+
+  if (isVideo(fileName)) {
+    return (
+      <div className="mt-1">
+        {url ? (
+          <video
+            src={url}
+            controls
+            preload="metadata"
+            className="max-w-xs max-h-60 rounded-lg"
           />
         ) : (
           <div className="w-48 h-32 rounded-lg bg-[#F1F5F9] animate-pulse" />
