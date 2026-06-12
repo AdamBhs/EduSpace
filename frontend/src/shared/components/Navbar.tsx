@@ -198,6 +198,8 @@ export default function Navbar() {
     breadcrumb?: { name?: string; description?: string };
     className?: string;
     classDescription?: string;
+    postTitle?: string;
+    postType?: string;
   } | null;
   const classBreadcrumb =
     breadcrumbState?.breadcrumb ??
@@ -274,6 +276,50 @@ export default function Navbar() {
     cachedBreadcrumb?.code,
   ]);
 
+  const postIdFromPath = (() => {
+    const segs = location.pathname.split("/").filter(Boolean);
+    const postIdx = segs.indexOf("post");
+    if (postIdx !== -1 && postIdx + 1 < segs.length) return segs[postIdx + 1];
+    return null;
+  })();
+
+  const [postInfo, setPostInfo] = useState<{ id: string; title: string; type: string } | null>(null);
+
+  useEffect(() => {
+    if (!postIdFromPath) {
+      setPostInfo(null);
+      return;
+    }
+
+    if (breadcrumbState?.postTitle) {
+      const info = { id: postIdFromPath, title: breadcrumbState.postTitle, type: breadcrumbState.postType ?? "POST" };
+      setPostInfo(info);
+      sessionStorage.setItem(`postInfo:${postIdFromPath}`, JSON.stringify(info));
+      return;
+    }
+
+    if (postInfo?.id === postIdFromPath) return;
+
+    const stored = sessionStorage.getItem(`postInfo:${postIdFromPath}`);
+    if (stored) {
+      try {
+        const parsed = JSON.parse(stored);
+        setPostInfo({ id: postIdFromPath, title: parsed.title, type: parsed.type });
+        return;
+      } catch {}
+    }
+
+    import("@/services/content-service").then(({ getPostById }) => {
+      getPostById(postIdFromPath).then((post) => {
+        if (post?.title) {
+          const info = { id: postIdFromPath, title: post.title, type: post.type ?? "POST" };
+          setPostInfo(info);
+          sessionStorage.setItem(`postInfo:${postIdFromPath}`, JSON.stringify(info));
+        }
+      }).catch(() => {});
+    });
+  }, [postIdFromPath, breadcrumbState?.postTitle]);
+
   return (
     <div
       className="w-full shrink-0 flex h-15 items-center gap-3 px-4 md:px-6 border-b border-[#E2E8F0]"
@@ -290,10 +336,31 @@ export default function Navbar() {
                 users: "Users",
                 calendar: "Calendar",
                 c: "Class",
+                post: postInfo?.id === postIdFromPath && postInfo?.title
+                  ? `${({
+                      STUDY_MATERIAL: "Material",
+                      ASSIGNMENT: "Assignment",
+                      QUIZ: "Quiz",
+                      QUESTION: "Question",
+                      ANNOUNCEMENT: "Announcement",
+                    } as Record<string, string>)[postInfo.type] ?? "Post"}: ${postInfo.title}`
+                  : "Post",
+                stream: "Stream",
+                people: "People",
+                grades: "Grades",
+                chat: "Chat",
+                settings: "Settings",
+                messages: "Messenger",
+                notifications: "Notifications",
+                todo: "To-do",
               };
+              const uuidRegex =
+                /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
               const crumbs = [
                 { label: "", path: "/", isClassCode: false },
-                ...segments.map((segment, index) => {
+                ...segments
+                  .filter((seg) => !uuidRegex.test(seg) || seg === classCodeFromPath)
+                  .map((segment, index, filtered) => {
                   const isClassCode = segment === classCodeFromPath;
                   return {
                     isClassCode,
@@ -315,7 +382,7 @@ export default function Navbar() {
                     path:
                       segment === "c"
                         ? "/"
-                        : `/${segments.slice(0, index + 1).join("/")}`,
+                        : `/${segments.slice(0, segments.indexOf(segment) + 1).join("/")}`,
                   };
                 }),
               ];

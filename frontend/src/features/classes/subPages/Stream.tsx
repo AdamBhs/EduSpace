@@ -182,7 +182,7 @@ const Stream = () => {
                       {upcomingAssignments.map((a) => (
                         <div
                           key={a.id}
-                          onClick={() => navigate(`/c/${classId}/post/${a.id}`)}
+                          onClick={() => navigate(`/c/${classId}/post/${a.id}`, { state: { postTitle: a.title, postType: a.type } })}
                           className="flex items-center gap-2 text-[12px] cursor-pointer hover:text-[#137FEC] transition-colors"
                         >
                           <Calendar className="w-3.5 h-3.5 text-[#94A3B8] shrink-0" />
@@ -278,7 +278,7 @@ const Stream = () => {
                 {filteredPosts.map((post) => (
                   <div
                     key={post.id}
-                    onClick={() => navigate(`/c/${classId}/post/${post.id}`)}
+                    onClick={() => navigate(`/c/${classId}/post/${post.id}`, { state: { postTitle: post.title, postType: post.type } })}
                     className="rounded-lg border border-[#E2E8F0] bg-white p-5 hover:shadow-sm transition-shadow cursor-pointer"
                   >
                     <div className="flex items-center gap-3">
