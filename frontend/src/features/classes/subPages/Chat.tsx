@@ -21,6 +21,7 @@ import {
   MoreVertical,
 } from "lucide-react";
 import FileAttachment from "@/shared/components/FileAttachment";
+import Linkify from "@/shared/components/Linkify";
 import MediaFilesPanel from "@/shared/components/MediaFilesPanel";
 import {
   DropdownMenu,
@@ -384,7 +385,7 @@ const Chat = () => {
                         )}
                         {msg.content && (
                           <p className="text-sm text-[#334155] break-words">
-                            {msg.content}
+                            <Linkify text={msg.content} />
                           </p>
                         )}
                         {msg.fileKey && msg.fileName && (

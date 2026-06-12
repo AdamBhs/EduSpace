@@ -17,6 +17,7 @@ import {
   Info,
 } from "lucide-react";
 import FileAttachment from "@/shared/components/FileAttachment";
+import Linkify from "@/shared/components/Linkify";
 import MediaFilesPanel from "@/shared/components/MediaFilesPanel";
 import type { DirectMessage, UserSummary } from "@/shared/types";
 import { useAuth } from "@/context/AuthContext";
@@ -298,7 +299,7 @@ const DirectChat = () => {
                     </div>
                   )}
                   {msg.content && (
-                    <p className="text-sm text-[#334155] break-words">{msg.content}</p>
+                    <p className="text-sm text-[#334155] break-words"><Linkify text={msg.content} /></p>
                   )}
                   {msg.fileKey && msg.fileName && (
                     <FileAttachment fileKey={msg.fileKey} fileName={msg.fileName} />
