@@ -164,9 +164,9 @@ export class ChatController {
       });
 
       const urlRegex = /https?:\/\/[^\s]+/g;
-      const links = messages.flatMap((msg) => {
+      const links = messages.flatMap((msg: { id: string; senderId: string; content: string | null; createdAt: Date }) => {
         const urls = msg.content?.match(urlRegex) ?? [];
-        return urls.map((url) => ({
+        return urls.map((url: string) => ({
           id: msg.id,
           senderId: msg.senderId,
           url,

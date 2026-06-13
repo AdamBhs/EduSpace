@@ -31,6 +31,7 @@ const DirectChat = () => {
   const [connected, setConnected] = useState(false);
   const [loadingMore, setLoadingMore] = useState(false);
   const [showInfo, setShowInfo] = useState(false);
+  const [mediaView, setMediaView] = useState<null | "media" | "files" | "links">(null);
   const [nextCursor, setNextCursor] = useState<string | null>(null);
   const [otherUserId, setOtherUserId] = useState<string | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -366,25 +367,39 @@ const DirectChat = () => {
 
       {showInfo && conversationId && (
         <div className="w-56 border-l border-[#E2E8F0] flex flex-col bg-white shrink-0 h-full">
-          <div className="flex flex-col items-center py-5 px-3 border-b border-[#E2E8F0]">
-            <Avatar className="w-14 h-14 mb-2">
-              <AvatarFallback className="bg-blue-100 text-blue-700 text-lg font-semibold">
-                {otherInitials}
-              </AvatarFallback>
-            </Avatar>
-            <p className="text-sm font-bold text-[#0F172A]">{otherName}</p>
-            <p className="text-[11px] text-[#94A3B8]">
-              {connected ? "Online" : "Offline"}
-            </p>
-          </div>
-          <ScrollArea className="flex-1 overflow-hidden">
+          {mediaView ? (
             <MediaFilesPanel
               filesQueryKey={["dm-shared-files", conversationId]}
               filesQueryFn={() => getDmSharedFiles(conversationId)}
               linksQueryKey={["dm-shared-links", conversationId]}
               linksQueryFn={() => getDmSharedLinks(conversationId)}
+              onViewChange={setMediaView}
+              initialView={mediaView}
             />
-          </ScrollArea>
+          ) : (
+            <>
+              <div className="flex flex-col items-center py-5 px-3 border-b border-[#E2E8F0]">
+                <Avatar className="w-14 h-14 mb-2">
+                  <AvatarFallback className="bg-blue-100 text-blue-700 text-lg font-semibold">
+                    {otherInitials}
+                  </AvatarFallback>
+                </Avatar>
+                <p className="text-sm font-bold text-[#0F172A]">{otherName}</p>
+                <p className="text-[11px] text-[#94A3B8]">
+                  {connected ? "Online" : "Offline"}
+                </p>
+              </div>
+              <ScrollArea className="flex-1 overflow-hidden">
+                <MediaFilesPanel
+                  filesQueryKey={["dm-shared-files", conversationId]}
+                  filesQueryFn={() => getDmSharedFiles(conversationId)}
+                  linksQueryKey={["dm-shared-links", conversationId]}
+                  linksQueryFn={() => getDmSharedLinks(conversationId)}
+                  onViewChange={setMediaView}
+                />
+              </ScrollArea>
+            </>
+          )}
         </div>
       )}
     </div>

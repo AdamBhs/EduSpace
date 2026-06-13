@@ -1,7 +1,8 @@
 import { useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { getFileUrl } from "@/services/file-service";
-import { Image, FileText, Link2, ChevronUp, ChevronDown, Download, Play } from "lucide-react";
+import { Image, FileText, Link2, ChevronUp, ChevronDown, ArrowLeft, Download, Play } from "lucide-react";
+import { ScrollArea } from "@/shared/components/ui/scroll-area";
 import { isImage, isVideo, isMedia } from "@/shared/utils/media";
 
 type SharedFile = {
@@ -24,9 +25,23 @@ type Props = {
   filesQueryFn: () => Promise<SharedFile[]>;
   linksQueryKey: string[];
   linksQueryFn: () => Promise<SharedLink[]>;
+  onViewChange?: (view: SubView) => void;
+  initialView?: SubView;
 };
 
 type SubView = null | "media" | "files" | "links";
+
+function groupByMonth<T extends { createdAt: string }>(items: T[]): { label: string; items: T[] }[] {
+  const groups = new Map<string, T[]>();
+  for (const item of items) {
+    const d = new Date(item.createdAt);
+    const label = d.toLocaleString("default", { month: "long", year: "numeric" });
+    const existing = groups.get(label);
+    if (existing) existing.push(item);
+    else groups.set(label, [item]);
+  }
+  return Array.from(groups, ([label, items]) => ({ label, items }));
+}
 
 function MediaThumbnail({ fileKey, fileName }: { fileKey: string; fileName: string }) {
   const [url, setUrl] = useState<string | null>(null);
@@ -36,18 +51,18 @@ function MediaThumbnail({ fileKey, fileName }: { fileKey: string; fileName: stri
   }, [fileKey]);
 
   if (!url) {
-    return <div className="w-full aspect-square rounded-lg bg-[#F1F5F9] animate-pulse" />;
+    return <div className="w-full aspect-square rounded bg-[#F1F5F9] animate-pulse" />;
   }
 
   if (isVideo(fileName)) {
     return (
       <div
-        className="relative w-full aspect-square rounded-lg overflow-hidden cursor-pointer group"
+        className="relative w-full aspect-square rounded overflow-hidden cursor-pointer group"
         onClick={() => window.open(url, "_blank")}
       >
         <video src={url} preload="metadata" muted className="w-full h-full object-cover" />
         <div className="absolute inset-0 bg-black/30 flex items-center justify-center group-hover:bg-black/40 transition-colors">
-          <Play className="w-5 h-5 text-white fill-white" />
+          <Play className="w-6 h-6 text-white fill-white" />
         </div>
       </div>
     );
@@ -57,15 +72,21 @@ function MediaThumbnail({ fileKey, fileName }: { fileKey: string; fileName: stri
     <img
       src={url}
       alt={fileName}
-      className="w-full aspect-square rounded-lg object-cover cursor-pointer hover:opacity-80 transition-opacity"
+      className="w-full aspect-square rounded object-cover cursor-pointer hover:opacity-80 transition-opacity"
       onClick={() => window.open(url, "_blank")}
     />
   );
 }
 
-const MediaFilesPanel = ({ filesQueryKey, filesQueryFn, linksQueryKey, linksQueryFn }: Props) => {
+const TABS = [
+  { key: "media" as const, label: "Media" },
+  { key: "files" as const, label: "Files" },
+  { key: "links" as const, label: "Links" },
+];
+
+const MediaFilesPanel = ({ filesQueryKey, filesQueryFn, linksQueryKey, linksQueryFn, onViewChange, initialView }: Props) => {
   const [expanded, setExpanded] = useState(true);
-  const [subView, setSubView] = useState<SubView>(null);
+  const [subView, setSubView] = useState<SubView>(initialView ?? null);
 
   const { data: allFiles } = useQuery<SharedFile[]>({
     queryKey: filesQueryKey,
@@ -81,84 +102,59 @@ const MediaFilesPanel = ({ filesQueryKey, filesQueryFn, linksQueryKey, linksQuer
   const fileItems = allFiles?.filter((f) => !isMedia(f.fileName)) ?? [];
   const linkItems = allLinks ?? [];
 
-  const handleItemClick = (view: SubView) => {
-    setSubView(subView === view ? null : view);
+  const openView = (view: SubView) => {
+    setSubView(view);
+    onViewChange?.(view);
   };
 
-  if (subView === "media") {
-    return (
-      <div className="border-t border-[#E2E8F0]">
-        <button
-          onClick={() => setSubView(null)}
-          className="flex items-center gap-2 px-4 py-2.5 w-full text-left cursor-pointer hover:bg-[#F1F5F9]"
-        >
-          <ChevronDown className="w-3.5 h-3.5 text-[#94A3B8] rotate-90" />
-          <span className="text-xs font-semibold text-[#137FEC]">Media</span>
-        </button>
-        {mediaItems.length === 0 ? (
-          <div className="text-center py-6 px-4">
-            <Image className="w-7 h-7 text-gray-200 mx-auto mb-1.5" />
-            <p className="text-[11px] text-[#94A3B8]">No shared media</p>
-          </div>
-        ) : (
-          <div className="grid grid-cols-3 gap-1 px-3 pb-3">
-            {mediaItems.map((f) => (
-              <MediaThumbnail key={f.id} fileKey={f.fileKey} fileName={f.fileName} />
-            ))}
-          </div>
-        )}
-      </div>
-    );
-  }
+  const closeView = () => {
+    setSubView(null);
+    onViewChange?.(null);
+  };
 
-  if (subView === "files") {
+  if (subView) {
     return (
-      <div className="border-t border-[#E2E8F0]">
-        <button
-          onClick={() => setSubView(null)}
-          className="flex items-center gap-2 px-4 py-2.5 w-full text-left cursor-pointer hover:bg-[#F1F5F9]"
-        >
-          <ChevronDown className="w-3.5 h-3.5 text-[#94A3B8] rotate-90" />
-          <span className="text-xs font-semibold text-[#137FEC]">Files</span>
-        </button>
-        {fileItems.length === 0 ? (
-          <div className="text-center py-6 px-4">
-            <FileText className="w-7 h-7 text-gray-200 mx-auto mb-1.5" />
-            <p className="text-[11px] text-[#94A3B8]">No shared files</p>
-          </div>
-        ) : (
-          <div className="px-2 pb-2 space-y-0.5">
-            {fileItems.map((f) => (
-              <FileRow key={f.id} file={f} />
-            ))}
-          </div>
-        )}
-      </div>
-    );
-  }
+      <div className="flex flex-col h-full bg-white">
+        {/* Header */}
+        <div className="flex items-center gap-3 px-4 py-3 border-b border-[#E2E8F0]">
+          <button
+            onClick={closeView}
+            className="w-7 h-7 flex items-center justify-center rounded-full hover:bg-[#F1F5F9] cursor-pointer"
+          >
+            <ArrowLeft className="w-4 h-4 text-[#0F172A]" />
+          </button>
+          <span className="text-sm font-semibold text-[#0F172A]">Media and files</span>
+        </div>
 
-  if (subView === "links") {
-    return (
-      <div className="border-t border-[#E2E8F0]">
-        <button
-          onClick={() => setSubView(null)}
-          className="flex items-center gap-2 px-4 py-2.5 w-full text-left cursor-pointer hover:bg-[#F1F5F9]"
-        >
-          <ChevronDown className="w-3.5 h-3.5 text-[#94A3B8] rotate-90" />
-          <span className="text-xs font-semibold text-[#137FEC]">Links</span>
-        </button>
-        {linkItems.length === 0 ? (
-          <div className="text-center py-6 px-4">
-            <Link2 className="w-7 h-7 text-gray-200 mx-auto mb-1.5" />
-            <p className="text-[11px] text-[#94A3B8]">No shared links</p>
-          </div>
-        ) : (
-          <div className="px-2 pb-2 space-y-0.5">
-            {linkItems.map((l, i) => (
-              <LinkRow key={`${l.id}-${i}`} link={l} />
-            ))}
-          </div>
-        )}
+        {/* Tabs */}
+        <div className="flex border-b border-[#E2E8F0]">
+          {TABS.map((tab) => (
+            <button
+              key={tab.key}
+              onClick={() => openView(tab.key)}
+              className={`flex-1 py-2.5 text-xs font-semibold text-center cursor-pointer transition-colors ${
+                subView === tab.key
+                  ? "text-[#137FEC] border-b-2 border-[#137FEC]"
+                  : "text-[#94A3B8] hover:text-[#64748B]"
+              }`}
+            >
+              {tab.label}
+            </button>
+          ))}
+        </div>
+
+        {/* Content */}
+        <ScrollArea className="flex-1 overflow-hidden">
+          {subView === "media" && (
+            <MediaContent items={mediaItems} />
+          )}
+          {subView === "files" && (
+            <FilesContent items={fileItems} />
+          )}
+          {subView === "links" && (
+            <LinksContent items={linkItems} />
+          )}
+        </ScrollArea>
       </div>
     );
   }
@@ -180,21 +176,21 @@ const MediaFilesPanel = ({ filesQueryKey, filesQueryFn, linksQueryKey, linksQuer
       {expanded && (
         <div className="pb-2">
           <button
-            onClick={() => handleItemClick("media")}
+            onClick={() => openView("media")}
             className="flex items-center gap-3 px-4 py-2 w-full text-left cursor-pointer hover:bg-[#F1F5F9] transition-colors"
           >
             <Image className="w-4 h-4 text-[#64748B]" />
             <span className="text-xs font-medium text-[#0F172A]">Media</span>
           </button>
           <button
-            onClick={() => handleItemClick("files")}
+            onClick={() => openView("files")}
             className="flex items-center gap-3 px-4 py-2 w-full text-left cursor-pointer hover:bg-[#F1F5F9] transition-colors"
           >
             <FileText className="w-4 h-4 text-[#64748B]" />
             <span className="text-xs font-medium text-[#0F172A]">Files</span>
           </button>
           <button
-            onClick={() => handleItemClick("links")}
+            onClick={() => openView("links")}
             className="flex items-center gap-3 px-4 py-2 w-full text-left cursor-pointer hover:bg-[#F1F5F9] transition-colors"
           >
             <Link2 className="w-4 h-4 text-[#64748B]" />
@@ -205,6 +201,90 @@ const MediaFilesPanel = ({ filesQueryKey, filesQueryFn, linksQueryKey, linksQuer
     </div>
   );
 };
+
+function MediaContent({ items }: { items: SharedFile[] }) {
+  if (items.length === 0) {
+    return (
+      <div className="text-center py-10 px-4">
+        <Image className="w-10 h-10 text-gray-200 mx-auto mb-2" />
+        <p className="text-xs text-[#94A3B8]">No shared media</p>
+      </div>
+    );
+  }
+
+  const groups = groupByMonth(items);
+
+  return (
+    <div className="pb-3">
+      {groups.map((group) => (
+        <div key={group.label}>
+          <p className="px-4 pt-4 pb-2 text-xs font-semibold text-[#0F172A]">{group.label}</p>
+          <div className="grid grid-cols-3 gap-0.5 px-1">
+            {group.items.map((f) => (
+              <MediaThumbnail key={f.id} fileKey={f.fileKey} fileName={f.fileName} />
+            ))}
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function FilesContent({ items }: { items: SharedFile[] }) {
+  if (items.length === 0) {
+    return (
+      <div className="text-center py-10 px-4">
+        <FileText className="w-10 h-10 text-gray-200 mx-auto mb-2" />
+        <p className="text-xs text-[#94A3B8]">No shared files</p>
+      </div>
+    );
+  }
+
+  const groups = groupByMonth(items);
+
+  return (
+    <div className="pb-3">
+      {groups.map((group) => (
+        <div key={group.label}>
+          <p className="px-4 pt-4 pb-2 text-xs font-semibold text-[#0F172A]">{group.label}</p>
+          <div className="px-2 space-y-0.5">
+            {group.items.map((f) => (
+              <FileRow key={f.id} file={f} />
+            ))}
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function LinksContent({ items }: { items: SharedLink[] }) {
+  if (items.length === 0) {
+    return (
+      <div className="text-center py-10 px-4">
+        <Link2 className="w-10 h-10 text-gray-200 mx-auto mb-2" />
+        <p className="text-xs text-[#94A3B8]">No shared links</p>
+      </div>
+    );
+  }
+
+  const groups = groupByMonth(items);
+
+  return (
+    <div className="pb-3">
+      {groups.map((group) => (
+        <div key={group.label}>
+          <p className="px-4 pt-4 pb-2 text-xs font-semibold text-[#0F172A]">{group.label}</p>
+          <div className="px-2 space-y-0.5">
+            {group.items.map((l, i) => (
+              <LinkRow key={`${l.id}-${i}`} link={l} />
+            ))}
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
 
 function FileRow({ file }: { file: SharedFile }) {
   const handleDownload = async () => {

@@ -40,6 +40,7 @@ const Chat = () => {
   const queryClient = useQueryClient();
   const [message, setMessage] = useState("");
   const [showMembers, setShowMembers] = useState(true);
+  const [mediaView, setMediaView] = useState<null | "media" | "files" | "links">(null);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [onlineUserIds, setOnlineUserIds] = useState<string[]>([]);
   const [typingUsers, setTypingUsers] = useState<Set<string>>(new Set());
@@ -458,86 +459,102 @@ const Chat = () => {
           {/* Members sidebar */}
           {showMembers && (
             <div className="flex flex-col h-full w-56 border-l border-[#E2E8F0] bg-white">
-              <div className="flex border-b border-[#E2E8F0]">
-                <div className="flex-1 py-2.5 text-xs font-semibold tracking-wide text-[#137FEC] border-b-2 border-[#137FEC] text-center">
-                  MEMBERS ({memberList.length})
-                </div>
-              </div>
-              <ScrollArea className="flex-1">
-                <div className="px-3 py-3 space-y-1">
-                  {memberList
-                    .sort((a, b) => {
-                      const aOn = onlineSet.has(a.userId) ? 0 : 1;
-                      const bOn = onlineSet.has(b.userId) ? 0 : 1;
-                      return aOn - bOn;
-                    })
-                    .map((member) => {
-                      const isOnline = onlineSet.has(member.userId);
-                      const isSelf = member.userId === user?.userId;
-                      return (
-                        <div
-                          key={member.id}
-                          className="group flex items-center gap-2.5 rounded-lg px-2 py-1.5 hover:bg-[#F1F5F9]"
-                        >
-                          <div className="relative">
-                            <Avatar className="w-7 h-7">
-                              <AvatarFallback
-                                className={`text-[10px] font-semibold ${
-                                  isOnline
-                                    ? "bg-green-100 text-green-700"
-                                    : "bg-gray-100 text-gray-500"
-                                }`}
-                              >
-                                {userInitials(member.userId)}
-                              </AvatarFallback>
-                            </Avatar>
-                            <span
-                              className={`absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full border-2 border-white ${
-                                isOnline ? "bg-green-500" : "bg-gray-300"
-                              }`}
-                            />
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            <p className={`text-xs font-medium truncate ${isOnline ? "text-[#0F172A]" : "text-[#94A3B8]"}`}>
-                              {isSelf ? "You" : userName(member.userId)}
-                            </p>
-                            <p className="text-[10px] text-[#94A3B8]">
-                              {member.role === "ADMIN"
-                                ? classroom?.type === "TEACHING" ? "Teacher" : "Admin"
-                                : classroom?.type === "TEACHING" ? "Student" : "Member"}
-                            </p>
-                          </div>
-                          {!isSelf && (
-                            <DropdownMenu>
-                              <DropdownMenuTrigger asChild>
-                                <button className="opacity-0 group-hover:opacity-100 p-0.5 rounded hover:bg-[#E2E8F0] cursor-pointer">
-                                  <MoreVertical className="w-3.5 h-3.5 text-[#64748B]" />
-                                </button>
-                              </DropdownMenuTrigger>
-                              <DropdownMenuContent align="end" className="min-w-[140px]">
-                                <DropdownMenuItem
-                                  onClick={() => handleDirectMessage(member.userId)}
-                                  className="text-xs cursor-pointer"
-                                >
-                                  <MessageSquare className="w-3.5 h-3.5 mr-2" />
-                                  Direct message
-                                </DropdownMenuItem>
-                              </DropdownMenuContent>
-                            </DropdownMenu>
-                          )}
-                        </div>
-                      );
-                    })}
-                </div>
-              </ScrollArea>
+              {mediaView ? (
+                classId && (
+                  <MediaFilesPanel
+                    filesQueryKey={["chat-shared-files", classId]}
+                    filesQueryFn={() => getChatSharedFiles(classId)}
+                    linksQueryKey={["chat-shared-links", classId]}
+                    linksQueryFn={() => getChatSharedLinks(classId)}
+                    onViewChange={setMediaView}
+                    initialView={mediaView}
+                  />
+                )
+              ) : (
+                <>
+                  <div className="flex border-b border-[#E2E8F0]">
+                    <div className="flex-1 py-2.5 text-xs font-semibold tracking-wide text-[#137FEC] border-b-2 border-[#137FEC] text-center">
+                      MEMBERS ({memberList.length})
+                    </div>
+                  </div>
+                  <ScrollArea className="flex-1">
+                    <div className="px-3 py-3 space-y-1">
+                      {memberList
+                        .sort((a, b) => {
+                          const aOn = onlineSet.has(a.userId) ? 0 : 1;
+                          const bOn = onlineSet.has(b.userId) ? 0 : 1;
+                          return aOn - bOn;
+                        })
+                        .map((member) => {
+                          const isOnline = onlineSet.has(member.userId);
+                          const isSelf = member.userId === user?.userId;
+                          return (
+                            <div
+                              key={member.id}
+                              className="group flex items-center gap-2.5 rounded-lg px-2 py-1.5 hover:bg-[#F1F5F9]"
+                            >
+                              <div className="relative">
+                                <Avatar className="w-7 h-7">
+                                  <AvatarFallback
+                                    className={`text-[10px] font-semibold ${
+                                      isOnline
+                                        ? "bg-green-100 text-green-700"
+                                        : "bg-gray-100 text-gray-500"
+                                    }`}
+                                  >
+                                    {userInitials(member.userId)}
+                                  </AvatarFallback>
+                                </Avatar>
+                                <span
+                                  className={`absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full border-2 border-white ${
+                                    isOnline ? "bg-green-500" : "bg-gray-300"
+                                  }`}
+                                />
+                              </div>
+                              <div className="flex-1 min-w-0">
+                                <p className={`text-xs font-medium truncate ${isOnline ? "text-[#0F172A]" : "text-[#94A3B8]"}`}>
+                                  {isSelf ? "You" : userName(member.userId)}
+                                </p>
+                                <p className="text-[10px] text-[#94A3B8]">
+                                  {member.role === "ADMIN"
+                                    ? classroom?.type === "TEACHING" ? "Teacher" : "Admin"
+                                    : classroom?.type === "TEACHING" ? "Student" : "Member"}
+                                </p>
+                              </div>
+                              {!isSelf && (
+                                <DropdownMenu>
+                                  <DropdownMenuTrigger asChild>
+                                    <button className="opacity-0 group-hover:opacity-100 p-0.5 rounded hover:bg-[#E2E8F0] cursor-pointer">
+                                      <MoreVertical className="w-3.5 h-3.5 text-[#64748B]" />
+                                    </button>
+                                  </DropdownMenuTrigger>
+                                  <DropdownMenuContent align="end" className="min-w-[140px]">
+                                    <DropdownMenuItem
+                                      onClick={() => handleDirectMessage(member.userId)}
+                                      className="text-xs cursor-pointer"
+                                    >
+                                      <MessageSquare className="w-3.5 h-3.5 mr-2" />
+                                      Direct message
+                                    </DropdownMenuItem>
+                                  </DropdownMenuContent>
+                                </DropdownMenu>
+                              )}
+                            </div>
+                          );
+                        })}
+                    </div>
+                  </ScrollArea>
 
-              {classId && (
-                <MediaFilesPanel
-                  filesQueryKey={["chat-shared-files", classId]}
-                  filesQueryFn={() => getChatSharedFiles(classId)}
-                  linksQueryKey={["chat-shared-links", classId]}
-                  linksQueryFn={() => getChatSharedLinks(classId)}
-                />
+                  {classId && (
+                    <MediaFilesPanel
+                      filesQueryKey={["chat-shared-files", classId]}
+                      filesQueryFn={() => getChatSharedFiles(classId)}
+                      linksQueryKey={["chat-shared-links", classId]}
+                      linksQueryFn={() => getChatSharedLinks(classId)}
+                      onViewChange={setMediaView}
+                    />
+                  )}
+                </>
               )}
             </div>
           )}
