@@ -7,7 +7,7 @@ import {
   FieldLabel,
 } from "@/shared/components/ui/field";
 import { Input } from "@/shared/components/ui/input";
-import { FaGoogle, FaAt, FaLock, FaEyeSlash, FaEye } from "react-icons/fa";
+import { FaAt, FaLock, FaEyeSlash, FaEye } from "react-icons/fa";
 import { useState } from "react";
 import { Checkbox } from "@/shared/components/ui/checkbox";
 import { Link } from "react-router-dom";
@@ -43,19 +43,6 @@ export function LoginForm({ className, onSubmit, error, ...props }: any) {
           <p className="text-[16px] text-balance text-[#94A3B8]">
             Please enter your details to sign in to your account.
           </p>
-        </div>
-
-        <div>
-          <Button className="flex items-center justify-center bg-transparent border-2 border-[#728298] w-full py-6 cursor-pointer text-[18px] font-semibold">
-            <FaGoogle className="mb-0.5" />
-            Google
-          </Button>
-        </div>
-
-        <div className="flex items-center">
-          <div className="grow border-t border-[#364358]"></div>
-          <span className="mx-4 text-[#94A3B8] text-sm">Or Email</span>
-          <div className="grow border-t border-[#364358]"></div>
         </div>
 
         <Field className="gap-1">

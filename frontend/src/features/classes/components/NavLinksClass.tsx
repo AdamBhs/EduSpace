@@ -17,7 +17,7 @@ const NavLinksClass = ({
   chatEnabled: boolean;
 }) => {
   const navigate = useNavigate();
-  const [selectTab, setSelectTab] = useState(activeTab);
+  const [, setSelectTab] = useState(activeTab);
 
   const isTeaching = classroomType === "TEACHING";
   const isAdmin = userRole === "ADMIN";

@@ -32,15 +32,6 @@ declare global {
   }
 }
 
-interface ImportMetaEnv {
-  readonly VITE_GOOGLE_API_KEY: string;
-  readonly VITE_GOOGLE_CLIENT_ID: string;
-}
-
-interface ImportMeta {
-  readonly env: ImportMetaEnv;
-}
-
 export function useGooglePicker({ onFilePicked }: UseGooglePickerProps) {
   const accessTokenRef = useRef<string | null>(null);
 

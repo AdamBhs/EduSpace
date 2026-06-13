@@ -9,7 +9,7 @@ const ProfileSettings = () => {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [profileImageUrl, setProfileImageUrl] = useState<string | null>(
-    user.profile.avatarUrl,
+    user?.profile?.avatarUrl ?? null,
   );
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [form, setForm] = useState({

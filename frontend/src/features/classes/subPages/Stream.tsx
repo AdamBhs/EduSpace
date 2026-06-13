@@ -34,7 +34,7 @@ import {
 import { Button } from "@/shared/components/ui/button";
 import StreamSkeleton from "../ui/StreamSkeleton";
 import { useAuth } from "@/context/AuthContext";
-import type { Classroom, Post, PostType, StudyMaterialType } from "@/shared/types";
+import type { Classroom, Post } from "@/shared/types";
 import { formatDate, formatDateTime } from "@/shared/lib/utils";
 import { FileText, HelpCircle, ClipboardList, Megaphone, BookOpen, Calendar, MoreVertical, Pencil, Trash2 } from "lucide-react";
 

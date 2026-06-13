@@ -4,9 +4,11 @@ dotenv.config();
 import express, { Application, Request, Response } from "express";
 import { createServer } from "http";
 import { Server } from "socket.io";
+import { createAdapter } from "@socket.io/redis-adapter";
 import cors from "cors";
 import morgan from "morgan";
 import { errorHandler } from "../../../shared/src/middleware/errorHandler";
+import { redis } from "./utils/redis";
 import { setupSocket } from "./socket/handler";
 import chatRoutes from "./routes/chat.routes";
 import dmRoutes from "./routes/dm.routes";
@@ -21,6 +23,13 @@ const io = new Server(httpServer, {
     credentials: true,
   },
 });
+
+// Redis adapter so rooms/broadcasts work across multiple service instances
+const subClient = redis.duplicate();
+subClient.connect().catch((err) => {
+  console.error("Redis sub client connection failed:", err.message);
+});
+io.adapter(createAdapter(redis, subClient));
 
 app.use(
   cors({

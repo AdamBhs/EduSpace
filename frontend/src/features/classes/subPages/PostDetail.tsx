@@ -45,7 +45,7 @@ import {
   X,
   Users,
 } from "lucide-react";
-import type { Classroom, Post, Comment, Submission, UserSummary, QuizFeedback, QuestionData } from "@/shared/types";
+import type { Classroom, Post, Comment, Submission, UserSummary, QuizFeedback, QuestionData, QuizData } from "@/shared/types";
 import { formatDateTime } from "@/shared/lib/utils";
 
 const postTypeIcon = (type: string) => {
@@ -102,6 +102,7 @@ const PostDetail = () => {
   const isQuiz = post?.type === "QUIZ";
   const isQuestion = post?.type === "QUESTION";
   const questionData = isQuestion && post?.quizData ? (post.quizData as QuestionData) : null;
+  const quizData = isQuiz && post?.quizData ? (post.quizData as QuizData) : null;
   const isQuestionMC = questionData?.answerType === "multiple_choice";
   const isQuestionText = questionData?.answerType === "text";
 
@@ -366,7 +367,7 @@ const PostDetail = () => {
                   <div className="flex items-center gap-2 rounded-lg border border-[#E2E8F0] px-4 py-2 text-sm">
                     <FileText className="w-4 h-4 text-[#64748B]" />
                     <span className="text-[#64748B]">Questions:</span>
-                    <span className="font-medium">{post.quizData?.questions?.length ?? 0}</span>
+                    <span className="font-medium">{quizData?.questions?.length ?? 0}</span>
                   </div>
                 </div>
               )}
@@ -435,11 +436,11 @@ const PostDetail = () => {
               )}
 
               {/* Quiz-taking form for MEMBERs (inline — takes full width since it's the main interaction) */}
-              {isQuiz && isTeaching && isMember && !mySubmission && post.quizData && (
+              {isQuiz && isTeaching && isMember && !mySubmission && quizData && (
                 <div className="mb-6 rounded-lg border border-[#E2E8F0] p-5">
                   <h3 className="text-sm font-semibold text-[#0F172A] mb-4">Take Quiz</h3>
                   <div className="space-y-6">
-                    {post.quizData.questions.map((q, idx) => (
+                    {quizData.questions.map((q, idx) => (
                       <div key={q.id} className="space-y-2">
                         <p className="text-sm font-medium text-[#0F172A]">
                           {idx + 1}. {q.text}{" "}
@@ -464,7 +465,7 @@ const PostDetail = () => {
                   </div>
                   <Button
                     onClick={() => submitQuizMutation.mutate()}
-                    disabled={submitQuizMutation.isPending || Object.keys(quizAnswers).length < (post.quizData.questions?.length ?? 0)}
+                    disabled={submitQuizMutation.isPending || Object.keys(quizAnswers).length < quizData.questions.length}
                     className="mt-5 bg-blue-500 hover:bg-blue-600 text-white"
                     size="sm"
                   >

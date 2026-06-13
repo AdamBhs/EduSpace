@@ -24,11 +24,11 @@ const Register = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [password, setPassword] = useState("");
   const [passwordFocused, setPasswordFocused] = useState(false);
-  const [phoneNumber, setPhoneNumber] = useState("");
+  const [phoneNumber] = useState("");
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
   const [email, setEmail] = useState("");
-  const [timezone, setTimezone] = useState("UTC+1");
+  const [timezone] = useState("UTC+1");
   const [error, setError] = useState("");
 
   const passwordRules = {

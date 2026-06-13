@@ -228,7 +228,7 @@ export default function Navbar() {
       ? cachedBreadcrumb.data
       : undefined);
 
-  const capitalized = (name: String) => {
+  const capitalized = (name?: string) => {
     return name
       ? name.charAt(0).toUpperCase() + name.slice(1).toLowerCase()
       : "";
@@ -360,7 +360,7 @@ export default function Navbar() {
                 { label: "", path: "/", isClassCode: false },
                 ...segments
                   .filter((seg) => !uuidRegex.test(seg) || seg === classCodeFromPath)
-                  .map((segment, index, filtered) => {
+                  .map((segment) => {
                   const isClassCode = segment === classCodeFromPath;
                   return {
                     isClassCode,

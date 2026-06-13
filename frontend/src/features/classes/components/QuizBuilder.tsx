@@ -37,11 +37,12 @@ const QuizBuilder = ({ questions, onChange }: QuizBuilderProps) => {
     const q = questions[qIndex];
     if (q.options.length <= 2) return;
     const newOptions = q.options.filter((_, i) => i !== optIndex);
-    const newCorrect = q.correctIndex === optIndex
+    const correctIndex = q.correctIndex ?? 0;
+    const newCorrect = correctIndex === optIndex
       ? 0
-      : q.correctIndex > optIndex
-        ? q.correctIndex - 1
-        : q.correctIndex;
+      : correctIndex > optIndex
+        ? correctIndex - 1
+        : correctIndex;
     updateQuestion(qIndex, { options: newOptions, correctIndex: newCorrect });
   };
 

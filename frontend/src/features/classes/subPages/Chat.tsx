@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import { getClassroomById, getMembers } from "@/services/classroom-service";
 import { getMessages, getChatSharedFiles, getChatSharedLinks } from "@/services/chat-service";
 import { getUsers } from "@/services/user-service";
@@ -37,7 +37,6 @@ const Chat = () => {
   const { classId } = useParams<{ classId: string }>();
   const navigate = useNavigate();
   const { user } = useAuth();
-  const queryClient = useQueryClient();
   const [message, setMessage] = useState("");
   const [showMembers, setShowMembers] = useState(true);
   const [mediaView, setMediaView] = useState<null | "media" | "files" | "links">(null);

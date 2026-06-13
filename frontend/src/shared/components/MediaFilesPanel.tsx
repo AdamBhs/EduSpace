@@ -3,7 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { getFileUrl } from "@/services/file-service";
 import { Image, FileText, Link2, ChevronUp, ChevronDown, ArrowLeft, Download, Play } from "lucide-react";
 import { ScrollArea } from "@/shared/components/ui/scroll-area";
-import { isImage, isVideo, isMedia } from "@/shared/utils/media";
+import { isVideo, isMedia } from "@/shared/utils/media";
 
 type SharedFile = {
   id: string;

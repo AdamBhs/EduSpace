@@ -1,5 +1,3 @@
-import React from "react";
-
 const NoClassroomFound = () => {
   return (
     <div className="flex flex-col items-center justify-center min-h-[70vh] text-center px-6 relative">

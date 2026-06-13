@@ -1,4 +1,4 @@
-import { createBrowserRouter, Navigate } from "react-router-dom";
+import { createBrowserRouter } from "react-router-dom";
 import Login from "@/features/auth/Login";
 import Register from "@/features/auth/Register";
 import ProtectedRoute from "./ProtectedRoute";

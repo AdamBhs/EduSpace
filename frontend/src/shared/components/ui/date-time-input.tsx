@@ -65,14 +65,14 @@ const DateTimeInput = ({ value, onChange, className = "" }: DateTimeInputProps) 
   };
 
   return (
-    <div className={`flex gap-2 ${className}`}>
+    <div className={`flex gap-1.5 ${className}`}>
       <input
         type="text"
         value={date}
         onChange={(e) => handleDateChange(e.target.value)}
         placeholder="DD/MM/YYYY"
         maxLength={10}
-        className="flex-1 rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm outline-none focus:border-blue-500"
+        className="w-0 flex-1 min-w-0 rounded-lg border border-gray-200 bg-white px-2 py-1.5 text-xs outline-none focus:border-blue-500"
       />
       <input
         type="text"
@@ -80,7 +80,7 @@ const DateTimeInput = ({ value, onChange, className = "" }: DateTimeInputProps) 
         onChange={(e) => handleTimeChange(e.target.value)}
         placeholder="HH:MM"
         maxLength={5}
-        className="w-20 rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm outline-none focus:border-blue-500"
+        className="w-16 shrink-0 rounded-lg border border-gray-200 bg-white px-2 py-1.5 text-xs outline-none focus:border-blue-500"
       />
     </div>
   );

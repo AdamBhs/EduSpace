@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type ElementType } from "react";
 import { CalendarDays, MessageSquare, Settings } from "lucide-react";
 import { GoHomeFill } from "react-icons/go";
 import { Badge } from "@/shared/components/ui/badge";
@@ -15,7 +15,17 @@ import { LuListTodo } from "react-icons/lu";
 import { useNavigate, useLocation, Link } from "react-router-dom";
 import { IoMenu } from "react-icons/io5";
 
-const navSections = [
+type NavSection = {
+  label?: string;
+  items: {
+    icon: ElementType;
+    label: string;
+    path: string;
+    badge: string | null;
+  }[];
+};
+
+const navSections: NavSection[] = [
   {
     items: [
       { icon: GoHomeFill, label: "Home", path: "/", badge: null },
