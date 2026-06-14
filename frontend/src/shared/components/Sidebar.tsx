@@ -14,6 +14,8 @@ import { cn } from "@/shared/lib/utils";
 import { LuListTodo } from "react-icons/lu";
 import { useNavigate, useLocation, Link } from "react-router-dom";
 import { IoMenu } from "react-icons/io5";
+import { useQuery } from "@tanstack/react-query";
+import { getDmUnreadTotal } from "@/services/dm-service";
 
 type NavSection = {
   label?: string;
@@ -66,6 +68,17 @@ export default function Sidebar() {
   const isClassRoute = location.pathname.startsWith("/c/");
   const sidebarRef = useRef<HTMLElement | null>(null);
   const menuButtonRef = useRef<HTMLButtonElement | null>(null);
+
+  const { data: dmUnread } = useQuery({
+    queryKey: ["dm-unread-total"],
+    queryFn: getDmUnreadTotal,
+    refetchInterval: 30000,
+  });
+  const messengerBadge = dmUnread?.count
+    ? dmUnread.count > 9
+      ? "9+"
+      : String(dmUnread.count)
+    : null;
 
   useEffect(() => {
     if (!isClassRoute) {
@@ -305,7 +318,12 @@ export default function Sidebar() {
 
                   <div className="flex flex-col gap-0.5">
                     {section.items.map((item) =>
-                      renderNavButton(item, String(si)),
+                      renderNavButton(
+                        item.label === "Messenger"
+                          ? { ...item, badge: messengerBadge }
+                          : item,
+                        String(si),
+                      ),
                     )}
                   </div>
 

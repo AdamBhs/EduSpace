@@ -1,6 +1,8 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { useQuery } from "@tanstack/react-query";
 import { Settings } from "lucide-react";
+import { getChatUnread } from "@/services/chat-service";
 import type { ClassroomType, Role } from "@/shared/types";
 
 const NavLinksClass = ({
@@ -26,6 +28,15 @@ const NavLinksClass = ({
 
   if (chatEnabled) tabs.push("Chat");
   if (isTeaching && isAdmin) tabs.push("Grades");
+
+  // Unread badge for the Chat tab (skip while the chat is open — it's being read)
+  const { data: chatUnread } = useQuery({
+    queryKey: ["chat-unread", classId],
+    queryFn: () => getChatUnread(classId),
+    enabled: chatEnabled && activeTab !== "Chat",
+    refetchInterval: 30000,
+  });
+  const chatUnreadCount = activeTab === "Chat" ? 0 : chatUnread?.count ?? 0;
 
   const handleNavSections = (tab: string) => {
     setSelectTab(tab);
@@ -58,13 +69,18 @@ const NavLinksClass = ({
             <li
               key={tab}
               onClick={() => handleNavSections(tab)}
-              className={`cursor-pointer select-none transition delay-20 px-5 py-3 border-b-2 ${
+              className={`flex items-center gap-1.5 cursor-pointer select-none transition delay-20 px-5 py-3 border-b-2 ${
                 isActive
                   ? "text-[#137FEC] border-[#137FEC]"
                   : "border-transparent hover:text-[#137FEC]/80 hover:border-[#137FEC]/60"
               }`}
             >
               {tab}
+              {tab === "Chat" && chatUnreadCount > 0 && (
+                <span className="inline-flex items-center justify-center min-w-4.5 h-4.5 px-1.5 rounded-full bg-[#137FEC] text-white text-[10px] font-semibold">
+                  {chatUnreadCount > 9 ? "9+" : chatUnreadCount}
+                </span>
+              )}
             </li>
           );
         })}

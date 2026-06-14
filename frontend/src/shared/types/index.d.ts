@@ -261,6 +261,7 @@ export type DirectConversation = {
   id: string;
   otherUserId: string;
   lastMessage: DirectMessage | null;
+  unreadCount?: number;
   createdAt: string;
   updatedAt: string;
 };

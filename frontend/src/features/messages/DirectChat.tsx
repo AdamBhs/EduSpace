@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import { useParams } from "react-router-dom";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { getDmMessages, getDmSharedFiles, getDmSharedLinks, getDmReads, getDmPinned, getConversation } from "@/services/dm-service";
 import { getUsers } from "@/services/user-service";
 import { uploadFile } from "@/services/file-service";
@@ -28,6 +28,7 @@ import { useAuth } from "@/context/AuthContext";
 const DirectChat = () => {
   const { conversationId } = useParams<{ conversationId: string }>();
   const { user } = useAuth();
+  const queryClient = useQueryClient();
   const [message, setMessage] = useState("");
   const [messages, setMessages] = useState<DirectMessage[]>([]);
   const [pinned, setPinned] = useState<DirectMessage[]>([]);
@@ -83,6 +84,12 @@ const DirectChat = () => {
     });
 
     getDmPinned(conversationId).then(setPinned);
+
+    // Opening the conversation marks it read — refresh unread badges (list + sidebar total)
+    const unreadRefresh = setTimeout(() => {
+      queryClient.invalidateQueries({ queryKey: ["dm-conversations"] });
+      queryClient.invalidateQueries({ queryKey: ["dm-unread-total"] });
+    }, 1200);
 
     const socket = connectSocket();
 
@@ -151,6 +158,7 @@ const DirectChat = () => {
     });
 
     return () => {
+      clearTimeout(unreadRefresh);
       socket.emit("leave-dm", conversationId);
       socket.off("new-dm");
       socket.off("dm-read-update");

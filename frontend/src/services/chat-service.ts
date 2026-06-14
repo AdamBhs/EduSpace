@@ -40,6 +40,13 @@ export const getChatPinned = async (
   return response.data.data;
 };
 
+export const getChatUnread = async (
+  classId: string,
+): Promise<{ count: number }> => {
+  const response = await api.get(`/chat/api/chat/${classId}/unread`);
+  return response.data.data;
+};
+
 export const getChatInfo = async (classId: string) => {
   const response = await api.get(`/chat/api/chat/${classId}/info`);
   return response.data.data;

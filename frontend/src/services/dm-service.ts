@@ -13,6 +13,11 @@ export const createConversation = async (
   return response.data.data;
 };
 
+export const getDmUnreadTotal = async (): Promise<{ count: number }> => {
+  const response = await api.get("/dm/api/dm/unread-total");
+  return response.data.data;
+};
+
 export const getConversation = async (
   conversationId: string,
 ): Promise<Pick<DirectConversation, "id" | "otherUserId" | "createdAt" | "updatedAt">> => {

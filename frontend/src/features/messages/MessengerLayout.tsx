@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useNavigate, useParams, Outlet } from "react-router-dom";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { getConversations, getFriends, getFriendsWithStatus, createConversation } from "@/services/dm-service";
 import { getUsers } from "@/services/user-service";
 import { useAuth } from "@/context/AuthContext";
@@ -14,6 +14,7 @@ import type { DirectConversation, UserSummary } from "@/shared/types";
 
 const MessengerLayout = () => {
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const { conversationId } = useParams();
   const { user } = useAuth();
   const [showNewChat, setShowNewChat] = useState(false);
@@ -86,6 +87,19 @@ const MessengerLayout = () => {
     const conv = await createConversation(otherUserId);
     setShowNewChat(false);
     setFriendSearch("");
+    navigate(`/messages/${conv.id}`);
+  };
+
+  const openConversation = (conv: DirectConversation) => {
+    const unread = conv.unreadCount ?? 0;
+    if (unread > 0) {
+      queryClient.setQueryData<DirectConversation[]>(["dm-conversations"], (old) =>
+        old?.map((c) => (c.id === conv.id ? { ...c, unreadCount: 0 } : c)),
+      );
+      queryClient.setQueryData<{ count: number }>(["dm-unread-total"], (old) => ({
+        count: Math.max(0, (old?.count ?? 0) - unread),
+      }));
+    }
     navigate(`/messages/${conv.id}`);
   };
 
@@ -199,10 +213,11 @@ const MessengerLayout = () => {
                   const otherUser = conversationUsers?.get(conv.otherUserId);
                   const isActive = conv.id === conversationId;
                   const isOnline = onlineSet.has(conv.otherUserId);
+                  const unread = isActive ? 0 : conv.unreadCount ?? 0;
                   return (
                     <button
                       key={conv.id}
-                      onClick={() => navigate(`/messages/${conv.id}`)}
+                      onClick={() => openConversation(conv)}
                       className={`w-full flex items-center gap-3 rounded-lg px-3 py-2.5 cursor-pointer transition-colors text-left ${
                         isActive ? "bg-[#E8F4FD]" : "hover:bg-[#F1F5F9]"
                       }`}
@@ -225,18 +240,25 @@ const MessengerLayout = () => {
                             {userName(otherUser)}
                           </span>
                           {conv.lastMessage && (
-                            <span className="text-[10px] text-[#94A3B8] shrink-0 ml-2">
+                            <span className={`text-[10px] shrink-0 ml-2 ${unread > 0 ? "text-[#137FEC] font-semibold" : "text-[#94A3B8]"}`}>
                               {formatTime(conv.lastMessage.createdAt)}
                             </span>
                           )}
                         </div>
-                        <p className="text-xs text-[#64748B] truncate mt-0.5">
-                          {conv.lastMessage
-                            ? conv.lastMessage.senderId === user?.userId
-                              ? `You: ${conv.lastMessage.content ?? "Sent a file"}`
-                              : conv.lastMessage.content ?? "Sent a file"
-                            : "No messages yet"}
-                        </p>
+                        <div className="flex items-center justify-between gap-2 mt-0.5">
+                          <p className={`text-xs truncate ${unread > 0 ? "text-[#0F172A] font-semibold" : "text-[#64748B]"}`}>
+                            {conv.lastMessage
+                              ? conv.lastMessage.senderId === user?.userId
+                                ? `You: ${conv.lastMessage.content ?? "Sent a file"}`
+                                : conv.lastMessage.content ?? "Sent a file"
+                              : "No messages yet"}
+                          </p>
+                          {unread > 0 && (
+                            <span className="shrink-0 inline-flex items-center justify-center min-w-4.5 h-4.5 px-1.5 rounded-full bg-[#137FEC] text-white text-[10px] font-semibold">
+                              {unread > 9 ? "9+" : unread}
+                            </span>
+                          )}
+                        </div>
                       </div>
                     </button>
                   );
