@@ -78,6 +78,33 @@ export class ChatController {
     }
   }
 
+  static async getReads(req: Request, res: Response) {
+    try {
+      const userId = req.user!.userId;
+      const classId = req.params.classId as string;
+
+      const membership = await checkMembership(classId, userId, req.headers.authorization);
+      if (!membership) {
+        return sendError(res, "Not a member of this classroom", 403);
+      }
+
+      const room = await prisma.chatRoom.findUnique({ where: { classId } });
+      if (!room) {
+        return sendError(res, "Chat room not found", 404);
+      }
+
+      const reads = await prisma.chatReadState.findMany({
+        where: { chatRoomId: room.id },
+        select: { userId: true, lastReadAt: true },
+      });
+
+      sendSuccess(res, reads, "Read states retrieved");
+    } catch (error) {
+      console.error("Error getting read states:", error);
+      sendError(res, "Failed to get read states", 500);
+    }
+  }
+
   static async getOnlineMembers(req: Request, res: Response) {
     try {
       const userId = req.user!.userId;

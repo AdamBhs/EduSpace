@@ -96,6 +96,23 @@ export function setupSocket(io: Server): void {
       });
     });
 
+    socket.on("mark-read", async (classId: string) => {
+      // Membership was verified at join-room time
+      if (!socket.rooms.has(`chat:${classId}`)) return;
+
+      const room = await prisma.chatRoom.findUnique({ where: { classId } });
+      if (!room) return;
+
+      const lastReadAt = new Date();
+      await prisma.chatReadState.upsert({
+        where: { chatRoomId_userId: { chatRoomId: room.id, userId } },
+        create: { chatRoomId: room.id, userId, lastReadAt },
+        update: { lastReadAt },
+      });
+
+      socket.to(`chat:${classId}`).emit("read-update", { classId, userId, lastReadAt });
+    });
+
     socket.on("typing", (classId: string) => {
       socket.to(`chat:${classId}`).emit("user-typing", {
         userId,
@@ -168,6 +185,23 @@ export function setupSocket(io: Server): void {
         ...message,
         conversationId,
       });
+    });
+
+    socket.on("mark-dm-read", async (conversationId: string) => {
+      const conversation = await prisma.directConversation.findUnique({
+        where: { id: conversationId },
+      });
+      if (!conversation) return;
+      if (conversation.participant1Id !== userId && conversation.participant2Id !== userId) return;
+
+      const lastReadAt = new Date();
+      await prisma.directReadState.upsert({
+        where: { conversationId_userId: { conversationId, userId } },
+        create: { conversationId, userId, lastReadAt },
+        update: { lastReadAt },
+      });
+
+      socket.to(`dm:${conversationId}`).emit("dm-read-update", { conversationId, userId, lastReadAt });
     });
 
     socket.on("dm-typing", (conversationId: string) => {
