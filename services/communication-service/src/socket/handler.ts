@@ -3,10 +3,11 @@ import { verifyToken } from "../../../../shared/src/utils/jwt";
 import { publishEvent, Events } from "../../../../shared/src";
 import { prisma } from "../db/prisma";
 import { setOnline, setOffline, refreshPresence, getOnlineUsers } from "../utils/redis";
-import { checkFriendship } from "../utils/classService";
+import { checkFriendship, checkMembership } from "../utils/classService";
 
 interface AuthSocket extends Socket {
   userId?: string;
+  token?: string;
 }
 
 export function setupSocket(io: Server): void {
@@ -25,6 +26,9 @@ export function setupSocket(io: Server): void {
     }
 
     socket.userId = decoded.userId;
+    socket.token = token;
+    // socket.data survives fetchSockets() across instances (Redis adapter)
+    socket.data.userId = decoded.userId;
     next();
   });
 
@@ -38,6 +42,9 @@ export function setupSocket(io: Server): void {
         where: { classId },
       });
       if (!room || !room.enabled) return;
+
+      const membership = await checkMembership(classId, userId, `Bearer ${socket.token}`);
+      if (!membership) return;
 
       socket.join(`chat:${classId}`);
 
@@ -58,6 +65,9 @@ export function setupSocket(io: Server): void {
       const { classId, content, fileKey, fileName } = data;
 
       if (!content && !fileKey) return;
+
+      // Membership was verified at join-room time
+      if (!socket.rooms.has(`chat:${classId}`)) return;
 
       const room = await prisma.chatRoom.findUnique({
         where: { classId },
@@ -178,14 +188,15 @@ export function setupSocket(io: Server): void {
       refreshPresence(userId);
     }, 60_000);
 
-    socket.on("disconnect", async () => {
+    // "disconnecting" still has socket.rooms populated; "disconnect" does not
+    socket.on("disconnecting", async () => {
       clearInterval(presenceInterval);
       await setOffline(userId);
 
       for (const room of socket.rooms) {
         if (room.startsWith("chat:")) {
           const onlineUsers = await getRoomOnlineUsers(io, room);
-          io.to(room).emit("presence-update", onlineUsers);
+          socket.to(room).emit("presence-update", onlineUsers.filter((id) => id !== userId));
         }
       }
     });
@@ -194,6 +205,13 @@ export function setupSocket(io: Server): void {
 
 async function getRoomOnlineUsers(io: Server, room: string): Promise<string[]> {
   const sockets = await io.in(room).fetchSockets();
-  const userIds = [...new Set(sockets.map((s) => (s as any).userId as string).filter(Boolean))];
+  // socket.data is the only field available on remote sockets via the Redis adapter
+  const userIds = [
+    ...new Set(
+      sockets
+        .map((s) => (s.data?.userId ?? (s as any).userId) as string)
+        .filter(Boolean),
+    ),
+  ];
   return getOnlineUsers(userIds);
 }

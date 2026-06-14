@@ -5,6 +5,41 @@ import { publishEvent, Events } from "../../../../shared/src";
 import { cacheGet, cacheSet, cacheDel, cacheDelPattern } from "../../../../shared/src/utils/redis";
 import { checkMembership } from "../utils/classService";
 
+// Remove correctIndex from quiz/question data so students can't read answers
+function stripAnswers(post: any): any {
+  if (!post.quizData) return post;
+  const qd = post.quizData as any;
+  if (post.type === "QUIZ" && qd.questions) {
+    return {
+      ...post,
+      quizData: {
+        ...qd,
+        questions: qd.questions.map((q: any) => ({
+          id: q.id,
+          text: q.text,
+          options: q.options,
+          points: q.points,
+        })),
+      },
+    };
+  }
+  if (post.type === "QUESTION" && qd.question) {
+    return {
+      ...post,
+      quizData: {
+        ...qd,
+        question: {
+          id: qd.question.id,
+          text: qd.question.text,
+          options: qd.question.options,
+          points: qd.question.points,
+        },
+      },
+    };
+  }
+  return post;
+}
+
 export class PostController {
   static async create(req: Request, res: Response) {
     try {
@@ -104,31 +139,37 @@ export class PostController {
         return sendError(res, "Not a member of this classroom", 403);
       }
 
+      // Cache stores the raw list; visibility filtering and answer
+      // stripping are per-user, so they must run on every request
       const cacheKey = `posts:${classId}:${type || ""}:${studyMaterialType || ""}:${chapterId || ""}:${sort || ""}`;
-      const cached = await cacheGet<any>(cacheKey);
+      const cached = await cacheGet<any[]>(cacheKey);
+      let posts: any[];
+
       if (cached) {
-        return sendSuccess(res, cached, "Posts retrieved");
+        posts = cached;
+      } else {
+        const where: any = { classId };
+        if (type) where.type = type as string;
+        if (studyMaterialType) where.studyMaterialType = studyMaterialType as string;
+        if (chapterId) where.chapterId = chapterId as string;
+
+        let orderBy: any = { createdAt: "desc" };
+        if (sort === "title") orderBy = { title: "asc" };
+        if (sort === "dueDate") orderBy = { dueDate: "asc" };
+
+        posts = await prisma.post.findMany({
+          where,
+          include: {
+            attachments: true,
+            _count: { select: { comments: true, submissions: true } },
+          },
+          orderBy,
+        });
+
+        await cacheSet(cacheKey, posts, 120);
       }
 
-      const where: any = { classId };
-      if (type) where.type = type as string;
-      if (studyMaterialType) where.studyMaterialType = studyMaterialType as string;
-      if (chapterId) where.chapterId = chapterId as string;
-
-      let orderBy: any = { createdAt: "desc" };
-      if (sort === "title") orderBy = { title: "asc" };
-      if (sort === "dueDate") orderBy = { dueDate: "asc" };
-
-      const posts = await prisma.post.findMany({
-        where,
-        include: {
-          attachments: true,
-          _count: { select: { comments: true, submissions: true } },
-        },
-        orderBy,
-      });
-
-      const visiblePosts = membership.role === "MEMBER"
+      let visiblePosts = membership.role === "MEMBER"
         ? posts.filter((p: any) => {
             if (!p.assignedTo) return true;
             const assigned = p.assignedTo as string[];
@@ -136,7 +177,9 @@ export class PostController {
           })
         : posts;
 
-      await cacheSet(cacheKey, posts, 120);
+      if (membership.role !== "ADMIN") {
+        visiblePosts = visiblePosts.map(stripAnswers);
+      }
 
       sendSuccess(res, visiblePosts, "Posts retrieved");
     } catch (error) {
@@ -181,29 +224,9 @@ export class PostController {
           select: { id: true },
         });
 
+        // Answers stay hidden until the student has submitted
         if (!studentSubmission) {
-          const qd = post.quizData as any;
-          if (post.type === "QUESTION" && qd.answerType === "multiple_choice") {
-            (post as any).quizData = {
-              ...qd,
-              question: {
-                id: qd.question.id,
-                text: qd.question.text,
-                options: qd.question.options,
-                points: qd.question.points,
-              },
-            };
-          } else if (post.type === "QUIZ") {
-            (post as any).quizData = {
-              ...qd,
-              questions: qd.questions.map((q: any) => ({
-                id: q.id,
-                text: q.text,
-                options: q.options,
-                points: q.points,
-              })),
-            };
-          }
+          return sendSuccess(res, stripAnswers(post), "Post retrieved");
         }
       }
 

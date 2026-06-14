@@ -58,6 +58,7 @@ model Chapter {
   classId   String   @map("class_id") @db.Uuid
   name      String
   position  Int      @default(0)
+  isGeneral Boolean  @default(false) @map("is_general")
   createdAt DateTime @default(now()) @map("created_at")
 
   classroom Classroom @relation(fields: [classId], references: [id], onDelete: Cascade)

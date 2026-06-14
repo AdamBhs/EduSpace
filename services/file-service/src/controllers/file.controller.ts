@@ -1,7 +1,7 @@
 import { Request, Response } from "express";
 import { v4 as uuid } from "uuid";
 import { sendSuccess, sendError } from "../../../../shared/src/utils/response";
-import { uploadToS3, getPresignedUrl, deleteFromS3 } from "../services/s3";
+import { uploadToS3, getPresignedUrl, deleteFromS3, getUploaderId } from "../services/s3";
 
 export class FileController {
   static async upload(req: Request, res: Response) {
@@ -15,7 +15,7 @@ export class FileController {
       const ext = file.originalname.split(".").pop() || "";
       const fileKey = `${fileId}${ext ? "." + ext : ""}`;
 
-      await uploadToS3(fileKey, file.buffer, file.mimetype);
+      await uploadToS3(fileKey, file.buffer, file.mimetype, req.user?.userId);
       const url = await getPresignedUrl(fileKey);
 
       sendSuccess(
@@ -49,7 +49,7 @@ export class FileController {
           const ext = file.originalname.split(".").pop() || "";
           const fileKey = `${fileId}${ext ? "." + ext : ""}`;
 
-          await uploadToS3(fileKey, file.buffer, file.mimetype);
+          await uploadToS3(fileKey, file.buffer, file.mimetype, req.user?.userId);
           const url = await getPresignedUrl(fileKey);
 
           return {
@@ -85,6 +85,13 @@ export class FileController {
   static async remove(req: Request, res: Response) {
     try {
       const fileKey = req.params.fileKey as string;
+
+      // Only the original uploader may delete; files uploaded before
+      // uploader metadata existed stay deletable for compatibility
+      const uploaderId = await getUploaderId(fileKey);
+      if (uploaderId && uploaderId !== req.user?.userId) {
+        return sendError(res, "Only the uploader can delete this file", 403);
+      }
 
       await deleteFromS3(fileKey);
 

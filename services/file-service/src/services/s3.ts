@@ -4,6 +4,7 @@ import {
   DeleteObjectCommand,
   CreateBucketCommand,
   HeadBucketCommand,
+  HeadObjectCommand,
 } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 import { GetObjectCommand } from "@aws-sdk/client-s3";
@@ -33,6 +34,7 @@ export async function uploadToS3(
   key: string,
   body: Buffer,
   contentType: string,
+  uploaderId?: string,
 ): Promise<void> {
   await s3.send(
     new PutObjectCommand({
@@ -40,8 +42,20 @@ export async function uploadToS3(
       Key: key,
       Body: body,
       ContentType: contentType,
+      Metadata: uploaderId ? { uploader: uploaderId } : undefined,
     }),
   );
+}
+
+export async function getUploaderId(key: string): Promise<string | null> {
+  try {
+    const head = await s3.send(
+      new HeadObjectCommand({ Bucket: BUCKET, Key: key }),
+    );
+    return head.Metadata?.uploader ?? null;
+  } catch {
+    return null;
+  }
 }
 
 export async function getPresignedUrl(

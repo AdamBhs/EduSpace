@@ -16,12 +16,11 @@ function getRedis(): Redis | null {
 
   redis.connect().catch(() => {
     console.warn("Redis unavailable — rate limiting disabled");
-    redis = null;
   });
 
-  redis.on("error", () => {
-    redis = null;
-  });
+  // Keep the client on errors — ioredis reconnects on its own; replacing
+  // it here would leak a new connection per error
+  redis.on("error", () => {});
 
   return redis;
 }

@@ -6,8 +6,18 @@ import {
 } from "../../../../shared/src/utils/password";
 import { generateToken } from "../../../../shared/src/utils/jwt";
 import { sendSuccess, sendError } from "../../../../shared/src/utils/response";
+import {
+  generateResetToken,
+  hashToken,
+  getTokenExpiration,
+} from "../../../../shared/src/utils/token";
 import crypto from "crypto";
 import nodemailer from "nodemailer";
+
+// 6-digit code from a CSPRNG (Math.random is predictable)
+function generateVerificationCode(): string {
+  return crypto.randomInt(100000, 1000000).toString();
+}
 
 const transporter = nodemailer.createTransport({
   service: "gmail",
@@ -55,9 +65,7 @@ export class AuthController {
         }
       }
 
-      const verificationCode = Math.floor(
-        100000 + Math.random() * 900000,
-      ).toString();
+      const verificationCode = generateVerificationCode();
       const codeExpiresAt = new Date(Date.now() + 5 * 60 * 1000);
 
       await prisma.user.update({
@@ -156,9 +164,7 @@ export class AuthController {
 
       const hashedPassword = await hashPassword(password);
 
-      const verificationCode = Math.floor(
-        100000 + Math.random() * 900000,
-      ).toString();
+      const verificationCode = generateVerificationCode();
       const codeExpiresAt = new Date(Date.now() + 5 * 60 * 1000);
 
       const user = await prisma.$transaction(async (tx: any) => {
@@ -327,21 +333,34 @@ export class AuthController {
         return;
       }
 
-      const resetToken = crypto.randomBytes(32).toString("hex");
-      const resetTokenHash = crypto
-        .createHash("sha256")
-        .update(resetToken)
-        .digest("hex");
+      const resetToken = generateResetToken();
+      const resetTokenHash = hashToken(resetToken);
 
       await prisma.password_reset.create({
         data: {
           user_id: user.userId,
           reset_token_hash: resetTokenHash,
-          expires_at: new Date(Date.now() + 60 * 60 * 1000),
+          expires_at: getTokenExpiration(1),
         },
       });
 
-      console.log("Reset Token:", resetToken);
+      const frontendUrl = process.env.FRONTEND_URL || "http://localhost:5173";
+      const resetLink = `${frontendUrl}/reset-password?token=${resetToken}`;
+
+      try {
+        await transporter.sendMail({
+          to: email,
+          subject: "Reset your EduSpace password",
+          html: `
+          <h2>Password Reset</h2>
+          <p>We received a request to reset your password. Click the link below to choose a new one:</p>
+          <p><a href="${resetLink}" style="color: #137FEC; font-weight: bold;">Reset my password</a></p>
+          <p>This link expires in <strong>1 hour</strong>. If you didn't request this, you can safely ignore this email.</p>
+        `,
+        });
+      } catch (emailErr) {
+        console.warn("Email sending failed — reset link:", resetLink);
+      }
 
       sendSuccess(res, {
         message: "A password reset link has been sent",
@@ -361,10 +380,7 @@ export class AuthController {
     try {
       const { resetToken, newPassword } = req.body;
 
-      const resetTokenHash = crypto
-        .createHash("sha256")
-        .update(resetToken)
-        .digest("hex");
+      const resetTokenHash = hashToken(resetToken);
 
       const passwordReset = await prisma.password_reset.findUnique({
         where: { reset_token_hash: resetTokenHash },

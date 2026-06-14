@@ -9,6 +9,7 @@ import {
   requestPasswordResetSchema,
   resetPasswordSchema,
   validationCodeSchema,
+  resendCodeSchema,
   changePasswordSchema,
 } from "../../../../shared/src/utils/validationSchemas";
 
@@ -37,7 +38,7 @@ router.post(
  * @desc    Resend a verification code
  * @access  Public
  */
-router.post("/resendCode", AuthController.resendCode);
+router.post("/resendCode", validate(resendCodeSchema), AuthController.resendCode);
 
 /**
  * @route   POST /api/auth/login

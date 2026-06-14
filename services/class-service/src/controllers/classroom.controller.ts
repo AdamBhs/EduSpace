@@ -57,6 +57,7 @@ export class ClassroomController {
             classId: newClass.id,
             name: "General",
             position: 0,
+            isGeneral: true,
           },
         });
 

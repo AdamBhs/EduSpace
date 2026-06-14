@@ -86,7 +86,7 @@ export class ChapterController {
         return sendError(res, "Chapter not found", 404);
       }
 
-      if (chapter.name === "General" && chapter.position === 0) {
+      if (chapter.isGeneral) {
         return sendError(res, "Cannot rename the General chapter", 400);
       }
 
@@ -124,12 +124,12 @@ export class ChapterController {
         return sendError(res, "Chapter not found", 404);
       }
 
-      if (chapter.name === "General" && chapter.position === 0) {
+      if (chapter.isGeneral) {
         return sendError(res, "Cannot delete the General chapter", 400);
       }
 
       const generalChapter = await prisma.chapter.findFirst({
-        where: { classId, name: "General", position: 0 },
+        where: { classId, isGeneral: true },
         select: { id: true },
       });
 

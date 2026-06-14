@@ -11,12 +11,11 @@ export function getRedis(): Redis | null {
 
   client.connect().catch(() => {
     console.warn("[redis] Redis unavailable — caching disabled");
-    client = null;
   });
 
-  client.on("error", () => {
-    client = null;
-  });
+  // Keep the client on errors — ioredis reconnects on its own; replacing
+  // it here would leak a new connection per error
+  client.on("error", () => {});
 
   return client;
 }
