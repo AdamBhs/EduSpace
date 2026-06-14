@@ -13,6 +13,13 @@ export const createConversation = async (
   return response.data.data;
 };
 
+export const getConversation = async (
+  conversationId: string,
+): Promise<Pick<DirectConversation, "id" | "otherUserId" | "createdAt" | "updatedAt">> => {
+  const response = await api.get(`/dm/api/dm/conversations/${conversationId}`);
+  return response.data.data;
+};
+
 export const getDmMessages = async (
   conversationId: string,
   cursor?: string,

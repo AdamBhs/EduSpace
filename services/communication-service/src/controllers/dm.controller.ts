@@ -86,6 +86,38 @@ export class DmController {
     }
   }
 
+  static async getConversation(req: Request, res: Response) {
+    try {
+      const userId = req.user!.userId;
+      const conversationId = req.params.conversationId as string;
+
+      const conversation = await prisma.directConversation.findUnique({
+        where: { id: conversationId },
+      });
+
+      if (!conversation) {
+        return sendError(res, "Conversation not found", 404);
+      }
+
+      if (conversation.participant1Id !== userId && conversation.participant2Id !== userId) {
+        return sendError(res, "Not a participant in this conversation", 403);
+      }
+
+      sendSuccess(res, {
+        id: conversation.id,
+        otherUserId:
+          conversation.participant1Id === userId
+            ? conversation.participant2Id
+            : conversation.participant1Id,
+        createdAt: conversation.createdAt,
+        updatedAt: conversation.updatedAt,
+      }, "Conversation retrieved");
+    } catch (error) {
+      console.error("Error getting DM conversation:", error);
+      sendError(res, "Failed to get conversation", 500);
+    }
+  }
+
   static async getMessages(req: Request, res: Response) {
     try {
       const userId = req.user!.userId;

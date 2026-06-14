@@ -6,6 +6,7 @@ const router = Router();
 
 router.get("/conversations", authenticate, DmController.getConversations);
 router.post("/conversations", authenticate, DmController.createConversation);
+router.get("/conversations/:conversationId", authenticate, DmController.getConversation);
 router.get("/conversations/:conversationId/messages", authenticate, DmController.getMessages);
 router.get("/conversations/:conversationId/reads", authenticate, DmController.getReads);
 router.get("/conversations/:conversationId/pinned", authenticate, DmController.getPinned);

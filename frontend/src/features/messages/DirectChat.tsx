@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import { useParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
-import { getDmMessages, getDmSharedFiles, getDmSharedLinks, getDmReads, getDmPinned } from "@/services/dm-service";
+import { getDmMessages, getDmSharedFiles, getDmSharedLinks, getDmReads, getDmPinned, getConversation } from "@/services/dm-service";
 import { getUsers } from "@/services/user-service";
 import { uploadFile } from "@/services/file-service";
 import { connectSocket, disconnectSocket } from "@/services/websocket";
@@ -38,11 +38,19 @@ const DirectChat = () => {
   const [showInfo, setShowInfo] = useState(false);
   const [mediaView, setMediaView] = useState<null | "media" | "files" | "links">(null);
   const [nextCursor, setNextCursor] = useState<string | null>(null);
-  const [otherUserId, setOtherUserId] = useState<string | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const scrollAreaRef = useRef<HTMLDivElement>(null);
   const typingTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Resolve the other participant from the conversation itself, so the name/avatar
+  // show even when the loaded message window only contains my own messages.
+  const { data: conversation } = useQuery({
+    queryKey: ["dm-conversation", conversationId],
+    queryFn: () => getConversation(conversationId!),
+    enabled: !!conversationId,
+  });
+  const otherUserId = conversation?.otherUserId ?? null;
 
   const { data: otherUser } = useQuery<UserSummary>({
     queryKey: ["users", "dm-other", otherUserId],
@@ -63,11 +71,6 @@ const DirectChat = () => {
     getDmMessages(conversationId).then((data) => {
       setMessages(data.messages);
       setNextCursor(data.nextCursor);
-
-      if (data.messages.length > 0) {
-        const firstOther = data.messages.find((m) => m.senderId !== user?.userId);
-        if (firstOther) setOtherUserId(firstOther.senderId);
-      }
 
       setTimeout(() => {
         messagesEndRef.current?.scrollIntoView({ behavior: "instant" });
@@ -105,10 +108,6 @@ const DirectChat = () => {
           next.delete(msg.senderId);
           return next;
         });
-
-        if (!otherUserId && msg.senderId !== user?.userId) {
-          setOtherUserId(msg.senderId);
-        }
 
         // We're viewing the conversation, so mark the incoming message as read
         if (msg.senderId !== user?.userId) socket.emit("mark-dm-read", conversationId);
