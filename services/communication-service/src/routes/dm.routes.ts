@@ -5,6 +5,7 @@ import { DmController } from "../controllers/dm.controller";
 const router = Router();
 
 router.get("/conversations", authenticate, DmController.getConversations);
+router.get("/unread-total", authenticate, DmController.getUnreadTotal);
 router.post("/conversations", authenticate, DmController.createConversation);
 router.get("/conversations/:conversationId", authenticate, DmController.getConversation);
 router.get("/conversations/:conversationId/messages", authenticate, DmController.getMessages);

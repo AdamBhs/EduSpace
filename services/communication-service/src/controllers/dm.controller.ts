@@ -18,17 +18,31 @@ export class DmController {
             orderBy: { createdAt: "desc" },
             take: 1,
           },
+          readStates: { where: { userId } },
         },
         orderBy: { updatedAt: "desc" },
       });
 
-      const result = conversations.map((c: any) => ({
-        id: c.id,
-        otherUserId: c.participant1Id === userId ? c.participant2Id : c.participant1Id,
-        lastMessage: c.messages[0] ?? null,
-        createdAt: c.createdAt,
-        updatedAt: c.updatedAt,
-      }));
+      const result = await Promise.all(
+        conversations.map(async (c: any) => {
+          const lastReadAt = c.readStates[0]?.lastReadAt;
+          const unreadCount = await prisma.directMessage.count({
+            where: {
+              conversationId: c.id,
+              senderId: { not: userId },
+              ...(lastReadAt ? { createdAt: { gt: lastReadAt } } : {}),
+            },
+          });
+          return {
+            id: c.id,
+            otherUserId: c.participant1Id === userId ? c.participant2Id : c.participant1Id,
+            lastMessage: c.messages[0] ?? null,
+            unreadCount,
+            createdAt: c.createdAt,
+            updatedAt: c.updatedAt,
+          };
+        }),
+      );
 
       sendSuccess(res, result, "Conversations retrieved");
     } catch (error) {
@@ -83,6 +97,36 @@ export class DmController {
     } catch (error) {
       console.error("Error creating DM conversation:", error);
       sendError(res, "Failed to create conversation", 500);
+    }
+  }
+
+  static async getUnreadTotal(req: Request, res: Response) {
+    try {
+      const userId = req.user!.userId;
+
+      const conversations = await prisma.directConversation.findMany({
+        where: {
+          OR: [{ participant1Id: userId }, { participant2Id: userId }],
+        },
+        include: { readStates: { where: { userId } } },
+      });
+
+      const counts = await Promise.all(
+        conversations.map((c: any) =>
+          prisma.directMessage.count({
+            where: {
+              conversationId: c.id,
+              senderId: { not: userId },
+              ...(c.readStates[0]?.lastReadAt ? { createdAt: { gt: c.readStates[0].lastReadAt } } : {}),
+            },
+          }),
+        ),
+      );
+
+      sendSuccess(res, { count: counts.reduce((a: number, b: number) => a + b, 0) }, "Unread total retrieved");
+    } catch (error) {
+      console.error("Error getting DM unread total:", error);
+      sendError(res, "Failed to get unread total", 500);
     }
   }
 

@@ -105,6 +105,40 @@ export class ChatController {
     }
   }
 
+  static async getUnreadCount(req: Request, res: Response) {
+    try {
+      const userId = req.user!.userId;
+      const classId = req.params.classId as string;
+
+      const membership = await checkMembership(classId, userId, req.headers.authorization);
+      if (!membership) {
+        return sendError(res, "Not a member of this classroom", 403);
+      }
+
+      const room = await prisma.chatRoom.findUnique({
+        where: { classId },
+        include: { readStates: { where: { userId } } },
+      });
+      if (!room) {
+        return sendSuccess(res, { count: 0 }, "Unread count retrieved");
+      }
+
+      const lastReadAt = room.readStates[0]?.lastReadAt;
+      const count = await prisma.message.count({
+        where: {
+          chatRoomId: room.id,
+          senderId: { not: userId },
+          ...(lastReadAt ? { createdAt: { gt: lastReadAt } } : {}),
+        },
+      });
+
+      sendSuccess(res, { count }, "Unread count retrieved");
+    } catch (error) {
+      console.error("Error getting unread count:", error);
+      sendError(res, "Failed to get unread count", 500);
+    }
+  }
+
   static async getPinned(req: Request, res: Response) {
     try {
       const userId = req.user!.userId;
