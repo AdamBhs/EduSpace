@@ -236,6 +236,11 @@ export type ChatMessage = {
   classId?: string;
 };
 
+export type MessageReadState = {
+  userId: string;
+  lastReadAt: string;
+};
+
 // ─── Direct Messages ────────────────────────────────────────
 
 export type DirectMessage = {

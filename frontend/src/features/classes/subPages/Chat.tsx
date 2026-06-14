@@ -2,7 +2,7 @@ import { useState, useRef, useEffect, useCallback } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { getClassroomById, getMembers } from "@/services/classroom-service";
-import { getMessages, getChatSharedFiles, getChatSharedLinks } from "@/services/chat-service";
+import { getMessages, getChatSharedFiles, getChatSharedLinks, getChatReads } from "@/services/chat-service";
 import { getUsers } from "@/services/user-service";
 import { uploadFile } from "@/services/file-service";
 import { connectSocket, disconnectSocket } from "@/services/websocket";
@@ -41,6 +41,7 @@ const Chat = () => {
   const [showMembers, setShowMembers] = useState(true);
   const [mediaView, setMediaView] = useState<null | "media" | "files" | "links">(null);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
+  const [reads, setReads] = useState<Record<string, string>>({});
   const [onlineUserIds, setOnlineUserIds] = useState<string[]>([]);
   const [typingUsers, setTypingUsers] = useState<Set<string>>(new Set());
   const [connected, setConnected] = useState(false);
@@ -97,11 +98,17 @@ const Chat = () => {
       }, 50);
     });
 
+    getChatReads(classId).then((data) => {
+      setReads(Object.fromEntries(data.map((r) => [r.userId, r.lastReadAt])));
+    });
+
     const socket = connectSocket();
 
     socket.on("connect", () => {
       setConnected(true);
       socket.emit("join-room", classId);
+      // Mark read after join-room has registered the socket in the room
+      setTimeout(() => socket.emit("mark-read", classId), 400);
     });
 
     socket.on("disconnect", () => setConnected(false));
@@ -114,8 +121,14 @@ const Chat = () => {
           next.delete(msg.senderId);
           return next;
         });
+        // We're viewing the room, so mark the incoming message as read
+        if (msg.senderId !== user?.userId) socket.emit("mark-read", classId);
         setTimeout(scrollToBottom, 50);
       }
+    });
+
+    socket.on("read-update", ({ userId: readerId, lastReadAt }: { userId: string; lastReadAt: string }) => {
+      setReads((prev) => ({ ...prev, [readerId]: lastReadAt }));
     });
 
     socket.on("presence-update", (userIds: string[]) => {
@@ -137,6 +150,7 @@ const Chat = () => {
     return () => {
       socket.emit("leave-room", classId);
       socket.off("new-message");
+      socket.off("read-update");
       socket.off("presence-update");
       socket.off("user-typing");
       socket.off("user-stop-typing");
@@ -144,7 +158,7 @@ const Chat = () => {
       socket.off("disconnect");
       disconnectSocket();
     };
-  }, [classId, classroom?.chatEnabled, scrollToBottom]);
+  }, [classId, classroom?.chatEnabled, scrollToBottom, user?.userId]);
 
   const loadOlderMessages = async () => {
     if (!nextCursor || loadingMore || !classId) return;
@@ -273,6 +287,16 @@ const Chat = () => {
     .filter((id) => id !== user?.userId)
     .map((id) => userName(id).split(" ")[0]);
 
+  const lastMessage = messages[messages.length - 1];
+  const seenByIds = lastMessage
+    ? Object.entries(reads)
+        .filter(
+          ([uid, ts]) =>
+            uid !== user?.userId && new Date(ts) >= new Date(lastMessage.createdAt),
+        )
+        .map(([uid]) => uid)
+    : [];
+
   return (
     <div className="flex h-full -mx-6 items-stretch overflow-hidden">
       <section className="flex min-h-0 flex-1 flex-col">
@@ -395,6 +419,23 @@ const Chat = () => {
                     </div>
                   );
                 })}
+
+                {seenByIds.length > 0 && (
+                  <div className="flex items-center justify-end gap-1.5 mt-1 pr-1">
+                    <span className="text-[10px] text-[#94A3B8]">
+                      Seen by {seenByIds.length}
+                    </span>
+                    <div className="flex -space-x-1.5">
+                      {seenByIds.slice(0, 5).map((id) => (
+                        <Avatar key={id} className="w-4 h-4 ring-1 ring-white" title={userName(id)}>
+                          <AvatarFallback className="bg-gray-200 text-gray-600 text-[7px] font-semibold">
+                            {userInitials(id)}
+                          </AvatarFallback>
+                        </Avatar>
+                      ))}
+                    </div>
+                  </div>
+                )}
                 <div ref={messagesEndRef} />
               </div>
             </ScrollArea>

@@ -1,5 +1,5 @@
 import { api } from "./axios";
-import type { DirectConversation, DirectMessage } from "@/shared/types";
+import type { DirectConversation, DirectMessage, MessageReadState } from "@/shared/types";
 
 export const getConversations = async (): Promise<DirectConversation[]> => {
   const response = await api.get("/dm/api/dm/conversations");
@@ -21,6 +21,15 @@ export const getDmMessages = async (
   const response = await api.get(
     `/dm/api/dm/conversations/${conversationId}/messages`,
     { params: { cursor, limit } },
+  );
+  return response.data.data;
+};
+
+export const getDmReads = async (
+  conversationId: string,
+): Promise<MessageReadState[]> => {
+  const response = await api.get(
+    `/dm/api/dm/conversations/${conversationId}/reads`,
   );
   return response.data.data;
 };

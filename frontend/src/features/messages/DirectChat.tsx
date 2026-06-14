@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import { useParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
-import { getDmMessages, getDmSharedFiles, getDmSharedLinks } from "@/services/dm-service";
+import { getDmMessages, getDmSharedFiles, getDmSharedLinks, getDmReads } from "@/services/dm-service";
 import { getUsers } from "@/services/user-service";
 import { uploadFile } from "@/services/file-service";
 import { connectSocket, disconnectSocket } from "@/services/websocket";
@@ -27,6 +27,7 @@ const DirectChat = () => {
   const { user } = useAuth();
   const [message, setMessage] = useState("");
   const [messages, setMessages] = useState<DirectMessage[]>([]);
+  const [otherReadAt, setOtherReadAt] = useState<string | null>(null);
   const [typingUsers, setTypingUsers] = useState<Set<string>>(new Set());
   const [connected, setConnected] = useState(false);
   const [loadingMore, setLoadingMore] = useState(false);
@@ -69,16 +70,23 @@ const DirectChat = () => {
       }, 50);
     });
 
+    getDmReads(conversationId).then((data) => {
+      const other = data.find((r) => r.userId !== user?.userId);
+      if (other) setOtherReadAt(other.lastReadAt);
+    });
+
     const socket = connectSocket();
 
     socket.on("connect", () => {
       setConnected(true);
       socket.emit("join-dm", conversationId);
+      socket.emit("mark-dm-read", conversationId);
     });
 
     if (socket.connected) {
       setConnected(true);
       socket.emit("join-dm", conversationId);
+      socket.emit("mark-dm-read", conversationId);
     }
 
     socket.on("disconnect", () => setConnected(false));
@@ -96,8 +104,15 @@ const DirectChat = () => {
           setOtherUserId(msg.senderId);
         }
 
+        // We're viewing the conversation, so mark the incoming message as read
+        if (msg.senderId !== user?.userId) socket.emit("mark-dm-read", conversationId);
+
         setTimeout(scrollToBottom, 50);
       }
+    });
+
+    socket.on("dm-read-update", ({ userId: readerId, lastReadAt }: { userId: string; lastReadAt: string }) => {
+      if (readerId !== user?.userId) setOtherReadAt(lastReadAt);
     });
 
     socket.on("dm-user-typing", ({ userId: typerId }: { userId: string }) => {
@@ -115,6 +130,7 @@ const DirectChat = () => {
     return () => {
       socket.emit("leave-dm", conversationId);
       socket.off("new-dm");
+      socket.off("dm-read-update");
       socket.off("dm-user-typing");
       socket.off("dm-user-stop-typing");
       socket.off("connect");
@@ -208,6 +224,13 @@ const DirectChat = () => {
   const typingNames = [...typingUsers]
     .filter((id) => id !== user?.userId)
     .map(() => otherName.split(" ")[0]);
+
+  const lastMessage = messages[messages.length - 1];
+  const dmSeen =
+    !!lastMessage &&
+    lastMessage.senderId === user?.userId &&
+    !!otherReadAt &&
+    new Date(otherReadAt) >= new Date(lastMessage.createdAt);
 
   return (
     <div className="flex h-full">
@@ -309,6 +332,17 @@ const DirectChat = () => {
               </div>
             );
           })}
+
+          {dmSeen && (
+            <div className="flex items-center justify-end gap-1 mt-0.5 pr-1">
+              <Avatar className="w-3.5 h-3.5" title={`Seen by ${otherName}`}>
+                <AvatarFallback className="bg-gray-200 text-gray-600 text-[6px] font-semibold">
+                  {otherInitials}
+                </AvatarFallback>
+              </Avatar>
+              <span className="text-[10px] text-[#94A3B8]">Seen</span>
+            </div>
+          )}
           <div ref={messagesEndRef} />
         </div>
       </ScrollArea>

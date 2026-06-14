@@ -1,5 +1,5 @@
 import { api } from "./axios";
-import type { ChatMessage } from "@/shared/types";
+import type { ChatMessage, MessageReadState } from "@/shared/types";
 
 export const getMessages = async (
   classId: string,
@@ -23,6 +23,13 @@ export const getChatSharedLinks = async (
   classId: string,
 ): Promise<{ id: string; senderId: string; url: string; createdAt: string }[]> => {
   const response = await api.get(`/chat/api/chat/${classId}/links`);
+  return response.data.data;
+};
+
+export const getChatReads = async (
+  classId: string,
+): Promise<MessageReadState[]> => {
+  const response = await api.get(`/chat/api/chat/${classId}/reads`);
   return response.data.data;
 };
 
