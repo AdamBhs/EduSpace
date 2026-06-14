@@ -52,6 +52,7 @@ export const updatePost = async (
     assignedTo?: string[] | null;
     dueDate?: string;
     maxPoints?: number;
+    isPinned?: boolean;
   },
 ) => {
   const response = await api.put(`/content/api/posts/${postId}`, data);

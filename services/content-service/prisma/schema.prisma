@@ -35,6 +35,7 @@ model Post {
   assignedTo        Json?              @map("assigned_to")
   dueDate           DateTime?          @map("due_date")
   maxPoints         Int?               @map("max_points")
+  isPinned          Boolean            @default(false) @map("is_pinned")
   createdAt         DateTime           @default(now()) @map("created_at")
   updatedAt         DateTime           @updatedAt @map("updated_at")
 

@@ -153,6 +153,7 @@ export type Post = {
   assignedTo?: string[] | null;
   dueDate: string | null;
   maxPoints: number | null;
+  isPinned?: boolean;
   createdAt: string;
   updatedAt: string;
   attachments?: Attachment[];

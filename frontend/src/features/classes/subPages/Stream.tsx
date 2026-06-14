@@ -5,7 +5,7 @@ import EditPostDialog from "../components/EditPostDialog";
 import { useParams, useNavigate } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { getClassroomById } from "@/services/classroom-service";
-import { getPostsByClass, deletePost } from "@/services/content-service";
+import { getPostsByClass, deletePost, updatePost } from "@/services/content-service";
 import {
   Select,
   SelectContent,
@@ -36,7 +36,7 @@ import StreamSkeleton from "../ui/StreamSkeleton";
 import { useAuth } from "@/context/AuthContext";
 import type { Classroom, Post } from "@/shared/types";
 import { formatDate, formatDateTime } from "@/shared/lib/utils";
-import { FileText, HelpCircle, ClipboardList, Megaphone, BookOpen, Calendar, MoreVertical, Pencil, Trash2 } from "lucide-react";
+import { FileText, HelpCircle, ClipboardList, Megaphone, BookOpen, Calendar, MoreVertical, Pencil, Trash2, Pin, PinOff } from "lucide-react";
 
 const postTypeIcon = (type: string) => {
   switch (type) {
@@ -94,6 +94,13 @@ const Stream = () => {
     },
   });
 
+  const togglePin = useMutation({
+    mutationFn: (post: Post) => updatePost(post.id, { isPinned: !post.isPinned }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["posts", classId] });
+    },
+  });
+
   const allPosts = posts ?? [];
 
   const filteredPosts = useMemo(() => {
@@ -103,12 +110,15 @@ const Stream = () => {
       list = list.filter((p) => p.studyMaterialType === subTypeFilter);
     }
 
+    let sorted: Post[];
     switch (sortBy) {
-      case "oldest": return [...list].sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
-      case "title-az": return [...list].sort((a, b) => a.title.localeCompare(b.title));
-      case "title-za": return [...list].sort((a, b) => b.title.localeCompare(a.title));
-      default: return [...list].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+      case "oldest": sorted = [...list].sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()); break;
+      case "title-az": sorted = [...list].sort((a, b) => a.title.localeCompare(b.title)); break;
+      case "title-za": sorted = [...list].sort((a, b) => b.title.localeCompare(a.title)); break;
+      default: sorted = [...list].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
     }
+    // Pinned posts float to the top (stable sort preserves the order above)
+    return sorted.sort((a, b) => Number(b.isPinned ?? false) - Number(a.isPinned ?? false));
   }, [allPosts, typeFilter, subTypeFilter, sortBy]);
 
   const upcomingAssignments = useMemo(() => {
@@ -279,14 +289,17 @@ const Stream = () => {
                   <div
                     key={post.id}
                     onClick={() => navigate(`/c/${classId}/post/${post.id}`, { state: { postTitle: post.title, postType: post.type } })}
-                    className="rounded-lg border border-[#E2E8F0] bg-white p-5 hover:shadow-sm transition-shadow cursor-pointer"
+                    className={`rounded-lg border bg-white p-5 hover:shadow-sm transition-shadow cursor-pointer ${
+                      post.isPinned ? "border-[#137FEC]/40 bg-[#137FEC]/[0.03]" : "border-[#E2E8F0]"
+                    }`}
                   >
                     <div className="flex items-center gap-3">
                       <div className="w-10 h-10 rounded-full bg-[#F1F5F9] flex items-center justify-center">
                         {postTypeIcon(post.type)}
                       </div>
                       <div className="flex-1 min-w-0">
-                        <p className="text-sm font-semibold text-[#0F172A]">
+                        <p className="text-sm font-semibold text-[#0F172A] flex items-center gap-1.5">
+                          {post.isPinned && <Pin className="w-3.5 h-3.5 text-[#137FEC] shrink-0" />}
                           {post.title}
                         </p>
                         <p className="text-xs text-[#64748B]">
@@ -307,6 +320,10 @@ const Stream = () => {
                             </button>
                           </DropdownMenuTrigger>
                           <DropdownMenuContent align="end" onClick={(e) => e.stopPropagation()}>
+                            <DropdownMenuItem onClick={() => togglePin.mutate(post)} className="cursor-pointer">
+                              {post.isPinned ? <PinOff className="w-4 h-4 mr-2" /> : <Pin className="w-4 h-4 mr-2" />}
+                              {post.isPinned ? "Unpin" : "Pin"}
+                            </DropdownMenuItem>
                             <DropdownMenuItem onClick={() => setEditingPost(post)} className="cursor-pointer">
                               <Pencil className="w-4 h-4 mr-2" />
                               Edit

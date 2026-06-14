@@ -153,9 +153,11 @@ export class PostController {
         if (studyMaterialType) where.studyMaterialType = studyMaterialType as string;
         if (chapterId) where.chapterId = chapterId as string;
 
-        let orderBy: any = { createdAt: "desc" };
-        if (sort === "title") orderBy = { title: "asc" };
-        if (sort === "dueDate") orderBy = { dueDate: "asc" };
+        let sortBy: any = { createdAt: "desc" };
+        if (sort === "title") sortBy = { title: "asc" };
+        if (sort === "dueDate") sortBy = { dueDate: "asc" };
+        // Pinned posts always float to the top, then the chosen sort
+        const orderBy = [{ isPinned: "desc" }, sortBy];
 
         posts = await prisma.post.findMany({
           where,
@@ -241,7 +243,7 @@ export class PostController {
     try {
       const userId = req.user!.userId;
       const postId = req.params.postId as string;
-      const { title, content, chapterId, quizData, questionData, assignedTo, dueDate, maxPoints } = req.body;
+      const { title, content, chapterId, quizData, questionData, assignedTo, dueDate, maxPoints, isPinned } = req.body;
 
       const post = await prisma.post.findUnique({ where: { id: postId } });
       if (!post) {
@@ -278,6 +280,7 @@ export class PostController {
           }),
           ...(dueDate !== undefined && { dueDate: dueDate ? new Date(dueDate) : null }),
           ...(maxPoints !== undefined && post.type !== "QUIZ" && post.type !== "QUESTION" && { maxPoints }),
+          ...(isPinned !== undefined && { isPinned: !!isPinned }),
         },
         include: { attachments: true },
       });
