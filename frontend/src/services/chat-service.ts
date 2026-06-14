@@ -33,6 +33,13 @@ export const getChatReads = async (
   return response.data.data;
 };
 
+export const getChatPinned = async (
+  classId: string,
+): Promise<ChatMessage[]> => {
+  const response = await api.get(`/chat/api/chat/${classId}/pinned`);
+  return response.data.data;
+};
+
 export const getChatInfo = async (classId: string) => {
   const response = await api.get(`/chat/api/chat/${classId}/info`);
   return response.data.data;

@@ -34,6 +34,15 @@ export const getDmReads = async (
   return response.data.data;
 };
 
+export const getDmPinned = async (
+  conversationId: string,
+): Promise<DirectMessage[]> => {
+  const response = await api.get(
+    `/dm/api/dm/conversations/${conversationId}/pinned`,
+  );
+  return response.data.data;
+};
+
 export const getDmSharedFiles = async (
   conversationId: string,
 ): Promise<{ id: string; senderId: string; fileKey: string; fileName: string; createdAt: string }[]> => {

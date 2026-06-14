@@ -232,6 +232,8 @@ export type ChatMessage = {
   content: string | null;
   fileKey: string | null;
   fileName: string | null;
+  pinnedAt: string | null;
+  pinnedBy: string | null;
   createdAt: string;
   classId?: string;
 };
@@ -250,6 +252,8 @@ export type DirectMessage = {
   content: string | null;
   fileKey: string | null;
   fileName: string | null;
+  pinnedAt: string | null;
+  pinnedBy: string | null;
   createdAt: string;
 };
 

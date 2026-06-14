@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import { useParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
-import { getDmMessages, getDmSharedFiles, getDmSharedLinks, getDmReads } from "@/services/dm-service";
+import { getDmMessages, getDmSharedFiles, getDmSharedLinks, getDmReads, getDmPinned } from "@/services/dm-service";
 import { getUsers } from "@/services/user-service";
 import { uploadFile } from "@/services/file-service";
 import { connectSocket, disconnectSocket } from "@/services/websocket";
@@ -15,6 +15,9 @@ import {
   Send,
   Loader2,
   Info,
+  Pin,
+  PinOff,
+  X,
 } from "lucide-react";
 import FileAttachment from "@/shared/components/FileAttachment";
 import Linkify from "@/shared/components/Linkify";
@@ -27,6 +30,7 @@ const DirectChat = () => {
   const { user } = useAuth();
   const [message, setMessage] = useState("");
   const [messages, setMessages] = useState<DirectMessage[]>([]);
+  const [pinned, setPinned] = useState<DirectMessage[]>([]);
   const [otherReadAt, setOtherReadAt] = useState<string | null>(null);
   const [typingUsers, setTypingUsers] = useState<Set<string>>(new Set());
   const [connected, setConnected] = useState(false);
@@ -75,6 +79,8 @@ const DirectChat = () => {
       if (other) setOtherReadAt(other.lastReadAt);
     });
 
+    getDmPinned(conversationId).then(setPinned);
+
     const socket = connectSocket();
 
     socket.on("connect", () => {
@@ -115,6 +121,24 @@ const DirectChat = () => {
       if (readerId !== user?.userId) setOtherReadAt(lastReadAt);
     });
 
+    socket.on("dm-pinned", (msg: DirectMessage) => {
+      if (msg.conversationId !== conversationId) return;
+      setPinned((prev) => [msg, ...prev.filter((m) => m.id !== msg.id)]);
+      setMessages((prev) =>
+        prev.map((m) =>
+          m.id === msg.id ? { ...m, pinnedAt: msg.pinnedAt, pinnedBy: msg.pinnedBy } : m,
+        ),
+      );
+    });
+
+    socket.on("dm-unpinned", (msg: DirectMessage) => {
+      if (msg.conversationId !== conversationId) return;
+      setPinned((prev) => prev.filter((m) => m.id !== msg.id));
+      setMessages((prev) =>
+        prev.map((m) => (m.id === msg.id ? { ...m, pinnedAt: null, pinnedBy: null } : m)),
+      );
+    });
+
     socket.on("dm-user-typing", ({ userId: typerId }: { userId: string }) => {
       setTypingUsers((prev) => new Set(prev).add(typerId));
     });
@@ -131,6 +155,8 @@ const DirectChat = () => {
       socket.emit("leave-dm", conversationId);
       socket.off("new-dm");
       socket.off("dm-read-update");
+      socket.off("dm-pinned");
+      socket.off("dm-unpinned");
       socket.off("dm-user-typing");
       socket.off("dm-user-stop-typing");
       socket.off("connect");
@@ -173,6 +199,22 @@ const DirectChat = () => {
     socket.emit("send-dm", { conversationId, content: text });
     socket.emit("dm-stop-typing", conversationId);
     setMessage("");
+  };
+
+  const pinMessage = (messageId: string) => {
+    if (!conversationId) return;
+    connectSocket().emit("pin-dm", { conversationId, messageId });
+  };
+
+  const unpinMessage = (messageId: string) => {
+    if (!conversationId) return;
+    connectSocket().emit("unpin-dm", { conversationId, messageId });
+  };
+
+  const scrollToMessage = (messageId: string) => {
+    document
+      .getElementById(`dm-${messageId}`)
+      ?.scrollIntoView({ behavior: "smooth", block: "center" });
   };
 
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -261,6 +303,40 @@ const DirectChat = () => {
         </button>
       </div>
 
+      {/* Pinned messages banner */}
+      {pinned.length > 0 && (
+        <div className="border-b border-[#E2E8F0] bg-[#F8FAFC] px-4 py-2">
+          <div className="flex items-center gap-1.5 mb-1">
+            <Pin className="w-3.5 h-3.5 text-[#137FEC]" />
+            <span className="text-[11px] font-semibold text-[#475569]">
+              Pinned ({pinned.length})
+            </span>
+          </div>
+          <div className="space-y-1 max-h-24 overflow-y-auto">
+            {pinned.map((m) => (
+              <div key={m.id} className="group/pin flex items-center gap-2 text-xs">
+                <button
+                  onClick={() => scrollToMessage(m.id)}
+                  className="flex-1 min-w-0 text-left truncate text-[#64748B] hover:text-[#137FEC] cursor-pointer"
+                >
+                  <span className="font-medium">
+                    {(m.senderId === user?.userId ? "You" : otherName).split(" ")[0]}:{" "}
+                  </span>
+                  {m.content ?? m.fileName ?? "Attachment"}
+                </button>
+                <button
+                  onClick={() => unpinMessage(m.id)}
+                  title="Unpin"
+                  className="opacity-0 group-hover/pin:opacity-100 p-0.5 text-[#94A3B8] hover:text-red-500 cursor-pointer shrink-0"
+                >
+                  <X className="w-3 h-3" />
+                </button>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
       {/* Messages */}
       <ScrollArea
         ref={scrollAreaRef}
@@ -291,8 +367,18 @@ const DirectChat = () => {
             return (
               <div
                 key={msg.id}
-                className={`flex gap-2.5 ${showAvatar ? "mt-3" : "mt-0.5"}`}
+                id={`dm-${msg.id}`}
+                className={`group relative flex gap-2.5 rounded-md px-1 -mx-1 ${
+                  showAvatar ? "mt-3" : "mt-0.5"
+                } ${msg.pinnedAt ? "bg-amber-50" : ""}`}
               >
+                <button
+                  onClick={() => (msg.pinnedAt ? unpinMessage(msg.id) : pinMessage(msg.id))}
+                  title={msg.pinnedAt ? "Unpin message" : "Pin message"}
+                  className="absolute right-1 top-1 opacity-0 group-hover:opacity-100 p-1 rounded hover:bg-[#E2E8F0] text-[#94A3B8] cursor-pointer transition-opacity"
+                >
+                  {msg.pinnedAt ? <PinOff className="w-3.5 h-3.5" /> : <Pin className="w-3.5 h-3.5" />}
+                </button>
                 <div className="w-8 shrink-0">
                   {showAvatar && (
                     <Avatar className="w-8 h-8">
@@ -320,6 +406,7 @@ const DirectChat = () => {
                           minute: "2-digit",
                         })}
                       </span>
+                      {msg.pinnedAt && <Pin className="w-3 h-3 text-amber-500" />}
                     </div>
                   )}
                   {msg.content && (

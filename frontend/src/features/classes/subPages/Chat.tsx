@@ -2,7 +2,7 @@ import { useState, useRef, useEffect, useCallback } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { getClassroomById, getMembers } from "@/services/classroom-service";
-import { getMessages, getChatSharedFiles, getChatSharedLinks, getChatReads } from "@/services/chat-service";
+import { getMessages, getChatSharedFiles, getChatSharedLinks, getChatReads, getChatPinned } from "@/services/chat-service";
 import { getUsers } from "@/services/user-service";
 import { uploadFile } from "@/services/file-service";
 import { connectSocket, disconnectSocket } from "@/services/websocket";
@@ -19,6 +19,9 @@ import {
   Loader2,
   MessageSquare,
   MoreVertical,
+  Pin,
+  PinOff,
+  X,
 } from "lucide-react";
 import FileAttachment from "@/shared/components/FileAttachment";
 import Linkify from "@/shared/components/Linkify";
@@ -41,6 +44,7 @@ const Chat = () => {
   const [showMembers, setShowMembers] = useState(true);
   const [mediaView, setMediaView] = useState<null | "media" | "files" | "links">(null);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
+  const [pinned, setPinned] = useState<ChatMessage[]>([]);
   const [reads, setReads] = useState<Record<string, string>>({});
   const [onlineUserIds, setOnlineUserIds] = useState<string[]>([]);
   const [typingUsers, setTypingUsers] = useState<Set<string>>(new Set());
@@ -102,6 +106,8 @@ const Chat = () => {
       setReads(Object.fromEntries(data.map((r) => [r.userId, r.lastReadAt])));
     });
 
+    getChatPinned(classId).then(setPinned);
+
     const socket = connectSocket();
 
     socket.on("connect", () => {
@@ -131,6 +137,24 @@ const Chat = () => {
       setReads((prev) => ({ ...prev, [readerId]: lastReadAt }));
     });
 
+    socket.on("message-pinned", (msg: ChatMessage) => {
+      if (msg.classId !== classId) return;
+      setPinned((prev) => [msg, ...prev.filter((m) => m.id !== msg.id)]);
+      setMessages((prev) =>
+        prev.map((m) =>
+          m.id === msg.id ? { ...m, pinnedAt: msg.pinnedAt, pinnedBy: msg.pinnedBy } : m,
+        ),
+      );
+    });
+
+    socket.on("message-unpinned", (msg: ChatMessage) => {
+      if (msg.classId !== classId) return;
+      setPinned((prev) => prev.filter((m) => m.id !== msg.id));
+      setMessages((prev) =>
+        prev.map((m) => (m.id === msg.id ? { ...m, pinnedAt: null, pinnedBy: null } : m)),
+      );
+    });
+
     socket.on("presence-update", (userIds: string[]) => {
       setOnlineUserIds(userIds);
     });
@@ -151,6 +175,8 @@ const Chat = () => {
       socket.emit("leave-room", classId);
       socket.off("new-message");
       socket.off("read-update");
+      socket.off("message-pinned");
+      socket.off("message-unpinned");
       socket.off("presence-update");
       socket.off("user-typing");
       socket.off("user-stop-typing");
@@ -194,6 +220,22 @@ const Chat = () => {
     socket.emit("send-message", { classId, content: text });
     socket.emit("stop-typing", classId);
     setMessage("");
+  };
+
+  const pinMessage = (messageId: string) => {
+    if (!classId) return;
+    connectSocket().emit("pin-message", { classId, messageId });
+  };
+
+  const unpinMessage = (messageId: string) => {
+    if (!classId) return;
+    connectSocket().emit("unpin-message", { classId, messageId });
+  };
+
+  const scrollToMessage = (messageId: string) => {
+    document
+      .getElementById(`msg-${messageId}`)
+      ?.scrollIntoView({ behavior: "smooth", block: "center" });
   };
 
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -345,6 +387,38 @@ const Chat = () => {
               </button>
             </div>
 
+            {/* Pinned messages banner */}
+            {pinned.length > 0 && (
+              <div className="border-b border-[#E2E8F0] bg-[#F8FAFC] px-4 py-2">
+                <div className="flex items-center gap-1.5 mb-1">
+                  <Pin className="w-3.5 h-3.5 text-[#137FEC]" />
+                  <span className="text-[11px] font-semibold text-[#475569]">
+                    Pinned ({pinned.length})
+                  </span>
+                </div>
+                <div className="space-y-1 max-h-24 overflow-y-auto">
+                  {pinned.map((m) => (
+                    <div key={m.id} className="group/pin flex items-center gap-2 text-xs">
+                      <button
+                        onClick={() => scrollToMessage(m.id)}
+                        className="flex-1 min-w-0 text-left truncate text-[#64748B] hover:text-[#137FEC] cursor-pointer"
+                      >
+                        <span className="font-medium">{userName(m.senderId).split(" ")[0]}: </span>
+                        {m.content ?? m.fileName ?? "Attachment"}
+                      </button>
+                      <button
+                        onClick={() => unpinMessage(m.id)}
+                        title="Unpin"
+                        className="opacity-0 group-hover/pin:opacity-100 p-0.5 text-[#94A3B8] hover:text-red-500 cursor-pointer shrink-0"
+                      >
+                        <X className="w-3 h-3" />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
             {/* Messages area */}
             <ScrollArea
               ref={scrollAreaRef}
@@ -376,8 +450,18 @@ const Chat = () => {
                   return (
                     <div
                       key={msg.id}
-                      className={`flex gap-2.5 ${showAvatar ? "mt-3" : "mt-0.5"}`}
+                      id={`msg-${msg.id}`}
+                      className={`group relative flex gap-2.5 rounded-md px-1 -mx-1 ${
+                        showAvatar ? "mt-3" : "mt-0.5"
+                      } ${msg.pinnedAt ? "bg-amber-50" : ""}`}
                     >
+                      <button
+                        onClick={() => (msg.pinnedAt ? unpinMessage(msg.id) : pinMessage(msg.id))}
+                        title={msg.pinnedAt ? "Unpin message" : "Pin message"}
+                        className="absolute right-1 top-1 opacity-0 group-hover:opacity-100 p-1 rounded hover:bg-[#E2E8F0] text-[#94A3B8] cursor-pointer transition-opacity"
+                      >
+                        {msg.pinnedAt ? <PinOff className="w-3.5 h-3.5" /> : <Pin className="w-3.5 h-3.5" />}
+                      </button>
                       <div className="w-8 shrink-0">
                         {showAvatar && (
                           <Avatar className="w-8 h-8">
@@ -405,6 +489,9 @@ const Chat = () => {
                                 minute: "2-digit",
                               })}
                             </span>
+                            {msg.pinnedAt && (
+                              <Pin className="w-3 h-3 text-amber-500" />
+                            )}
                           </div>
                         )}
                         {msg.content && (
