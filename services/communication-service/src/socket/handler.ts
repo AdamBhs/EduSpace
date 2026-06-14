@@ -113,6 +113,47 @@ export function setupSocket(io: Server): void {
       socket.to(`chat:${classId}`).emit("read-update", { classId, userId, lastReadAt });
     });
 
+    socket.on("pin-message", async (data: { classId: string; messageId: string }) => {
+      const { classId, messageId } = data;
+      // Membership was verified at join-room time; any member may pin
+      if (!socket.rooms.has(`chat:${classId}`)) return;
+
+      const room = await prisma.chatRoom.findUnique({ where: { classId } });
+      if (!room) return;
+
+      const message = await prisma.message.findFirst({
+        where: { id: messageId, chatRoomId: room.id },
+      });
+      if (!message) return;
+
+      const updated = await prisma.message.update({
+        where: { id: messageId },
+        data: { pinnedAt: new Date(), pinnedBy: userId },
+      });
+
+      io.to(`chat:${classId}`).emit("message-pinned", { ...updated, classId });
+    });
+
+    socket.on("unpin-message", async (data: { classId: string; messageId: string }) => {
+      const { classId, messageId } = data;
+      if (!socket.rooms.has(`chat:${classId}`)) return;
+
+      const room = await prisma.chatRoom.findUnique({ where: { classId } });
+      if (!room) return;
+
+      const message = await prisma.message.findFirst({
+        where: { id: messageId, chatRoomId: room.id },
+      });
+      if (!message) return;
+
+      const updated = await prisma.message.update({
+        where: { id: messageId },
+        data: { pinnedAt: null, pinnedBy: null },
+      });
+
+      io.to(`chat:${classId}`).emit("message-unpinned", { ...updated, classId });
+    });
+
     socket.on("typing", (classId: string) => {
       socket.to(`chat:${classId}`).emit("user-typing", {
         userId,
@@ -202,6 +243,48 @@ export function setupSocket(io: Server): void {
       });
 
       socket.to(`dm:${conversationId}`).emit("dm-read-update", { conversationId, userId, lastReadAt });
+    });
+
+    socket.on("pin-dm", async (data: { conversationId: string; messageId: string }) => {
+      const { conversationId, messageId } = data;
+      const conversation = await prisma.directConversation.findUnique({
+        where: { id: conversationId },
+      });
+      if (!conversation) return;
+      if (conversation.participant1Id !== userId && conversation.participant2Id !== userId) return;
+
+      const message = await prisma.directMessage.findFirst({
+        where: { id: messageId, conversationId },
+      });
+      if (!message) return;
+
+      const updated = await prisma.directMessage.update({
+        where: { id: messageId },
+        data: { pinnedAt: new Date(), pinnedBy: userId },
+      });
+
+      io.to(`dm:${conversationId}`).emit("dm-pinned", { ...updated, conversationId });
+    });
+
+    socket.on("unpin-dm", async (data: { conversationId: string; messageId: string }) => {
+      const { conversationId, messageId } = data;
+      const conversation = await prisma.directConversation.findUnique({
+        where: { id: conversationId },
+      });
+      if (!conversation) return;
+      if (conversation.participant1Id !== userId && conversation.participant2Id !== userId) return;
+
+      const message = await prisma.directMessage.findFirst({
+        where: { id: messageId, conversationId },
+      });
+      if (!message) return;
+
+      const updated = await prisma.directMessage.update({
+        where: { id: messageId },
+        data: { pinnedAt: null, pinnedBy: null },
+      });
+
+      io.to(`dm:${conversationId}`).emit("dm-unpinned", { ...updated, conversationId });
     });
 
     socket.on("dm-typing", (conversationId: string) => {

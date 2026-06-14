@@ -105,6 +105,33 @@ export class ChatController {
     }
   }
 
+  static async getPinned(req: Request, res: Response) {
+    try {
+      const userId = req.user!.userId;
+      const classId = req.params.classId as string;
+
+      const membership = await checkMembership(classId, userId, req.headers.authorization);
+      if (!membership) {
+        return sendError(res, "Not a member of this classroom", 403);
+      }
+
+      const room = await prisma.chatRoom.findUnique({ where: { classId } });
+      if (!room) {
+        return sendError(res, "Chat room not found", 404);
+      }
+
+      const pinned = await prisma.message.findMany({
+        where: { chatRoomId: room.id, pinnedAt: { not: null } },
+        orderBy: { pinnedAt: "desc" },
+      });
+
+      sendSuccess(res, pinned, "Pinned messages retrieved");
+    } catch (error) {
+      console.error("Error getting pinned messages:", error);
+      sendError(res, "Failed to get pinned messages", 500);
+    }
+  }
+
   static async getOnlineMembers(req: Request, res: Response) {
     try {
       const userId = req.user!.userId;

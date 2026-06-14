@@ -155,6 +155,35 @@ export class DmController {
     }
   }
 
+  static async getPinned(req: Request, res: Response) {
+    try {
+      const userId = req.user!.userId;
+      const conversationId = req.params.conversationId as string;
+
+      const conversation = await prisma.directConversation.findUnique({
+        where: { id: conversationId },
+      });
+
+      if (!conversation) {
+        return sendError(res, "Conversation not found", 404);
+      }
+
+      if (conversation.participant1Id !== userId && conversation.participant2Id !== userId) {
+        return sendError(res, "Not a participant in this conversation", 403);
+      }
+
+      const pinned = await prisma.directMessage.findMany({
+        where: { conversationId, pinnedAt: { not: null } },
+        orderBy: { pinnedAt: "desc" },
+      });
+
+      sendSuccess(res, pinned, "Pinned messages retrieved");
+    } catch (error) {
+      console.error("Error getting pinned DM messages:", error);
+      sendError(res, "Failed to get pinned messages", 500);
+    }
+  }
+
   static async getSharedFiles(req: Request, res: Response) {
     try {
       const userId = req.user!.userId;
