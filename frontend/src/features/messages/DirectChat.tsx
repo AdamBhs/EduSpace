@@ -22,6 +22,7 @@ import {
 import FileAttachment from "@/shared/components/FileAttachment";
 import Linkify from "@/shared/components/Linkify";
 import MediaFilesPanel from "@/shared/components/MediaFilesPanel";
+import { MessageReactions, ReactionPicker } from "@/shared/components/MessageReactions";
 import type { DirectMessage, UserSummary } from "@/shared/types";
 import { useAuth } from "@/context/AuthContext";
 
@@ -145,6 +146,10 @@ const DirectChat = () => {
       );
     });
 
+    socket.on("dm-reaction-update", ({ messageId, reactions }: { conversationId: string; messageId: string; reactions: DirectMessage["reactions"] }) => {
+      setMessages((prev) => prev.map((m) => (m.id === messageId ? { ...m, reactions } : m)));
+    });
+
     socket.on("dm-user-typing", ({ userId: typerId }: { userId: string }) => {
       setTypingUsers((prev) => new Set(prev).add(typerId));
     });
@@ -164,6 +169,7 @@ const DirectChat = () => {
       socket.off("dm-read-update");
       socket.off("dm-pinned");
       socket.off("dm-unpinned");
+      socket.off("dm-reaction-update");
       socket.off("dm-user-typing");
       socket.off("dm-user-stop-typing");
       socket.off("connect");
@@ -222,6 +228,23 @@ const DirectChat = () => {
     document
       .getElementById(`dm-${messageId}`)
       ?.scrollIntoView({ behavior: "smooth", block: "center" });
+  };
+
+  const reactToMessage = (msg: DirectMessage, emoji: string) => {
+    if (!conversationId) return;
+    connectSocket().emit("react-dm", { conversationId, messageId: msg.id, emoji });
+  };
+
+  const toggleReaction = (msg: DirectMessage, emoji: string) => {
+    if (!conversationId) return;
+    const mine = !!msg.reactions
+      ?.find((r) => r.emoji === emoji)
+      ?.userIds.includes(user?.userId ?? "");
+    connectSocket().emit(mine ? "unreact-dm" : "react-dm", {
+      conversationId,
+      messageId: msg.id,
+      emoji,
+    });
   };
 
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -379,13 +402,16 @@ const DirectChat = () => {
                   showAvatar ? "mt-3" : "mt-0.5"
                 } ${msg.pinnedAt ? "bg-amber-50" : ""}`}
               >
-                <button
-                  onClick={() => (msg.pinnedAt ? unpinMessage(msg.id) : pinMessage(msg.id))}
-                  title={msg.pinnedAt ? "Unpin message" : "Pin message"}
-                  className="absolute right-1 top-1 opacity-0 group-hover:opacity-100 p-1 rounded hover:bg-[#E2E8F0] text-[#94A3B8] cursor-pointer transition-opacity"
-                >
-                  {msg.pinnedAt ? <PinOff className="w-3.5 h-3.5" /> : <Pin className="w-3.5 h-3.5" />}
-                </button>
+                <div className="absolute right-1 top-1 flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
+                  <ReactionPicker onPick={(e) => reactToMessage(msg, e)} />
+                  <button
+                    onClick={() => (msg.pinnedAt ? unpinMessage(msg.id) : pinMessage(msg.id))}
+                    title={msg.pinnedAt ? "Unpin message" : "Pin message"}
+                    className="p-1 rounded hover:bg-[#E2E8F0] text-[#94A3B8] cursor-pointer"
+                  >
+                    {msg.pinnedAt ? <PinOff className="w-3.5 h-3.5" /> : <Pin className="w-3.5 h-3.5" />}
+                  </button>
+                </div>
                 <div className="w-8 shrink-0">
                   {showAvatar && (
                     <Avatar className="w-8 h-8">
@@ -422,6 +448,11 @@ const DirectChat = () => {
                   {msg.fileKey && msg.fileName && (
                     <FileAttachment fileKey={msg.fileKey} fileName={msg.fileName} />
                   )}
+                  <MessageReactions
+                    reactions={msg.reactions}
+                    myId={user?.userId}
+                    onToggle={(e) => toggleReaction(msg, e)}
+                  />
                 </div>
               </div>
             );

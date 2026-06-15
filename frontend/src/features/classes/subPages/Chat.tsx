@@ -26,6 +26,7 @@ import {
 import FileAttachment from "@/shared/components/FileAttachment";
 import Linkify from "@/shared/components/Linkify";
 import MediaFilesPanel from "@/shared/components/MediaFilesPanel";
+import { MessageReactions, ReactionPicker } from "@/shared/components/MessageReactions";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -155,6 +156,10 @@ const Chat = () => {
       );
     });
 
+    socket.on("reaction-update", ({ messageId, reactions }: { classId: string; messageId: string; reactions: ChatMessage["reactions"] }) => {
+      setMessages((prev) => prev.map((m) => (m.id === messageId ? { ...m, reactions } : m)));
+    });
+
     socket.on("presence-update", (userIds: string[]) => {
       setOnlineUserIds(userIds);
     });
@@ -177,6 +182,7 @@ const Chat = () => {
       socket.off("read-update");
       socket.off("message-pinned");
       socket.off("message-unpinned");
+      socket.off("reaction-update");
       socket.off("presence-update");
       socket.off("user-typing");
       socket.off("user-stop-typing");
@@ -236,6 +242,23 @@ const Chat = () => {
     document
       .getElementById(`msg-${messageId}`)
       ?.scrollIntoView({ behavior: "smooth", block: "center" });
+  };
+
+  const reactToMessage = (msg: ChatMessage, emoji: string) => {
+    if (!classId) return;
+    connectSocket().emit("react-message", { classId, messageId: msg.id, emoji });
+  };
+
+  const toggleReaction = (msg: ChatMessage, emoji: string) => {
+    if (!classId) return;
+    const mine = !!msg.reactions
+      ?.find((r) => r.emoji === emoji)
+      ?.userIds.includes(user?.userId ?? "");
+    connectSocket().emit(mine ? "unreact-message" : "react-message", {
+      classId,
+      messageId: msg.id,
+      emoji,
+    });
   };
 
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -455,13 +478,16 @@ const Chat = () => {
                         showAvatar ? "mt-3" : "mt-0.5"
                       } ${msg.pinnedAt ? "bg-amber-50" : ""}`}
                     >
-                      <button
-                        onClick={() => (msg.pinnedAt ? unpinMessage(msg.id) : pinMessage(msg.id))}
-                        title={msg.pinnedAt ? "Unpin message" : "Pin message"}
-                        className="absolute right-1 top-1 opacity-0 group-hover:opacity-100 p-1 rounded hover:bg-[#E2E8F0] text-[#94A3B8] cursor-pointer transition-opacity"
-                      >
-                        {msg.pinnedAt ? <PinOff className="w-3.5 h-3.5" /> : <Pin className="w-3.5 h-3.5" />}
-                      </button>
+                      <div className="absolute right-1 top-1 flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <ReactionPicker onPick={(e) => reactToMessage(msg, e)} />
+                        <button
+                          onClick={() => (msg.pinnedAt ? unpinMessage(msg.id) : pinMessage(msg.id))}
+                          title={msg.pinnedAt ? "Unpin message" : "Pin message"}
+                          className="p-1 rounded hover:bg-[#E2E8F0] text-[#94A3B8] cursor-pointer"
+                        >
+                          {msg.pinnedAt ? <PinOff className="w-3.5 h-3.5" /> : <Pin className="w-3.5 h-3.5" />}
+                        </button>
+                      </div>
                       <div className="w-8 shrink-0">
                         {showAvatar && (
                           <Avatar className="w-8 h-8">
@@ -502,6 +528,11 @@ const Chat = () => {
                         {msg.fileKey && msg.fileName && (
                           <FileAttachment fileKey={msg.fileKey} fileName={msg.fileName} />
                         )}
+                        <MessageReactions
+                          reactions={msg.reactions}
+                          myId={user?.userId}
+                          onToggle={(e) => toggleReaction(msg, e)}
+                        />
                       </div>
                     </div>
                   );

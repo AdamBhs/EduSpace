@@ -235,6 +235,7 @@ export type ChatMessage = {
   fileName: string | null;
   pinnedAt: string | null;
   pinnedBy: string | null;
+  reactions?: MessageReactionSummary[];
   createdAt: string;
   classId?: string;
 };
@@ -242,6 +243,12 @@ export type ChatMessage = {
 export type MessageReadState = {
   userId: string;
   lastReadAt: string;
+};
+
+export type MessageReactionSummary = {
+  emoji: string;
+  count: number;
+  userIds: string[];
 };
 
 // ─── Direct Messages ────────────────────────────────────────
@@ -255,6 +262,7 @@ export type DirectMessage = {
   fileName: string | null;
   pinnedAt: string | null;
   pinnedBy: string | null;
+  reactions?: MessageReactionSummary[];
   createdAt: string;
 };
 
