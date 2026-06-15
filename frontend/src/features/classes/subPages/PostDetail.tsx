@@ -2,8 +2,9 @@ import { useState, useCallback } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { getPostById, getComments, createComment, updateComment, deleteComment, deletePost, getSubmissions, submitAssignment, submitQuiz, submitQuestion, gradeSubmission } from "@/services/content-service";
-import { getClassroomById } from "@/services/classroom-service";
+import { getClassroomById, getMembers } from "@/services/classroom-service";
 import { getUsers } from "@/services/user-service";
+import { MentionInput, MentionText } from "@/shared/components/Mention";
 import { getFileUrl } from "@/services/file-service";
 import { uploadMultipleFiles } from "@/services/file-service";
 import { useAuth } from "@/context/AuthContext";
@@ -66,6 +67,7 @@ const PostDetail = () => {
   const { user } = useAuth();
 
   const [commentText, setCommentText] = useState("");
+  const [commentMentions, setCommentMentions] = useState<string[]>([]);
   const [editingCommentId, setEditingCommentId] = useState<string | null>(null);
   const [editingCommentText, setEditingCommentText] = useState("");
   const [submissionText, setSubmissionText] = useState("");
@@ -112,12 +114,25 @@ const PostDetail = () => {
     enabled: !!postId && (isAssignment || isQuiz || isQuestion) && isTeaching,
   });
 
+  const { data: membersData } = useQuery({
+    queryKey: ["members", classId],
+    queryFn: () => getMembers(classId!),
+    enabled: !!classId,
+  });
+  const memberList = membersData?.members ?? [];
+
   const allComments = comments ?? post?.comments ?? [];
   const commentAuthorIds = [...new Set(allComments.map((c) => c.authorId))];
   const submissionStudentIds = Array.isArray(submissions)
     ? [...new Set(submissions.map((s) => s.studentId))]
     : [];
-  const allUserIds = [...new Set([...commentAuthorIds, ...submissionStudentIds])];
+  const allUserIds = [
+    ...new Set([
+      ...commentAuthorIds,
+      ...submissionStudentIds,
+      ...memberList.map((m) => m.userId),
+    ]),
+  ];
 
   const { data: userMap } = useQuery<Map<string, UserSummary>>({
     queryKey: ["users", allUserIds.sort().join(",")],
@@ -162,9 +177,10 @@ const PostDetail = () => {
   };
 
   const addComment = useMutation({
-    mutationFn: () => createComment(postId!, commentText.trim()),
+    mutationFn: () => createComment(postId!, commentText.trim(), commentMentions),
     onSuccess: () => {
       setCommentText("");
+      setCommentMentions([]);
       queryClient.invalidateQueries({ queryKey: ["comments", postId] });
       queryClient.invalidateQueries({ queryKey: ["post", postId] });
     },
@@ -266,6 +282,14 @@ const PostDetail = () => {
     }
     return "?";
   };
+
+  const mentionMembers = memberList
+    .filter((m) => m.userId !== user?.userId)
+    .map((m) => ({ userId: m.userId, name: userName(m.userId) }))
+    .filter((m) => m.name && m.name !== "Unknown");
+  const memberNames = memberList
+    .map((m) => userName(m.userId))
+    .filter((n) => n && n !== "Unknown");
 
   const mySubmission = !Array.isArray(submissions) ? submissions : undefined;
   const allSubmissions = Array.isArray(submissions) ? submissions : [];
@@ -726,7 +750,9 @@ const PostDetail = () => {
                             </button>
                           </div>
                         ) : (
-                          <p className="text-sm text-[#334155] mt-0.5">{c.content}</p>
+                          <p className="text-sm text-[#334155] mt-0.5 break-words">
+                            <MentionText text={c.content} names={memberNames} />
+                          </p>
                         )}
                       </div>
                     </div>
@@ -746,15 +772,16 @@ const PostDetail = () => {
                     </AvatarFallback>
                   </Avatar>
                   <div className="flex-1 flex gap-2">
-                    <input
-                      type="text"
+                    <MentionInput
                       value={commentText}
-                      onChange={(e) => setCommentText(e.target.value)}
+                      onChange={setCommentText}
+                      members={mentionMembers}
+                      onMentionsChange={setCommentMentions}
                       placeholder="Add a comment..."
                       onKeyDown={(e) => {
                         if (e.key === "Enter" && commentText.trim()) addComment.mutate();
                       }}
-                      className="flex-1 rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm outline-none focus:border-blue-500"
+                      className="w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm outline-none focus:border-blue-500"
                     />
                     <Button
                       size="sm"

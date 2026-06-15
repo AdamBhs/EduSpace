@@ -89,8 +89,12 @@ export const getComments = async (postId: string) => {
   return response.data.data;
 };
 
-export const createComment = async (postId: string, content: string) => {
-  const response = await api.post("/content/api/comments", { postId, content });
+export const createComment = async (
+  postId: string,
+  content: string,
+  mentions?: string[],
+) => {
+  const response = await api.post("/content/api/comments", { postId, content, mentions });
   return response.data.data;
 };
 
