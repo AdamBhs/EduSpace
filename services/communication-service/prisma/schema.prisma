@@ -30,12 +30,27 @@ model Message {
   pinnedBy   String?   @map("pinned_by") @db.Uuid
   createdAt  DateTime  @default(now()) @map("created_at")
 
-  chatRoom ChatRoom @relation(fields: [chatRoomId], references: [id], onDelete: Cascade)
+  chatRoom  ChatRoom          @relation(fields: [chatRoomId], references: [id], onDelete: Cascade)
+  reactions MessageReaction[]
 
   @@index([chatRoomId, createdAt])
   @@index([chatRoomId, pinnedAt])
   @@index([senderId])
   @@map("messages")
+}
+
+model MessageReaction {
+  id        String   @id @default(uuid()) @db.Uuid
+  messageId String   @map("message_id") @db.Uuid
+  userId    String   @map("user_id") @db.Uuid
+  emoji     String
+  createdAt DateTime @default(now()) @map("created_at")
+
+  message Message @relation(fields: [messageId], references: [id], onDelete: Cascade)
+
+  @@unique([messageId, userId, emoji])
+  @@index([messageId])
+  @@map("message_reactions")
 }
 
 model ChatReadState {
@@ -78,12 +93,27 @@ model DirectMessage {
   pinnedBy       String?   @map("pinned_by") @db.Uuid
   createdAt      DateTime  @default(now()) @map("created_at")
 
-  conversation DirectConversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  conversation DirectConversation      @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  reactions    DirectMessageReaction[]
 
   @@index([conversationId, createdAt])
   @@index([conversationId, pinnedAt])
   @@index([senderId])
   @@map("direct_messages")
+}
+
+model DirectMessageReaction {
+  id              String   @id @default(uuid()) @db.Uuid
+  directMessageId String   @map("direct_message_id") @db.Uuid
+  userId          String   @map("user_id") @db.Uuid
+  emoji           String
+  createdAt       DateTime @default(now()) @map("created_at")
+
+  directMessage DirectMessage @relation(fields: [directMessageId], references: [id], onDelete: Cascade)
+
+  @@unique([directMessageId, userId, emoji])
+  @@index([directMessageId])
+  @@map("direct_message_reactions")
 }
 
 model DirectReadState {

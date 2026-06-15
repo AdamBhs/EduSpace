@@ -4,6 +4,7 @@ import { publishEvent, Events } from "../../../../shared/src";
 import { prisma } from "../db/prisma";
 import { setOnline, setOffline, refreshPresence, getOnlineUsers } from "../utils/redis";
 import { checkFriendship, checkMembership } from "../utils/classService";
+import { groupReactions } from "../utils/reactions";
 
 interface AuthSocket extends Socket {
   userId?: string;
@@ -87,6 +88,7 @@ export function setupSocket(io: Server): void {
       io.to(`chat:${classId}`).emit("new-message", {
         ...message,
         classId,
+        reactions: [],
       });
 
       await publishEvent(Events.CHAT_MESSAGE, {
@@ -152,6 +154,52 @@ export function setupSocket(io: Server): void {
       });
 
       io.to(`chat:${classId}`).emit("message-unpinned", { ...updated, classId });
+    });
+
+    socket.on("react-message", async (data: { classId: string; messageId: string; emoji: string }) => {
+      const { classId, messageId, emoji } = data;
+      if (!emoji || !socket.rooms.has(`chat:${classId}`)) return;
+
+      const room = await prisma.chatRoom.findUnique({ where: { classId } });
+      if (!room) return;
+
+      const message = await prisma.message.findFirst({
+        where: { id: messageId, chatRoomId: room.id },
+      });
+      if (!message) return;
+
+      await prisma.messageReaction.upsert({
+        where: { messageId_userId_emoji: { messageId, userId, emoji } },
+        create: { messageId, userId, emoji },
+        update: {},
+      });
+
+      const rows = await prisma.messageReaction.findMany({
+        where: { messageId },
+        select: { emoji: true, userId: true },
+      });
+      io.to(`chat:${classId}`).emit("reaction-update", {
+        classId,
+        messageId,
+        reactions: groupReactions(rows),
+      });
+    });
+
+    socket.on("unreact-message", async (data: { classId: string; messageId: string; emoji: string }) => {
+      const { classId, messageId, emoji } = data;
+      if (!emoji || !socket.rooms.has(`chat:${classId}`)) return;
+
+      await prisma.messageReaction.deleteMany({ where: { messageId, userId, emoji } });
+
+      const rows = await prisma.messageReaction.findMany({
+        where: { messageId },
+        select: { emoji: true, userId: true },
+      });
+      io.to(`chat:${classId}`).emit("reaction-update", {
+        classId,
+        messageId,
+        reactions: groupReactions(rows),
+      });
     });
 
     socket.on("typing", (classId: string) => {
@@ -225,6 +273,7 @@ export function setupSocket(io: Server): void {
       io.to(`dm:${conversationId}`).emit("new-dm", {
         ...message,
         conversationId,
+        reactions: [],
       });
     });
 
@@ -285,6 +334,57 @@ export function setupSocket(io: Server): void {
       });
 
       io.to(`dm:${conversationId}`).emit("dm-unpinned", { ...updated, conversationId });
+    });
+
+    socket.on("react-dm", async (data: { conversationId: string; messageId: string; emoji: string }) => {
+      const { conversationId, messageId, emoji } = data;
+      if (!emoji) return;
+
+      const conversation = await prisma.directConversation.findUnique({ where: { id: conversationId } });
+      if (!conversation) return;
+      if (conversation.participant1Id !== userId && conversation.participant2Id !== userId) return;
+
+      const message = await prisma.directMessage.findFirst({
+        where: { id: messageId, conversationId },
+      });
+      if (!message) return;
+
+      await prisma.directMessageReaction.upsert({
+        where: { directMessageId_userId_emoji: { directMessageId: messageId, userId, emoji } },
+        create: { directMessageId: messageId, userId, emoji },
+        update: {},
+      });
+
+      const rows = await prisma.directMessageReaction.findMany({
+        where: { directMessageId: messageId },
+        select: { emoji: true, userId: true },
+      });
+      io.to(`dm:${conversationId}`).emit("dm-reaction-update", {
+        conversationId,
+        messageId,
+        reactions: groupReactions(rows),
+      });
+    });
+
+    socket.on("unreact-dm", async (data: { conversationId: string; messageId: string; emoji: string }) => {
+      const { conversationId, messageId, emoji } = data;
+      if (!emoji) return;
+
+      const conversation = await prisma.directConversation.findUnique({ where: { id: conversationId } });
+      if (!conversation) return;
+      if (conversation.participant1Id !== userId && conversation.participant2Id !== userId) return;
+
+      await prisma.directMessageReaction.deleteMany({ where: { directMessageId: messageId, userId, emoji } });
+
+      const rows = await prisma.directMessageReaction.findMany({
+        where: { directMessageId: messageId },
+        select: { emoji: true, userId: true },
+      });
+      io.to(`dm:${conversationId}`).emit("dm-reaction-update", {
+        conversationId,
+        messageId,
+        reactions: groupReactions(rows),
+      });
     });
 
     socket.on("dm-typing", (conversationId: string) => {

@@ -3,6 +3,7 @@ import { prisma } from "../db/prisma";
 import { sendSuccess, sendError } from "../../../../shared/src/utils/response";
 import { checkMembership, fetchMemberIds } from "../utils/classService";
 import { getOnlineUsers } from "../utils/redis";
+import { groupReactions } from "../utils/reactions";
 
 export class ChatController {
   static async getMessages(req: Request, res: Response) {
@@ -32,6 +33,7 @@ export class ChatController {
         },
         orderBy: { createdAt: "desc" },
         take: limit,
+        include: { reactions: { select: { emoji: true, userId: true } } },
       });
 
       const nextCursor =
@@ -39,7 +41,11 @@ export class ChatController {
           ? messages[messages.length - 1].createdAt.toISOString()
           : null;
 
-      sendSuccess(res, { messages: messages.reverse(), nextCursor }, "Messages retrieved");
+      const shaped = messages
+        .reverse()
+        .map((m: any) => ({ ...m, reactions: groupReactions(m.reactions) }));
+
+      sendSuccess(res, { messages: shaped, nextCursor }, "Messages retrieved");
     } catch (error) {
       console.error("Error getting messages:", error);
       sendError(res, "Failed to get messages", 500);
