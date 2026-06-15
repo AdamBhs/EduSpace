@@ -27,6 +27,7 @@ model Classroom {
   section     String?
   coverImage  String?       @map("cover_image")
   chatEnabled Boolean       @default(true) @map("chat_enabled")
+  archived    Boolean       @default(false)
   creatorId   String        @map("creator_id") @db.Uuid
   createdAt   DateTime      @default(now()) @map("created_at")
   updatedAt   DateTime      @updatedAt @map("updated_at")

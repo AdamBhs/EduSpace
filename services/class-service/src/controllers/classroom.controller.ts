@@ -224,7 +224,7 @@ export class ClassroomController {
     try {
       const userId = req.user!.userId;
       const classId = req.params.classId as string;
-      const { name, description, subject, section, chatEnabled, coverImage } = req.body;
+      const { name, description, subject, section, chatEnabled, coverImage, archived } = req.body;
 
       const member = await prisma.member.findUnique({
         where: { classId_userId: { classId, userId } },
@@ -243,6 +243,7 @@ export class ClassroomController {
           ...(section !== undefined && { section }),
           ...(chatEnabled !== undefined && { chatEnabled }),
           ...(coverImage !== undefined && { coverImage }),
+          ...(archived !== undefined && { archived: !!archived }),
         },
       });
 
