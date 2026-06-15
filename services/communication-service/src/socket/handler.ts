@@ -3,7 +3,7 @@ import { verifyToken } from "../../../../shared/src/utils/jwt";
 import { publishEvent, Events } from "../../../../shared/src";
 import { prisma } from "../db/prisma";
 import { setOnline, setOffline, refreshPresence, getOnlineUsers } from "../utils/redis";
-import { checkFriendship, checkMembership } from "../utils/classService";
+import { checkFriendship, checkMembership, fetchMemberIds } from "../utils/classService";
 import { groupReactions } from "../utils/reactions";
 
 interface AuthSocket extends Socket {
@@ -62,8 +62,9 @@ export function setupSocket(io: Server): void {
       content?: string;
       fileKey?: string;
       fileName?: string;
+      mentions?: string[];
     }) => {
-      const { classId, content, fileKey, fileName } = data;
+      const { classId, content, fileKey, fileName, mentions } = data;
 
       if (!content && !fileKey) return;
 
@@ -96,6 +97,23 @@ export function setupSocket(io: Server): void {
         senderId: userId,
         content: content || null,
       });
+
+      // Notify mentioned members (validated, excluding sender)
+      if (Array.isArray(mentions) && mentions.length > 0) {
+        const memberSet = new Set(await fetchMemberIds(classId));
+        const mentionedUserIds = [...new Set(mentions)].filter(
+          (id) => id !== userId && memberSet.has(id),
+        );
+        if (mentionedUserIds.length > 0) {
+          await publishEvent(Events.MENTION, {
+            mentionedUserIds,
+            mentionerId: userId,
+            classId,
+            preview: content || null,
+            context: "chat",
+          });
+        }
+      }
     });
 
     socket.on("mark-read", async (classId: string) => {

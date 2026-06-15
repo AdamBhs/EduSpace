@@ -1,13 +1,14 @@
 import { Request, Response } from "express";
 import { prisma } from "../db/prisma";
 import { sendSuccess, sendError } from "../../../../shared/src/utils/response";
-import { checkMembership } from "../utils/classService";
+import { publishEvent, Events } from "../../../../shared/src";
+import { checkMembership, fetchMemberIds } from "../utils/classService";
 
 export class CommentController {
   static async create(req: Request, res: Response) {
     try {
       const userId = req.user!.userId;
-      const { postId, content } = req.body;
+      const { postId, content, mentions } = req.body;
 
       const post = await prisma.post.findUnique({ where: { id: postId } });
       if (!post) {
@@ -26,6 +27,24 @@ export class CommentController {
           content,
         },
       });
+
+      // Notify mentioned users (validated against classroom membership, excluding self)
+      if (Array.isArray(mentions) && mentions.length > 0) {
+        const memberSet = new Set(await fetchMemberIds(post.classId));
+        const mentionedUserIds = [...new Set(mentions as string[])].filter(
+          (id) => id !== userId && memberSet.has(id),
+        );
+        if (mentionedUserIds.length > 0) {
+          await publishEvent(Events.MENTION, {
+            mentionedUserIds,
+            mentionerId: userId,
+            classId: post.classId,
+            postId,
+            preview: content || null,
+            context: "comment",
+          });
+        }
+      }
 
       sendSuccess(res, comment, "Comment created", 201);
     } catch (error) {
