@@ -2,6 +2,7 @@ import { SmilePlus } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
+  DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/shared/components/ui/dropdown-menu";
 import type { MessageReactionSummary } from "@/shared/types";
@@ -56,13 +57,13 @@ export function ReactionPicker({ onPick }: { onPick: (emoji: string) => void }) 
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="flex gap-0.5 p-1 min-w-0 w-auto">
         {REACTION_EMOJIS.map((e) => (
-          <button
+          <DropdownMenuItem
             key={e}
-            onClick={() => onPick(e)}
-            className="text-base leading-none rounded px-1 py-0.5 hover:bg-[#F1F5F9] cursor-pointer"
+            onSelect={() => onPick(e)}
+            className="text-base leading-none rounded px-1 py-0.5 cursor-pointer focus:bg-[#F1F5F9]"
           >
             {e}
-          </button>
+          </DropdownMenuItem>
         ))}
       </DropdownMenuContent>
     </DropdownMenu>
