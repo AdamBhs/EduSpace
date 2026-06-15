@@ -24,9 +24,9 @@ import {
   X,
 } from "lucide-react";
 import FileAttachment from "@/shared/components/FileAttachment";
-import Linkify from "@/shared/components/Linkify";
 import MediaFilesPanel from "@/shared/components/MediaFilesPanel";
 import { MessageReactions, ReactionPicker } from "@/shared/components/MessageReactions";
+import { MentionInput, MentionText } from "@/shared/components/Mention";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -42,6 +42,7 @@ const Chat = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
   const [message, setMessage] = useState("");
+  const [mentionIds, setMentionIds] = useState<string[]>([]);
   const [showMembers, setShowMembers] = useState(true);
   const [mediaView, setMediaView] = useState<null | "media" | "files" | "links">(null);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
@@ -223,9 +224,10 @@ const Chat = () => {
     if (!text || !classId) return;
 
     const socket = connectSocket();
-    socket.emit("send-message", { classId, content: text });
+    socket.emit("send-message", { classId, content: text, mentions: mentionIds });
     socket.emit("stop-typing", classId);
     setMessage("");
+    setMentionIds([]);
   };
 
   const pinMessage = (messageId: string) => {
@@ -351,6 +353,14 @@ const Chat = () => {
   const typingNames = [...typingUsers]
     .filter((id) => id !== user?.userId)
     .map((id) => userName(id).split(" ")[0]);
+
+  const mentionMembers = memberList
+    .filter((m) => m.userId !== user?.userId)
+    .map((m) => ({ userId: m.userId, name: userName(m.userId) }))
+    .filter((m) => m.name && m.name !== "Unknown");
+  const memberNames = memberList
+    .map((m) => userName(m.userId))
+    .filter((n) => n && n !== "Unknown");
 
   const lastMessage = messages[messages.length - 1];
   const seenByIds = lastMessage
@@ -522,7 +532,7 @@ const Chat = () => {
                         )}
                         {msg.content && (
                           <p className="text-sm text-[#334155] break-words">
-                            <Linkify text={msg.content} />
+                            <MentionText text={msg.content} names={memberNames} />
                           </p>
                         )}
                         {msg.fileKey && msg.fileName && (
@@ -588,12 +598,14 @@ const Chat = () => {
                     {myInitials}
                   </AvatarFallback>
                 </Avatar>
-                <input
+                <MentionInput
                   value={message}
-                  onChange={(e) => setMessage(e.target.value)}
+                  onChange={setMessage}
+                  members={mentionMembers}
+                  onMentionsChange={setMentionIds}
                   onKeyDown={handleKeyDown}
                   placeholder={`Message ${classroom?.name}...`}
-                  className="flex-1 text-sm text-[#0F172A] placeholder:text-[#CBD5E1] outline-none bg-transparent"
+                  className="w-full text-sm text-[#0F172A] placeholder:text-[#CBD5E1] outline-none bg-transparent"
                   disabled={!connected}
                 />
                 <button
