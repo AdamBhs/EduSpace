@@ -46,6 +46,7 @@ export async function startConsumers(): Promise<void> {
       Events.POST_CREATED,
       Events.SUBMISSION_GRADED,
       Events.CHAT_MESSAGE,
+      Events.MENTION,
       Events.USER_DELETED,
     ],
     async (event, payload) => {
@@ -122,6 +123,25 @@ export async function startConsumers(): Promise<void> {
               ? `New message in the group chat: "${payload.content.slice(0, 80)}${payload.content.length > 80 ? "..." : ""}"`
               : "A file was shared in the group chat",
             payload.classId,
+          );
+          break;
+        }
+
+        case Events.MENTION: {
+          const recipients = (payload.mentionedUserIds as string[] | undefined ?? [])
+            .filter((id: string) => id && id !== payload.mentionerId);
+          if (recipients.length === 0) break;
+
+          const where = payload.context === "comment" ? "a comment" : "the group chat";
+          await notifyMany(
+            recipients,
+            "MENTION",
+            "You were mentioned",
+            payload.preview
+              ? `You were mentioned in ${where}: "${payload.preview.slice(0, 80)}${payload.preview.length > 80 ? "..." : ""}"`
+              : `You were mentioned in ${where}`,
+            payload.classId,
+            payload.postId,
           );
           break;
         }

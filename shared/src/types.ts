@@ -39,6 +39,7 @@ export const Events = {
   CHAT_MESSAGE: "chat.message",
   CHAPTER_DELETED: "chapter.deleted",
   USER_DELETED: "user.deleted",
+  MENTION: "mention",
 } as const;
 
 // ─── Display labels per classroom type ───────────────────────

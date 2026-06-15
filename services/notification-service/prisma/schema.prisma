@@ -12,6 +12,7 @@ enum NotificationType {
   ASSIGNMENT_DUE
   SUBMISSION_GRADED
   CHAT_MESSAGE
+  MENTION
 }
 
 model Notification {
