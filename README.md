@@ -4,24 +4,34 @@ A classroom management platform built as a microservices monorepo. Create teachi
 
 ## Features
 
-- **Two classroom types** — Teaching (with grading) and Friendly (study groups)
-- **Organized content** — Posts grouped into chapters: announcements, study materials (Cours, TD, TP, Resume), assignments, quizzes
-- **Assignments & grading** — Submit work, grade with feedback, full grade table with class averages and export to CSV
-- **Real-time chat** — Group chat per classroom with typing indicators and online presence
-- **Notifications** — In-app notifications for new posts, grades, member activity, and due date reminders
-- **Full-text search** — Search posts across classrooms powered by Elasticsearch
-- **Calendar & To-Do** — View assignment due dates on a calendar, track upcoming work
-- **File sharing** — Upload and download attachments on posts and submissions
+- **Two classroom types** — Teaching (with grading) and Friendly (study groups), each with per-classroom Admin/Member roles
+- **Organized content** — Posts grouped into chapters: announcements, study materials (Cours, TD, TP, Resume), assignments, quizzes, and questions
+- **Pinned posts** — Admins pin important posts to the top of the stream
+- **Comments** — Discussion on every post, with @mention autocomplete and highlighting
+- **Assignments & grading** — Submit work with file attachments, grade with feedback, and view a full grade table with class averages, grade categories, and CSV export
+- **Auto-graded quizzes** — Multiple-choice quizzes and questions graded instantly, with per-question results
+- **Real-time group chat** — One chat room per classroom with typing indicators, online presence, emoji reactions, pinned messages, read receipts, shared files/links, and @mentions
+- **Direct messages** — 1:1 messaging between classmates, with reactions, pinned messages, read receipts, and unread badges
+- **Notifications** — Real-time in-app notifications (Server-Sent Events) for new posts, grades, member activity, and due-date reminders
+- **Full-text search** — Search posts across all your classrooms, powered by Elasticsearch
+- **Calendar & To-Do** — View assignment due dates on a calendar and track upcoming vs. completed work
+- **File sharing** — Upload and download attachments on posts, submissions, and chat, stored in MinIO
+- **Profiles & accounts** — Editable profile with avatar upload, email verification, and password reset
+- **Classroom management** — Join via class code, manage members and roles, and archive classrooms
 
 ## Screenshots
 
 <p>
-  <img src="docs/screenshots/dashboard.png" width="400" alt="Dashboard" />
-  <img src="docs/screenshots/stream.png" width="400" alt="Stream" />
+  <img src="docs/screenshots/dashboard.png" width="420" alt="Dashboard — your classrooms" />
+  <img src="docs/screenshots/classwork.png" width="420" alt="Classwork — posts organized into chapters" />
 </p>
 <p>
-  <img src="docs/screenshots/classwork.png" width="400" alt="Classwork" />
-  <img src="docs/screenshots/chat.png" width="400" alt="Chat" />
+  <img src="docs/screenshots/post-assignment.png" width="420" alt="Assignment — submissions and grading" />
+  <img src="docs/screenshots/post-quiz.png" width="420" alt="Quiz — auto-graded with per-question results" />
+</p>
+<p>
+  <img src="docs/screenshots/chat.png" width="420" alt="Real-time group chat" />
+  <img src="docs/screenshots/messenger.png" width="420" alt="Direct messages" />
 </p>
 
 ## Architecture
@@ -107,24 +117,6 @@ Go to **http://localhost:5173**
 3. Enter the code to verify your account, then log in
 4. Create a classroom and explore the app
 
-## Project Structure
-
-```
-EduSpace/
-├── api-gateway/                  # JWT verify, rate limit, proxy
-├── services/
-│   ├── user-service/             # Auth, profiles
-│   ├── class-service/            # Classrooms, members, chapters
-│   ├── content-service/          # Posts, assignments, grading
-│   ├── communication-service/    # Group chat (WebSocket)
-│   ├── notification-service/     # Notifications, email
-│   ├── search-service/           # Full-text search (Elasticsearch)
-│   └── file-service/             # File upload (MinIO)
-├── shared/                       # Shared types, utils, middleware
-├── frontend/                     # React 19 SPA
-└── docker/                       # Docker Compose, NGINX config, DB init
-```
-
 ## Useful Commands
 
 ```bash
@@ -144,14 +136,7 @@ pnpm --filter user-service dev
 pnpm --filter frontend dev
 ```
 
-## Troubleshooting
-
-**Services won't start?** Make sure Docker containers are running first (`docker compose -f docker/docker-compose.yml ps`). Services depend on PostgreSQL, Redis, and RabbitMQ.
-
-**Port already in use?** Find the process with `lsof -i :PORT` and kill it, or stop other running instances.
-
-**Blank page in browser?** Check the browser console for errors. Ensure all backend services and NGINX (port 5000) are up.
-
 ## Authors
 
-Built as a university project.
+- BEN HASSINE Adam
+- CHEBIL Adam Taieb
