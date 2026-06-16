@@ -65,7 +65,12 @@ const DirectChat = () => {
   });
 
   const scrollToBottom = useCallback(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+    // Scroll the messages viewport directly (scrollIntoView would bubble up and
+    // scroll the page container when messages don't overflow).
+    const vp = scrollAreaRef.current?.querySelector(
+      '[data-slot="scroll-area-viewport"]',
+    ) as HTMLElement | null;
+    if (vp) vp.scrollTop = vp.scrollHeight;
   }, []);
 
   useEffect(() => {
@@ -76,7 +81,7 @@ const DirectChat = () => {
       setNextCursor(data.nextCursor);
 
       setTimeout(() => {
-        messagesEndRef.current?.scrollIntoView({ behavior: "instant" });
+        scrollToBottom();
       }, 50);
     });
 
@@ -183,7 +188,7 @@ const DirectChat = () => {
     if (!nextCursor || loadingMore || !conversationId) return;
     setLoadingMore(true);
 
-    const scrollEl = scrollAreaRef.current?.querySelector("[data-radix-scroll-area-viewport]");
+    const scrollEl = scrollAreaRef.current?.querySelector('[data-slot="scroll-area-viewport"]');
     const prevHeight = scrollEl?.scrollHeight ?? 0;
 
     const data = await getDmMessages(conversationId, nextCursor);

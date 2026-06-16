@@ -91,7 +91,13 @@ const Chat = () => {
   });
 
   const scrollToBottom = useCallback(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+    // Scroll the messages viewport directly. Using scrollIntoView here would
+    // bubble up and scroll the chat container when messages don't overflow,
+    // pushing the header off-screen and leaving white space below the input.
+    const vp = scrollAreaRef.current?.querySelector(
+      '[data-slot="scroll-area-viewport"]',
+    ) as HTMLElement | null;
+    if (vp) vp.scrollTop = vp.scrollHeight;
   }, []);
 
   useEffect(() => {
@@ -101,7 +107,7 @@ const Chat = () => {
       setMessages(data.messages);
       setNextCursor(data.nextCursor);
       setTimeout(() => {
-        messagesEndRef.current?.scrollIntoView({ behavior: "instant" });
+        scrollToBottom();
         hasScrolledRef.current = true;
       }, 50);
     });
@@ -199,7 +205,7 @@ const Chat = () => {
     if (!nextCursor || loadingMore || !classId) return;
     setLoadingMore(true);
 
-    const scrollEl = scrollAreaRef.current?.querySelector("[data-radix-scroll-area-viewport]");
+    const scrollEl = scrollAreaRef.current?.querySelector('[data-slot="scroll-area-viewport"]');
     const prevHeight = scrollEl?.scrollHeight ?? 0;
 
     const data = await getMessages(classId, nextCursor);

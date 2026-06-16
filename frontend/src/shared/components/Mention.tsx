@@ -21,12 +21,12 @@ export function MentionInput({
   onChange: (v: string) => void;
   members: MentionMember[];
   onMentionsChange: (ids: string[]) => void;
-  onKeyDown?: (e: React.KeyboardEvent<HTMLInputElement>) => void;
+  onKeyDown?: (e: React.KeyboardEvent<HTMLTextAreaElement>) => void;
   placeholder?: string;
   disabled?: boolean;
   className?: string;
 }) {
-  const inputRef = useRef<HTMLInputElement>(null);
+  const inputRef = useRef<HTMLTextAreaElement>(null);
   const pickedRef = useRef<MentionMember[]>([]);
   const [query, setQuery] = useState<string | null>(null);
   const [highlight, setHighlight] = useState(0);
@@ -39,6 +39,14 @@ export function MentionInput({
     onMentionsChange([...new Set(ids)]);
   }, [value, onMentionsChange]);
 
+  // Auto-grow: start at a single line, expand with content up to a max height.
+  useEffect(() => {
+    const el = inputRef.current;
+    if (!el) return;
+    el.style.height = "auto";
+    el.style.height = `${Math.min(el.scrollHeight, 120)}px`;
+  }, [value]);
+
   const candidates =
     query !== null
       ? members
@@ -46,7 +54,7 @@ export function MentionInput({
           .slice(0, 6)
       : [];
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     const text = e.target.value;
     onChange(text);
     const caret = e.target.selectionStart ?? text.length;
@@ -76,7 +84,7 @@ export function MentionInput({
     });
   };
 
-  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     if (query !== null && candidates.length > 0) {
       if (e.key === "ArrowDown") {
         e.preventDefault();
@@ -104,15 +112,16 @@ export function MentionInput({
 
   return (
     <div className="relative flex-1">
-      <input
+      <textarea
         ref={inputRef}
+        rows={1}
         value={value}
         onChange={handleChange}
         onKeyDown={handleKeyDown}
         onBlur={() => setTimeout(() => setQuery(null), 120)}
         placeholder={placeholder}
         disabled={disabled}
-        className={className}
+        className={`${className ?? ""} resize-none block max-h-30 overflow-y-auto leading-6 p-0 border-0`}
       />
       {query !== null && candidates.length > 0 && (
         <div className="absolute bottom-full left-0 mb-1 w-56 max-h-44 overflow-y-auto rounded-lg border border-[#E2E8F0] bg-white shadow-lg z-50 py-1">
