@@ -54,6 +54,7 @@ export type Classroom = {
   section: string | null;
   coverImage: string | null;
   chatEnabled: boolean;
+  archived?: boolean;
   creatorId: string;
   createdAt: string;
   updatedAt: string;

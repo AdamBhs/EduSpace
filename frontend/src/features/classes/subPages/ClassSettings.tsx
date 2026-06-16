@@ -14,7 +14,7 @@ import {
   DialogDescription,
   DialogFooter,
 } from "@/shared/components/ui/dialog";
-import { Settings, Upload, Trash2, FolderOpen } from "lucide-react";
+import { Settings, Upload, Trash2, FolderOpen, Archive } from "lucide-react";
 import type { Classroom } from "@/shared/types";
 import ChapterManager from "../components/ChapterManager";
 
@@ -77,6 +77,14 @@ const ClassSettings = () => {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["myClassrooms"] });
       navigate("/");
+    },
+  });
+
+  const archiveMutation = useMutation({
+    mutationFn: () => updateClassroom(classId!, { archived: !classroom?.archived }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["classroom", classId] });
+      queryClient.invalidateQueries({ queryKey: ["classrooms"] });
     },
   });
 
@@ -239,6 +247,34 @@ const ClassSettings = () => {
               </div>
               <ChapterManager classId={classId!} chapters={classroom.chapters ?? []} />
             </div>
+
+            {/* Archive */}
+            {isCreator && (
+              <div className="mt-6 rounded-xl border border-amber-200 bg-amber-50 p-6">
+                <h3 className="text-sm font-semibold text-amber-800 mb-1">
+                  {classroom.archived ? "Unarchive Classroom" : "Archive Classroom"}
+                </h3>
+                <p className="text-xs text-amber-600 mb-4">
+                  {classroom.archived
+                    ? "Restore this classroom to the active list for everyone."
+                    : "Hide this classroom from the active list. You can unarchive it anytime — nothing is deleted."}
+                </p>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="border-amber-300 text-amber-700 hover:bg-amber-100"
+                  onClick={() => archiveMutation.mutate()}
+                  disabled={archiveMutation.isPending}
+                >
+                  <Archive className="w-4 h-4 mr-1.5" />
+                  {archiveMutation.isPending
+                    ? "Saving..."
+                    : classroom.archived
+                      ? "Unarchive Classroom"
+                      : "Archive Classroom"}
+                </Button>
+              </div>
+            )}
 
             {/* Danger zone */}
             {isCreator && (

@@ -45,6 +45,7 @@ export const updateClassroom = async (
     section?: string;
     chatEnabled?: boolean;
     coverImage?: string;
+    archived?: boolean;
   },
 ) => {
   const response = await api.put(`/classroom/api/classroom/${classId}`, data);

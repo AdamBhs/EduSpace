@@ -23,7 +23,7 @@ import {
 import { Button } from "@/shared/components/ui/button";
 import { Badge } from "@/shared/components/ui/badge";
 import type { EnrolledClassroom } from "@/shared/types";
-import { deleteClassroomById, leaveClassroom } from "@/services/classroom-service";
+import { deleteClassroomById, leaveClassroom, updateClassroom } from "@/services/classroom-service";
 import { Trash2, LogOut } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 
@@ -49,6 +49,13 @@ const Card = ({ data }: Props) => {
 
   const leaveMutation = useMutation({
     mutationFn: () => leaveClassroom(data.classroom.id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["classrooms"] });
+    },
+  });
+
+  const archiveMutation = useMutation({
+    mutationFn: () => updateClassroom(data.classroom.id, { archived: !data.classroom.archived }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["classrooms"] });
     },
@@ -95,6 +102,11 @@ const Card = ({ data }: Props) => {
           >
             {isTeaching ? "Teaching" : "Friendly"}
           </Badge>
+          {data.classroom.archived && (
+            <Badge className="text-[10px] shrink-0 bg-white/25 text-white border-white/40">
+              Archived
+            </Badge>
+          )}
         </div>
         <p className="text-white/80 text-[14px] font-semibold truncate">
           {data.classroom.description || data.classroom.section}
@@ -150,6 +162,14 @@ const Card = ({ data }: Props) => {
               >
                 View class
               </DropdownMenuItem>
+              {isAdmin && (
+                <DropdownMenuItem
+                  onClick={() => archiveMutation.mutate()}
+                  className="cursor-pointer"
+                >
+                  {data.classroom.archived ? "Unarchive class" : "Archive class"}
+                </DropdownMenuItem>
+              )}
               {isCreator && (
                 <DropdownMenuItem
                   onSelect={(event) => {
