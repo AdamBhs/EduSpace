@@ -87,6 +87,7 @@ const MessengerLayout = () => {
     const conv = await createConversation(otherUserId);
     setShowNewChat(false);
     setFriendSearch("");
+    queryClient.invalidateQueries({ queryKey: ["dm-conversations"] });
     navigate(`/messages/${conv.id}`);
   };
 

@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { getClassroomById, getMembers } from "@/services/classroom-service";
 import { getMessages, getChatSharedFiles, getChatSharedLinks, getChatReads, getChatPinned } from "@/services/chat-service";
 import { getUsers } from "@/services/user-service";
@@ -40,6 +40,7 @@ import { createConversation } from "@/services/dm-service";
 const Chat = () => {
   const { classId } = useParams<{ classId: string }>();
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const { user } = useAuth();
   const [message, setMessage] = useState("");
   const [mentionIds, setMentionIds] = useState<string[]>([]);
@@ -345,6 +346,7 @@ const Chat = () => {
 
   const handleDirectMessage = async (memberId: string) => {
     const conv = await createConversation(memberId);
+    queryClient.invalidateQueries({ queryKey: ["dm-conversations"] });
     navigate(`/messages/${conv.id}`);
   };
 
