@@ -171,7 +171,7 @@ const Stream = () => {
           userRole={classroom!.userRole!}
           chatEnabled={classroom!.chatEnabled}
         />
-        <div className="px-75 flex flex-col pt-16 h-screen overflow-y-auto">
+        <div className="mx-auto w-full max-w-5xl px-6 flex flex-col pt-16 h-screen overflow-y-auto">
           <div className="flex flex-col text-white justify-end h-64 rounded-3xl px-8 py-8 bg-linear-to-r from-[#000000]/70 to-[#000000]/20">
             <h1 className="font-bold text-4xl">{classroom?.name}</h1>
             <p>

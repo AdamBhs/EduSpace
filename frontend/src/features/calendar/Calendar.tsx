@@ -58,10 +58,11 @@ const Calendar = () => {
 
     return filtered.map((a) => ({
       id: a.id,
-      title: `${a.title} — ${a.classroomName}`,
-      date: a.dueDate!,
+      title: a.title,
+      start: a.dueDate!,
+      allDay: true,
       color: classColorMap.get(a.classId) ?? "#2563eb",
-      extendedProps: { classId: a.classId, postId: a.id },
+      extendedProps: { classId: a.classId, postId: a.id, classroomName: a.classroomName },
     }));
   }, [allAssignments, filterClassId, classrooms]);
 

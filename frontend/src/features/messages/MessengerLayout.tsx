@@ -7,6 +7,7 @@ import { useAuth } from "@/context/AuthContext";
 import {
   Avatar,
   AvatarFallback,
+  AvatarImage,
 } from "@/shared/components/ui/avatar";
 import { ScrollArea } from "@/shared/components/ui/scroll-area";
 import { Search, Plus, X, MessageSquare, Users } from "lucide-react";
@@ -184,6 +185,7 @@ const MessengerLayout = () => {
                       className="w-full flex items-center gap-2.5 rounded-lg px-2 py-1.5 hover:bg-[#F1F5F9] cursor-pointer text-left"
                     >
                       <Avatar className="w-7 h-7">
+                        <AvatarImage src={u?.avatarUrl ?? undefined} alt="" className="object-cover" />
                         <AvatarFallback className="bg-blue-100 text-blue-700 text-[10px] font-semibold">
                           {userInitials(u)}
                         </AvatarFallback>
@@ -225,6 +227,7 @@ const MessengerLayout = () => {
                     >
                       <div className="relative">
                         <Avatar className="w-10 h-10">
+                          <AvatarImage src={otherUser?.avatarUrl ?? undefined} alt="" className="object-cover" />
                           <AvatarFallback className="bg-blue-100 text-blue-700 text-xs font-semibold">
                             {userInitials(otherUser)}
                           </AvatarFallback>
@@ -308,6 +311,7 @@ const MessengerLayout = () => {
                   >
                     <div className="relative">
                       <Avatar className="w-8 h-8">
+                        <AvatarImage src={u?.avatarUrl ?? undefined} alt="" className="object-cover" />
                         <AvatarFallback
                           className={`text-[10px] font-semibold ${
                             friend.online

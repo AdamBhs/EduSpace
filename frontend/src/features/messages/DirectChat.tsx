@@ -8,6 +8,7 @@ import { connectSocket, disconnectSocket } from "@/services/websocket";
 import {
   Avatar,
   AvatarFallback,
+  AvatarImage,
 } from "@/shared/components/ui/avatar";
 import { ScrollArea } from "@/shared/components/ui/scroll-area";
 import {
@@ -310,6 +311,7 @@ const DirectChat = () => {
       {/* Header */}
       <div className="flex items-center gap-3 px-4 py-3 border-b border-[#E2E8F0]">
         <Avatar className="w-9 h-9">
+          <AvatarImage src={otherUser?.avatarUrl ?? undefined} alt="" className="object-cover" />
           <AvatarFallback className="bg-blue-100 text-blue-700 text-xs font-semibold">
             {otherInitials}
           </AvatarFallback>
@@ -415,6 +417,7 @@ const DirectChat = () => {
                 <div className="w-8 shrink-0">
                   {showAvatar && (
                     <Avatar className="w-8 h-8">
+                      <AvatarImage src={(isMe ? user?.profile?.avatarUrl : otherUser?.avatarUrl) ?? undefined} alt="" className="object-cover" />
                       <AvatarFallback
                         className={`text-[10px] font-semibold ${
                           isMe

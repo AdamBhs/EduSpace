@@ -10,6 +10,7 @@ import NavLinksClass from "../components/NavLinksClass";
 import {
   Avatar,
   AvatarFallback,
+  AvatarImage,
 } from "@/shared/components/ui/avatar";
 import { ScrollArea } from "@/shared/components/ui/scroll-area";
 import {
@@ -316,6 +317,13 @@ const Chat = () => {
     return "?";
   };
 
+  const userAvatar = (userId: string) => {
+    const u = userMap?.get(userId);
+    if (u?.avatarUrl) return u.avatarUrl;
+    if (userId === user?.userId) return user?.profile?.avatarUrl ?? undefined;
+    return undefined;
+  };
+
   if (classLoading) return <div className="p-6 text-sm text-[#64748B]">Loading...</div>;
   if (classError) return <div className="p-6 text-sm text-red-500">Error loading classroom</div>;
 
@@ -503,6 +511,7 @@ const Chat = () => {
                       <div className="w-8 shrink-0">
                         {showAvatar && (
                           <Avatar className="w-8 h-8">
+                            <AvatarImage src={userAvatar(msg.senderId)} alt="" className="object-cover" />
                             <AvatarFallback
                               className={`text-[10px] font-semibold ${
                                 isMe
@@ -596,6 +605,7 @@ const Chat = () => {
               />
               <div className="flex items-center gap-2">
                 <Avatar className="w-8 h-8">
+                  <AvatarImage src={user?.profile?.avatarUrl ?? undefined} alt="" className="object-cover" />
                   <AvatarFallback className="bg-blue-100 text-blue-700 text-[10px] font-semibold">
                     {myInitials}
                   </AvatarFallback>
@@ -667,6 +677,7 @@ const Chat = () => {
                             >
                               <div className="relative">
                                 <Avatar className="w-7 h-7">
+                                  <AvatarImage src={userAvatar(member.userId)} alt="" className="object-cover" />
                                   <AvatarFallback
                                     className={`text-[10px] font-semibold ${
                                       isOnline

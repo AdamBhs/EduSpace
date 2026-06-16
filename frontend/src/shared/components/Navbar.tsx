@@ -120,6 +120,12 @@ export default function Navbar() {
   const classroomMap = new Map(
     (classrooms ?? []).map((ec) => [ec.classroom.id, ec.classroom.name]),
   );
+  const classroomInfoMap = new Map(
+    (classrooms ?? []).map((ec) => [
+      ec.classroom.id,
+      { name: ec.classroom.name, description: ec.classroom.description ?? undefined },
+    ]),
+  );
 
   const searchPostTypeIcon = (type: string) => {
     switch (type) {
@@ -226,7 +232,8 @@ export default function Navbar() {
     classBreadcrumb ??
     (cachedBreadcrumb?.code === classCodeFromPath
       ? cachedBreadcrumb.data
-      : undefined);
+      : undefined) ??
+    (classCodeFromPath ? classroomInfoMap.get(classCodeFromPath) : undefined);
 
   const capitalized = (name?: string) => {
     return name

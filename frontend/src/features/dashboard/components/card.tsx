@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { FaRegFolder } from "react-icons/fa";
-import { Avatar, AvatarFallback } from "@/shared/components/ui/avatar";
+import { Avatar, AvatarFallback, AvatarImage } from "@/shared/components/ui/avatar";
 import { HiOutlineDotsVertical } from "react-icons/hi";
 import { HiArrowTrendingUp } from "react-icons/hi2";
 import { FaRegUserCircle } from "react-icons/fa";
@@ -83,11 +83,32 @@ const Card = ({ data }: Props) => {
     ? (isAdmin ? "Teacher" : "Student")
     : (isAdmin ? "Admin" : "Member");
 
+  // Deterministic, varied header color per classroom (uses coverImage if set).
+  const HEADER_GRADIENTS = [
+    "linear-gradient(135deg, #137FEC, #0A5BB5)",
+    "linear-gradient(135deg, #8B5CF6, #6D28D9)",
+    "linear-gradient(135deg, #EC4899, #BE185D)",
+    "linear-gradient(135deg, #10B981, #047857)",
+    "linear-gradient(135deg, #F59E0B, #B45309)",
+    "linear-gradient(135deg, #06B6D4, #0E7490)",
+    "linear-gradient(135deg, #6366F1, #4338CA)",
+    "linear-gradient(135deg, #F43F5E, #9F1239)",
+  ];
+  const gradientIndex = Array.from(data.classroom.id).reduce(
+    (sum, ch) => sum + ch.charCodeAt(0),
+    0,
+  ) % HEADER_GRADIENTS.length;
+  const cover = data.classroom.coverImage;
+  const headerStyle = cover?.startsWith("http")
+    ? { backgroundImage: `url(${cover})`, backgroundSize: "cover", backgroundPosition: "center" }
+    : { background: HEADER_GRADIENTS[gradientIndex] };
+
   return (
     <div className="rounded-lg border border-[#b8b8b8] w-80 max-w-80 overflow-hidden hover:shadow-md cursor-pointer">
       <div
         onClick={handleClickNav}
-        className="bg-[#137FEC] p-4 text-white relative h-27.75"
+        style={headerStyle}
+        className="p-4 text-white relative h-27.75"
       >
         <div className="flex items-center gap-2 mb-1">
           <h1 className="font-bold text-xl hover:underline truncate">
@@ -118,6 +139,7 @@ const Card = ({ data }: Props) => {
           size="xl"
           className="absolute bottom-0 right-3 translate-y-1/2 size-15 shadow-md"
         >
+          <AvatarImage src={data.creator?.avatarUrl ?? undefined} alt="" className="object-cover" />
           <AvatarFallback className="bg-blue-400 text-white font-bold text-xl">
             {creatorInitials}
           </AvatarFallback>
