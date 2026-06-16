@@ -21,18 +21,20 @@ A classroom management platform built as a microservices monorepo. Create teachi
 
 ## Screenshots
 
-<p>
-  <img src="docs/screenshots/dashboard.png" width="420" alt="Dashboard — your classrooms" />
-  <img src="docs/screenshots/classwork.png" width="420" alt="Classwork — posts organized into chapters" />
-</p>
-<p>
-  <img src="docs/screenshots/post-assignment.png" width="420" alt="Assignment — submissions and grading" />
-  <img src="docs/screenshots/post-quiz.png" width="420" alt="Quiz — auto-graded with per-question results" />
-</p>
-<p>
-  <img src="docs/screenshots/chat.png" width="420" alt="Real-time group chat" />
-  <img src="docs/screenshots/messenger.png" width="420" alt="Direct messages" />
-</p>
+<table>
+  <tr>
+    <td width="50%"><img src="docs/screenshots/dashboard.png" alt="Dashboard" /><br/><sub><b>Dashboard</b> — all your classrooms</sub></td>
+    <td width="50%"><img src="docs/screenshots/classwork.png" alt="Classwork" /><br/><sub><b>Classwork</b> — posts organized into chapters</sub></td>
+  </tr>
+  <tr>
+    <td width="50%"><img src="docs/screenshots/chat.png" alt="Group chat" /><br/><sub><b>Group chat</b> — real-time, with reactions and presence</sub></td>
+    <td width="50%"><img src="docs/screenshots/messenger.png" alt="Direct messages" /><br/><sub><b>Messenger</b> — 1:1 direct messages</sub></td>
+  </tr>
+  <tr>
+    <td width="50%"><img src="docs/screenshots/post-assignment.png" alt="Assignment" /><br/><sub><b>Assignments</b> — submissions and grading</sub></td>
+    <td width="50%"><img src="docs/screenshots/post-quiz.png" alt="Quiz" /><br/><sub><b>Quizzes</b> — auto-graded with per-question results</sub></td>
+  </tr>
+</table>
 
 ## Architecture
 
